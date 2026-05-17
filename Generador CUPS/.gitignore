@@ -1,0 +1,24 @@
+# Datos de origen (Excel fuente)
+*.xlsx
+
+# Scripts de desarrollo y debug
+*.py
+*.pyw
+debug_*.py
+fix_*.py
+patch_*.py
+navigate_*.pyw
+build_pwa.py
+
+# Imágenes de capturas de debug (no son assets de la app)
+banner.png
+banner_b64.txt
+bottom.png
+ctrlf.png
+odoo_*.png
+pwa_*.png
+result.png
+screen_*.png
+scroll*.png
+search_*.png
+sitio_*.png

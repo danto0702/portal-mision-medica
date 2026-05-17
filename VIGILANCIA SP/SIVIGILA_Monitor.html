@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIVIGILA Monitor — HRNO · Salud Pública Norte de Santander</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:     #0d1117;
+  --bg2:    #161b22;
+  --bg3:    #21262d;
+  --border: #30363d;
+  --text:   #e6edf3;
+  --text2:  #8b949e;
+  --primary:       #1E40AF;
+  --primary-light: #3B82F6;
+  --accent:  #ffb432;
+  --success: #38c793;
+  --danger:  #e94560;
+  --warn:    #ffb432;
+  --purple:  #7c1d6f;
+  --font-head: 'Fira Code', monospace;
+  --font-body: 'Fira Sans', sans-serif;
+  --radius: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: var(--font-body); background: var(--bg); color: var(--text); display: flex; font-size: 14px; }
+
+/* SIDEBAR */
+.sidebar { width: 220px; min-width: 220px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+.sidebar-logo { padding: 18px 16px 14px; border-bottom: 1px solid var(--border); }
+.sidebar-logo h1 { font-family: var(--font-head); font-size: 12px; color: var(--primary-light); font-weight: 600; line-height: 1.4; }
+.sidebar-logo p { font-size: 10px; color: var(--text2); margin-top: 3px; }
+.nav-section { padding: 10px 8px 4px; }
+.nav-label { font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.8px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text2); transition: background 150ms, color 150ms; margin-bottom: 1px; }
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: rgba(30,64,175,0.2); color: var(--primary-light); }
+.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+.nav-badge { margin-left: auto; background: var(--danger); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; display: none; }
+.nav-badge.visible { display: block; }
+.sidebar-footer { margin-top: auto; padding: 10px 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text2); flex-shrink: 0; }
+.dot.ok { background: var(--success); }
+.dot.err { background: var(--danger); }
+
+/* MAIN */
+.main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
+.topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 52px; }
+.tb-title { font-family: var(--font-head); font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; margin-right: 4px; }
+.fg { display: flex; align-items: center; gap: 6px; }
+.fl { font-size: 11px; color: var(--text2); white-space: nowrap; }
+select, input[type="text"], input[type="number"], input[type="date"], input[type="url"] { background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-size: 12px; font-family: var(--font-body); outline: none; cursor: pointer; }
+select:focus, input:focus { border-color: var(--primary-light); }
+.btn { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; transition: opacity 150ms, transform 100ms; font-family: var(--font-body); white-space: nowrap; }
+.btn:hover { opacity: 0.85; }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-accent  { background: var(--accent); color: #1a1a1a; }
+.btn-danger  { background: var(--danger); color: #fff; }
+.btn-success { background: var(--success); color: #1a1a1a; }
+.btn-ghost   { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--text2); }
+
+/* CONTENT */
+.content { flex: 1; overflow-y: auto; padding: 18px; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* KPI */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.kpi-lbl { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+.kpi-val { font-family: var(--font-head); font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+.kpi-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+.kpi.red   { border-color: var(--danger); }  .kpi.red   .kpi-val { color: var(--danger); }
+.kpi.warn  { border-color: var(--warn); }    .kpi.warn  .kpi-val { color: var(--warn); }
+.kpi.green { border-color: var(--success); } .kpi.green .kpi-val { color: var(--success); }
+.kpi.blue  { border-color: var(--primary-light); } .kpi.blue .kpi-val { color: var(--primary-light); }
+
+/* CHARTS */
+.charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 18px; }
+.cc { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.cc.wide { grid-column: span 2; }
+.cc-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.ch { position: relative; height: 210px; }
+.ch.tall { height: 280px; }
+
+/* SECTION HEADER */
+.sh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+.st { font-size: 14px; font-weight: 600; color: var(--text); }
+
+/* TABLE */
+.tw { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { background: var(--bg3); padding: 9px 10px; text-align: left; font-weight: 600; color: var(--text2); white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+tbody tr { border-bottom: 1px solid var(--border); }
+tbody tr:hover { background: var(--bg3); }
+tbody td { padding: 7px 10px; color: var(--text); white-space: nowrap; }
+.bdg { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.bdg-ok  { background: rgba(56,199,147,0.15); color: var(--success); }
+.bdg-pr  { background: rgba(255,180,50,0.15);  color: var(--warn); }
+.bdg-sp  { background: rgba(59,130,246,0.15);  color: var(--primary-light); }
+.bdg-sem { background: rgba(30,64,175,0.2);    color: var(--primary-light); }
+.bdg-men { background: rgba(124,29,111,0.2);   color: #c084fc; }
+.pag { padding: 10px 12px; font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+
+/* MAP */
+#mapa-leaflet { height: calc(100vh - 170px); border-radius: var(--radius); border: 1px solid var(--border); }
+
+/* ALERTS */
+.ai { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ai.trig { border-color: var(--danger); background: rgba(233,69,96,0.05); }
+.ai.warn2 { border-color: var(--warn); background: rgba(255,180,50,0.05); }
+.ai-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text2); flex-shrink: 0; }
+.ai.trig .ai-dot { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.ai.warn2 .ai-dot { background: var(--warn); }
+
+/* UPLOAD */
+.up-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 36px 16px; text-align: center; cursor: pointer; transition: border-color 150ms; }
+.up-zone:hover, .up-zone.drag { border-color: var(--primary-light); }
+.up-zone input { display: none; }
+
+/* LOADING */
+.loading { position: fixed; inset: 0; background: rgba(13,17,23,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; flex-direction: column; gap: 14px; }
+.loading.show { display: flex; }
+.spin { width: 38px; height: 38px; border: 3px solid var(--border); border-top-color: var(--primary-light); border-radius: 50%; animation: sp 0.8s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* TOAST */
+.toasts { position: fixed; bottom: 18px; right: 18px; z-index: 2000; display: flex; flex-direction: column; gap: 6px; }
+.toast { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; max-width: 310px; animation: ti 200ms ease; }
+.toast.success { border-color: var(--success); }
+.toast.error   { border-color: var(--danger); }
+.toast.warn    { border-color: var(--warn); }
+@keyframes ti { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* MODAL */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 500; display: none; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 22px; width: 460px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+.modal-title { font-size: 15px; font-weight: 600; margin-bottom: 18px; color: var(--text); }
+.fg2 { margin-bottom: 12px; }
+.fg2 label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 5px; }
+.fg2 select, .fg2 input { width: 100%; }
+.row2 { display: flex; gap: 10px; }
+.row2 .fg2 { flex: 1; }
+.mfooter { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+/* FORM CONFIG */
+.cfg-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.cfg-card .cc-title { margin-bottom: 14px; }
+pre#gas-code { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 10.5px; overflow: auto; font-family: var(--font-head); color: var(--text); white-space: pre-wrap; max-height: 360px; }
+
+@media (max-width: 900px) {
+  .sidebar { width: 52px; min-width: 52px; }
+  .sidebar-logo, .nav-label, .nav-item span, .sidebar-footer span:last-child { display: none; }
+  .nav-item { justify-content: center; padding: 9px; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .cc.wide { grid-column: span 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== SIDEBAR ===================== -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>SIVIGILA Monitor</h1>
+    <p>HRNO · Norte de Santander</p>
+  </div>
+  <nav>
+    <div class="nav-section">
+      <div class="nav-label">Análisis</div>
+      <div class="nav-item active" id="nav-dashboard" onclick="setVista('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-item" id="nav-mapa" onclick="setVista('mapa')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        <span>Mapa epidemiológico</span>
+      </div>
+      <div class="nav-item" id="nav-timeline" onclick="setVista('timeline')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>Línea de tiempo</span>
+      </div>
+      <div class="nav-item" id="nav-tabla" onclick="setVista('tabla')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span>Notificaciones</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Gestión</div>
+      <div class="nav-item" id="nav-alertas" onclick="setVista('alertas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span>Alertas</span>
+        <span class="nav-badge" id="alerta-badge">0</span>
+      </div>
+      <div class="nav-item" id="nav-carga" onclick="setVista('carga')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Cargar datos</span>
+      </div>
+      <div class="nav-item" id="nav-config" onclick="setVista('config')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Configuración</span>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="dot" id="conn-dot"></div>
+    <span id="conn-text">Sin configurar</span>
+  </div>
+</aside>
+
+<!-- ===================== MAIN ===================== -->
+<div class="main">
+
+  <!-- TOPBAR FILTROS -->
+  <div class="topbar">
+    <span class="tb-title" id="vista-titulo">Dashboard</span>
+    <div class="fg">
+      <span class="fl">Municipio:</span>
+      <select id="f-mun" onchange="aplicarFiltros()">
+        <option value="">Todos</option>
+        <option value="ABREGO">Ábrego</option>
+        <option value="CONVENCION">Convención</option>
+        <option value="EL CARMEN">El Carmen</option>
+        <option value="TEORAMA">Teorama</option>
+      </select>
+    </div>
+    <div class="fg">
+      <span class="fl">Evento:</span>
+      <select id="f-eve" onchange="aplicarFiltros()"><option value="">Todos</option></select>
+    </div>
+    <div class="fg">
+      <span class="fl">Año:</span>
+      <select id="f-ano" onchange="aplicarFiltros()">
+        <option value="">Todos</option>
+        <option value="2023">2023</option>
+        <option value="2024">2024</option>
+        <option value="2025">2025</option>
+        <option value="2026">2026</option>
+      </select>
+    </div>
+    <div class="fg">
+      <span class="fl">Semana:</span>
+      <select id="f-sd" onchange="aplicarFiltros()"><option value="">Desde</option></select>
+      <select id="f-sh" onchange="aplicarFiltros()"><option value="">Hasta</option></select>
+    </div>
+    <div class="fg">
+      <span class="fl">Área:</span>
+      <select id="f-area" onchange="aplicarFiltros()">
+        <option value="">Todos</option>
+        <option value="1">Cabecera</option>
+        <option value="2">Rural disperso</option>
+        <option value="3">C. poblado</option>
+      </select>
+    </div>
+    <button class="btn btn-ghost" onclick="limpiarFiltros()">Limpiar</button>
+    <button class="btn btn-primary" onclick="cargarDatos()">↻ Actualizar</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="view active" id="view-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi blue"><div class="kpi-lbl">Total casos</div><div class="kpi-val" id="k-total">—</div><div class="kpi-sub" id="k-total-s">en período</div></div>
+        <div class="kpi"><div class="kpi-lbl">Semana EPI actual</div><div class="kpi-val" id="k-sem">—</div><div class="kpi-sub" id="k-sem-s">casos esta semana</div></div>
+        <div class="kpi"><div class="kpi-lbl">Eventos distintos</div><div class="kpi-val" id="k-eve">—</div><div class="kpi-sub">enfermedades/eventos</div></div>
+        <div class="kpi"><div class="kpi-lbl">Hospitalizados</div><div class="kpi-val" id="k-hosp">—</div><div class="kpi-sub">pac_hos = S</div></div>
+        <div class="kpi red"><div class="kpi-lbl">Defunciones</div><div class="kpi-val" id="k-def">—</div><div class="kpi-sub">con_fin = M</div></div>
+        <div class="kpi warn"><div class="kpi-lbl">Alertas activas</div><div class="kpi-val" id="k-alr">0</div><div class="kpi-sub">disparadas ahora</div></div>
+      </div>
+      <div class="charts-grid">
+        <div class="cc wide"><div class="cc-title">Casos por semana epidemiológica</div><div class="ch tall"><canvas id="ch-sem"></canvas></div></div>
+        <div class="cc"><div class="cc-title">Top 10 eventos (enfermedades)</div><div class="ch"><canvas id="ch-eve"></canvas></div></div>
+        <div class="cc"><div class="cc-title">Distribución por municipio</div><div class="ch"><canvas id="ch-mun"></canvas></div></div>
+        <div class="cc"><div class="cc-title">Tipo de caso</div><div class="ch"><canvas id="ch-tipo"></canvas></div></div>
+        <div class="cc"><div class="cc-title">Distribución por sexo</div><div class="ch"><canvas id="ch-sexo"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- ===== MAPA ===== -->
+    <div class="view" id="view-mapa">
+      <div class="sh">
+        <div class="st">Mapa epidemiológico — Norte de Santander</div>
+        <div class="fg">
+          <span class="fl">Escala de color:</span>
+          <select id="mapa-esc" onchange="renderMapa()">
+            <option value="casos">N.° total casos</option>
+            <option value="incidencia">Incidencia relativa</option>
+          </select>
+        </div>
+      </div>
+      <div id="mapa-leaflet"></div>
+    </div>
+
+    <!-- ===== LÍNEA DE TIEMPO ===== -->
+    <div class="view" id="view-timeline">
+      <div class="sh">
+        <div class="st">Línea de tiempo epidemiológica</div>
+        <div class="fg">
+          <span class="fl">Agrupar:</span>
+          <select id="tl-agr" onchange="renderTimeline()">
+            <option value="semana">Semana EPI</option>
+            <option value="mes">Mes</option>
+            <option value="año">Año</option>
+          </select>
+          <span class="fl">Desglose:</span>
+          <select id="tl-vis" onchange="renderTimeline()">
+            <option value="total">Total</option>
+            <option value="municipio">Por municipio</option>
+            <option value="evento">Por evento (top 5)</option>
+          </select>
+        </div>
+      </div>
+      <div class="cc" style="margin-bottom:14px"><div class="cc-title">Tendencia temporal de casos</div><div class="ch" style="height:270px"><canvas id="ch-tl-main"></canvas></div></div>
+      <div class="charts-grid">
+        <div class="cc"><div class="cc-title">Casos por municipio / período</div><div class="ch"><canvas id="ch-tl-mun"></canvas></div></div>
+        <div class="cc"><div class="cc-title">Top 10 barrios y veredas</div><div class="ch"><canvas id="ch-tl-bar"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- ===== NOTIFICACIONES ===== -->
+    <div class="view" id="view-tabla">
+      <div class="sh">
+        <div class="st">Registro de notificaciones SIVIGILA</div>
+        <div class="fg" style="flex-wrap:wrap">
+          <span class="fl">Barrio/Vereda:</span>
+          <select id="f-bv" onchange="aplicarFiltros()"><option value="">Todos</option></select>
+          <span class="fl">Tipo caso:</span>
+          <select id="f-tc" onchange="aplicarFiltros()">
+            <option value="">Todos</option>
+            <option value="1">Confirmado</option>
+            <option value="2">Probable</option>
+            <option value="3">Sospechoso</option>
+          </select>
+          <span class="fl">Carga:</span>
+          <select id="f-cg" onchange="aplicarFiltros()">
+            <option value="">Todos</option>
+            <option value="SEMANAL">Semanal</option>
+            <option value="MENSUAL">Mensual</option>
+          </select>
+          <span class="fl">Sexo:</span>
+          <select id="f-sx" onchange="aplicarFiltros()">
+            <option value="">Todos</option>
+            <option value="M">Masculino</option>
+            <option value="F">Femenino</option>
+          </select>
+        </div>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr>
+            <th>SE</th><th>Año</th><th>Fec. Not.</th><th>Evento</th>
+            <th>Municipio</th><th>Área</th><th>Barrio/Vereda</th>
+            <th>Edad</th><th>Sexo</th><th>Tipo caso</th>
+            <th>Hosp.</th><th>Cond. final</th><th>Carga</th>
+          </tr></thead>
+          <tbody id="tb-body"></tbody>
+        </table>
+      </div>
+      <div class="pag" id="tb-pag"></div>
+    </div>
+
+    <!-- ===== ALERTAS ===== -->
+    <div class="view" id="view-alertas">
+      <div class="sh">
+        <div class="st">Sistema de alertas epidemiológicas</div>
+        <button class="btn btn-accent" onclick="abrirModalAlerta()">+ Nueva alerta</button>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Alertas disparadas</div>
+        <div id="alr-disp"><p style="color:var(--text2);font-size:13px">No hay alertas activas en este momento.</p></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Alertas configuradas</div>
+        <div id="alr-cfg"><p style="color:var(--text2);font-size:13px">No hay alertas configuradas. Usa el botón "Nueva alerta".</p></div>
+      </div>
+    </div>
+
+    <!-- ===== CARGA DE DATOS ===== -->
+    <div class="view" id="view-carga">
+      <div class="sh"><div class="st">Cargar notificaciones SIVIGILA</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <div class="cc">
+          <div class="cc-title">Notificación SEMANAL</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Archivo Excel de reporte semanal SIVIGILA (.xlsx / .xls / .csv). Se asigna <strong>tipo_carga = SEMANAL</strong>.</p>
+          <div class="up-zone" id="drop-sem" onclick="document.getElementById('fi-sem').click()">
+            <input type="file" id="fi-sem" accept=".xlsx,.xls,.csv" onchange="procesarArchivo(event,'SEMANAL')">
+            <svg style="width:36px;height:36px;color:var(--text2);margin-bottom:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p style="font-size:13px;color:var(--text2)">Arrastra el archivo o haz clic</p>
+            <p style="font-size:11px;color:var(--text2);margin-top:3px">.xlsx · .xls · .csv</p>
+          </div>
+        </div>
+        <div class="cc">
+          <div class="cc-title">Notificación MENSUAL — Validadora</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">El sistema detecta <strong>duplicados</strong> con los registros semanales existentes. Solo se agregan casos nuevos no notificados previamente.</p>
+          <div class="up-zone" id="drop-men" onclick="document.getElementById('fi-men').click()">
+            <input type="file" id="fi-men" accept=".xlsx,.xls,.csv" onchange="procesarArchivo(event,'MENSUAL')">
+            <svg style="width:36px;height:36px;color:var(--text2);margin-bottom:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p style="font-size:13px;color:var(--text2)">Arrastra el archivo o haz clic</p>
+            <p style="font-size:11px;color:var(--text2);margin-top:3px">.xlsx · .xls · .csv</p>
+          </div>
+        </div>
+      </div>
+      <!-- Preview -->
+      <div id="carga-prev" style="display:none">
+        <div class="sh">
+          <div class="st">Vista previa</div>
+          <div class="fg">
+            <span id="prev-stats" style="font-size:12px;color:var(--text2)"></span>
+            <button class="btn btn-success" onclick="confirmarCarga()">Confirmar y cargar</button>
+            <button class="btn btn-ghost" onclick="cancelarCarga()">Cancelar</button>
+          </div>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Estado</th><th>SE</th><th>Año</th><th>Evento</th><th>ID (parcial)</th><th>Municipio</th><th>Fecha Not.</th><th>Sexo</th></tr></thead>
+            <tbody id="prev-body"></tbody>
+          </table>
+        </div>
+        <p style="font-size:11px;color:var(--text2);padding:10px 0">* Solo se muestran los primeros 200 registros en la vista previa. Se cargarán todos los registros nuevos.</p>
+      </div>
+    </div>
+
+    <!-- ===== CONFIGURACIÓN ===== -->
+    <div class="view" id="view-config">
+      <div class="sh"><div class="st">Configuración del sistema</div></div>
+      <div style="max-width:620px">
+        <div class="cfg-card">
+          <div class="cc-title">Conexión Google Sheets vía Apps Script</div>
+          <div class="fg2">
+            <label>URL del Web App (Apps Script)</label>
+            <input type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/XXXX/exec" style="width:100%">
+          </div>
+          <p style="font-size:11px;color:var(--text2);margin-bottom:12px">Despliega el Apps Script como Web App con acceso "Cualquier persona" y pega la URL aquí.</p>
+          <button class="btn btn-primary" onclick="guardarConfig()">Guardar y probar conexión</button>
+          <span id="conn-result" style="font-size:12px;color:var(--text2);margin-left:10px"></span>
+        </div>
+        <div class="cfg-card">
+          <div class="cc-title">Código Apps Script — copiar en Google Apps Script</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Abre <strong>script.google.com</strong>, crea un nuevo proyecto, pega este código y despliégalo como Web App.</p>
+          <pre id="gas-code"></pre>
+          <button class="btn btn-ghost" style="margin-top:10px" onclick="copiarGAS()">Copiar código</button>
+        </div>
+        <div class="cfg-card">
+          <div class="cc-title">Datos locales (caché)</div>
+          <div class="fg" style="flex-wrap:wrap;gap:8px">
+            <button class="btn btn-ghost" onclick="exportarJSON()">Exportar JSON</button>
+            <button class="btn btn-ghost" onclick="importarJSON()">Importar JSON</button>
+            <button class="btn btn-danger" onclick="limpiarLocal()">Limpiar caché</button>
+          </div>
+          <p id="cfg-info" style="font-size:11px;color:var(--text2);margin-top:10px"></p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- LOADING -->
+<div class="loading" id="loading">
+  <div class="spin"></div>
+  <p id="load-txt" style="font-size:13px;color:var(--text2)">Cargando...</p>
+</div>
+
+<!-- TOASTS -->
+<div class="toasts" id="toasts"></div>
+
+<!-- MODAL NUEVA ALERTA -->
+<div class="modal-bg" id="modal-alr">
+  <div class="modal">
+    <div class="modal-title">Nueva alerta epidemiológica</div>
+    <div class="fg2"><label>Nombre *</label><input type="text" id="alr-nom" placeholder="Ej: Brote dengue Ábrego SE20"></div>
+    <div class="row2">
+      <div class="fg2">
+        <label>Municipio</label>
+        <select id="alr-mun">
+          <option value="">Todos</option>
+          <option value="ABREGO">Ábrego</option>
+          <option value="CONVENCION">Convención</option>
+          <option value="EL CARMEN">El Carmen</option>
+          <option value="TEORAMA">Teorama</option>
+        </select>
+      </div>
+      <div class="fg2"><label>Evento (enfermedad)</label><select id="alr-eve"><option value="">Cualquier evento</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="fg2"><label>Umbral (N.° casos)</label><input type="number" id="alr-umb" value="5" min="1"></div>
+      <div class="fg2">
+        <label>Período de evaluación</label>
+        <select id="alr-per">
+          <option value="semana">Semana EPI actual</option>
+          <option value="mes">Mes calendario actual</option>
+          <option value="total">Total acumulado</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg2">
+      <label>Nivel de alerta</label>
+      <select id="alr-niv">
+        <option value="warn">Advertencia (amarillo)</option>
+        <option value="danger">Alerta crítica (rojo)</option>
+      </select>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-alr')">Cancelar</button>
+      <button class="btn btn-accent" onclick="guardarAlerta()">Crear alerta</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CÓDIGO APPS SCRIPT (para mostrar en configuración)
+// ============================================================
+const GAS_CODE_TEXT = `// ============================================================
+// SIVIGILA Monitor — Apps Script Backend
+// ESE Hospital Regional Noroccidental · Salud Pública
+// Instrucciones:
+//  1. Abre script.google.com y crea un nuevo proyecto
+//  2. Pega este código completo
+//  3. Guarda el proyecto
+//  4. Clic en "Implementar" > "Nueva implementación"
+//  5. Tipo: Aplicación web
+//  6. Ejecutar como: Yo (tu cuenta)
+//  7. Quién tiene acceso: Cualquier persona
+//  8. Copia la URL generada y pégala en la configuración del Monitor
+// ============================================================
+
+const SS = SpreadsheetApp.getActiveSpreadsheet();
+const HOJA_DATOS   = 'DATOS';
+const HOJA_ALERTAS = 'ALERTAS';
+
+function doGet(e) {
+  const p = e.parameter || {};
+  try {
+    if (p.accion === 'ping')    return json({ok: true, ts: new Date().toISOString(), total: contarRegistros()});
+    if (p.accion === 'alertas') return json(getAlertas());
+    return json(getDatos(p));
+  } catch(err) {
+    return json({error: err.message});
+  }
+}
+
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    if (payload.accion === 'insertar') return json(insertarRegistros(payload.registros, payload.tipo_carga));
+    if (payload.accion === 'alertas')  return json(guardarAlertas(payload.alertas));
+    return json({error: 'Accion desconocida'});
+  } catch(err) {
+    return json({error: err.message});
+  }
+}
+
+function getDatos(p) {
+  const hoja = SS.getSheetByName(HOJA_DATOS);
+  if (!hoja || hoja.getLastRow() < 2) return [];
+  const vals  = hoja.getDataRange().getValues();
+  const hdrs  = vals[0];
+  const rows  = vals.slice(1);
+
+  return rows
+    .map(r => { const o = {}; hdrs.forEach((h,i) => o[h] = r[i]); return o; })
+    .filter(r => {
+      if (p.municipio && r.municipio !== p.municipio) return false;
+      if (p.anio && String(r.año) !== p.anio)         return false;
+      if (p.cod_eve && String(r.cod_eve) !== p.cod_eve) return false;
+      if (p.sem_desde && Number(r.semana) < Number(p.sem_desde)) return false;
+      if (p.sem_hasta && Number(r.semana) > Number(p.sem_hasta)) return false;
+      return true;
+    });
+}
+
+function contarRegistros() {
+  const h = SS.getSheetByName(HOJA_DATOS);
+  return h ? Math.max(0, h.getLastRow() - 1) : 0;
+}
+
+function insertarRegistros(registros, tipo_carga) {
+  let hoja = SS.getSheetByName(HOJA_DATOS);
+  if (!hoja) hoja = SS.insertSheet(HOJA_DATOS);
+
+  const vals = hoja.getLastRow() > 0 ? hoja.getDataRange().getValues() : [];
+  let hdrs = vals.length > 0 ? vals[0] : null;
+
+  // Construir set de claves para deduplicación
+  const claves = new Set();
+  if (hdrs && vals.length > 1) {
+    const ii = hdrs.indexOf('num_ide_');
+    const ic = hdrs.indexOf('cod_eve');
+    const is = hdrs.indexOf('semana');
+    const ia = hdrs.indexOf('año');
+    vals.slice(1).forEach(r => {
+      claves.add(r[ii] + '|' + r[ic] + '|' + r[is] + '|' + r[ia]);
+    });
+  }
+
+  let insertados = 0, duplicados = 0;
+
+  for (const reg of registros) {
+    const clave = reg.num_ide_ + '|' + reg.cod_eve + '|' + reg.semana + '|' + reg.año;
+    if (claves.has(clave)) { duplicados++; continue; }
+
+    reg.tipo_carga  = tipo_carga;
+    reg.fecha_carga = new Date().toISOString();
+
+    if (!hdrs) {
+      hdrs = Object.keys(reg);
+      hoja.appendRow(hdrs);
+    }
+    hoja.appendRow(hdrs.map(h => reg[h] !== undefined ? reg[h] : ''));
+    claves.add(clave);
+    insertados++;
+  }
+
+  SpreadsheetApp.flush();
+  return { ok: true, insertados, duplicados };
+}
+
+function getAlertas() {
+  const h = SS.getSheetByName(HOJA_ALERTAS);
+  if (!h || h.getLastRow() < 2) return [];
+  const v = h.getDataRange().getValues();
+  const hdrs = v[0];
+  return v.slice(1).map(r => { const o={}; hdrs.forEach((h,i)=>o[h]=r[i]); return o; });
+}
+
+function guardarAlertas(alertas) {
+  let h = SS.getSheetByName(HOJA_ALERTAS);
+  if (!h) h = SS.insertSheet(HOJA_ALERTAS);
+  h.clearContents();
+  if (!alertas || alertas.length === 0) return {ok: true};
+  const hdrs = Object.keys(alertas[0]);
+  h.appendRow(hdrs);
+  alertas.forEach(a => h.appendRow(hdrs.map(k => a[k] || '')));
+  SpreadsheetApp.flush();
+  return {ok: true};
+}
+
+function json(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let DATOS_TODOS     = [];
+let DATOS_FILT      = [];
+let ALERTAS         = [];
+let CHARTS          = {};
+let MAPA            = null;
+let MAPA_LAYERS     = [];
+let CARGA_PEND      = null;
+let PAG             = 0;
+const POR_PAG       = 100;
+
+const MUN = {
+  ABREGO:     { lat: 8.0833, lng: -73.2333, nombre: 'Ábrego',     pob: 32000 },
+  CONVENCION: { lat: 8.4625, lng: -73.3653, nombre: 'Convención', pob: 28000 },
+  'EL CARMEN':{ lat: 8.3000, lng: -73.5167, nombre: 'El Carmen',  pob: 21000 },
+  TEORAMA:    { lat: 8.4000, lng: -73.3833, nombre: 'Teorama',    pob: 18000 },
+};
+
+const COLORES = ['#3B82F6','#38c793','#ffb432','#e94560','#a78bfa','#34d399','#fb923c','#f472b6','#60a5fa','#4ade80'];
+
+const CHART_OPTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: {
+    legend: { labels: { color: '#8b949e', font: { size: 11 } } },
+    tooltip: { backgroundColor: '#21262d', titleColor: '#e6edf3', bodyColor: '#8b949e', borderColor: '#30363d', borderWidth: 1 },
+  },
+  scales: {
+    x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+    y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, beginAtZero: true },
+  }
+};
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('gas-code').textContent = GAS_CODE_TEXT;
+
+  const url = localStorage.getItem('gas_url') || '';
+  document.getElementById('cfg-url').value = url;
+
+  ALERTAS = JSON.parse(localStorage.getItem('siv_alertas') || '[]');
+
+  // Semanas select
+  const sd = document.getElementById('f-sd'), sh = document.getElementById('f-sh');
+  for (let s = 1; s <= 52; s++) {
+    [sd, sh].forEach(sel => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = 'SE ' + s;
+      sel.appendChild(o);
+    });
+  }
+
+  // Drag & drop zonas
+  configurarDrop('drop-sem', 'SEMANAL');
+  configurarDrop('drop-men', 'MENSUAL');
+
+  // Caché local
+  const cached = localStorage.getItem('siv_datos');
+  if (cached) {
+    try {
+      DATOS_TODOS = JSON.parse(cached);
+      aplicarFiltros();
+      toast(DATOS_TODOS.length.toLocaleString('es-CO') + ' registros cargados desde caché', 'success');
+    } catch(e) { localStorage.removeItem('siv_datos'); }
+  }
+
+  actualizarConexion();
+  actualizarInfoCfg();
+  if (url) setTimeout(cargarDatos, 300);
+});
+
+function configurarDrop(zoneId, tipo) {
+  const z = document.getElementById(zoneId);
+  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('drag'); });
+  z.addEventListener('dragleave', () => z.classList.remove('drag'));
+  z.addEventListener('drop', e => {
+    e.preventDefault(); z.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) procesarArchivoFile(f, tipo);
+  });
+}
+
+// ============================================================
+// NAVEGACIÓN
+// ============================================================
+const TITULOS = {
+  dashboard: 'Dashboard epidemiológico',
+  mapa: 'Mapa epidemiológico',
+  timeline: 'Línea de tiempo',
+  tabla: 'Notificaciones SIVIGILA',
+  alertas: 'Sistema de alertas',
+  carga: 'Cargar notificaciones',
+  config: 'Configuración',
+};
+
+function setVista(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.getElementById('nav-' + v).classList.add('active');
+  document.getElementById('vista-titulo').textContent = TITULOS[v] || v;
+  if (v === 'mapa')      renderMapa();
+  if (v === 'timeline')  renderTimeline();
+  if (v === 'alertas')   renderAlertas();
+  if (v === 'dashboard') renderDashboard();
+}
+
+// ============================================================
+// API GOOGLE SHEETS
+// ============================================================
+async function cargarDatos() {
+  const url = localStorage.getItem('gas_url');
+  if (!url) { toast('Configura la URL del Apps Script primero', 'warn'); setVista('config'); return; }
+
+  mostrarLoad('Cargando datos desde Google Sheets…');
+  try {
+    const res  = await fetch(url + '?accion=datos', { redirect: 'follow' });
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error(data.error || 'Respuesta inválida del servidor');
+
+    DATOS_TODOS = data.map(normReg);
+    localStorage.setItem('siv_datos', JSON.stringify(DATOS_TODOS));
+    localStorage.setItem('siv_ts', new Date().toLocaleString('es-CO'));
+
+    aplicarFiltros();
+    actualizarConexion(true);
+    actualizarInfoCfg();
+    toast(DATOS_TODOS.length.toLocaleString('es-CO') + ' registros cargados', 'success');
+  } catch(e) {
+    actualizarConexion(false);
+    toast('Error cargando datos: ' + e.message, 'error');
+  } finally { ocultarLoad(); }
+}
+
+function normReg(r) {
+  // Detectar municipio
+  if (!r.municipio) {
+    const m = String(r.nmun_notif || r.nmun_resi || '').toUpperCase();
+    if      (m.includes('ABREGO') || m.includes('ÁBREGO'))           r.municipio = 'ABREGO';
+    else if (m.includes('CONVENCION') || m.includes('CONVENCIÓN'))   r.municipio = 'CONVENCION';
+    else if (m.includes('CARMEN'))                                    r.municipio = 'EL CARMEN';
+    else if (m.includes('TEORAMA'))                                   r.municipio = 'TEORAMA';
+    else                                                              r.municipio = m || 'OTRO';
+  }
+  r.semana    = Number(r.semana) || 0;
+  r.año       = Number(r.año)    || 0;
+  r.edad_     = Number(r.edad_)  || 0;
+  r.nom_eve   = String(r.nom_eve   || r.cod_eve || '').trim().toUpperCase();
+  r.sexo_     = String(r.sexo_    || '').trim().toUpperCase();
+  r.tip_cas_  = String(r.tip_cas_ || '').trim();
+  r.pac_hos_  = String(r.pac_hos_ || '').trim().toUpperCase();
+  r.con_fin_  = String(r.con_fin_ || '').trim().toUpperCase();
+  r.bar_ver_  = String(r.bar_ver_ || r.vereda_ || '').trim().toUpperCase();
+  r.area_     = String(r.area_    || '').trim();
+  r.tipo_carga= String(r.tipo_carga || 'SEMANAL').toUpperCase();
+  r.num_ide_  = String(r.num_ide_ || '').trim();
+  r.cod_eve   = String(r.cod_eve  || '').trim();
+  r.fec_not   = String(r.fec_not  || '').trim();
+  return r;
+}
+
+async function enviarAGAS(payload) {
+  const url = localStorage.getItem('gas_url');
+  if (!url) throw new Error('URL no configurada');
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+    redirect: 'follow',
+  });
+  return await res.json();
+}
+
+// ============================================================
+// FILTROS
+// ============================================================
+function aplicarFiltros() {
+  const mun  = document.getElementById('f-mun').value;
+  const eve  = document.getElementById('f-eve').value;
+  const ano  = document.getElementById('f-ano').value;
+  const sd   = Number(document.getElementById('f-sd').value)  || 0;
+  const sh   = Number(document.getElementById('f-sh').value)  || 0;
+  const area = document.getElementById('f-area').value;
+  const bv   = document.getElementById('f-bv')?.value || '';
+  const tc   = document.getElementById('f-tc')?.value  || '';
+  const cg   = document.getElementById('f-cg')?.value  || '';
+  const sx   = document.getElementById('f-sx')?.value  || '';
+
+  DATOS_FILT = DATOS_TODOS.filter(r => {
+    if (mun  && r.municipio  !== mun)  return false;
+    if (eve  && r.nom_eve    !== eve)  return false;
+    if (ano  && String(r.año) !== ano) return false;
+    if (sd   && r.semana < sd)         return false;
+    if (sh   && r.semana > sh)         return false;
+    if (area && r.area_      !== area) return false;
+    if (bv   && r.bar_ver_   !== bv)   return false;
+    if (tc   && r.tip_cas_   !== tc)   return false;
+    if (cg   && r.tipo_carga !== cg)   return false;
+    if (sx   && r.sexo_      !== sx)   return false;
+    return true;
+  });
+
+  poblarSelectEve();
+  poblarSelectBV();
+  renderDashboard();
+  renderTabla();
+  evaluarAlertas();
+
+  const va = document.querySelector('.view.active')?.id?.replace('view-', '');
+  if (va === 'mapa')     renderMapa();
+  if (va === 'timeline') renderTimeline();
+}
+
+function limpiarFiltros() {
+  ['f-mun','f-eve','f-ano','f-area','f-sd','f-sh','f-bv','f-tc','f-cg','f-sx'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  aplicarFiltros();
+}
+
+function poblarSelectEve() {
+  const evs = [...new Set(DATOS_TODOS.map(r => r.nom_eve).filter(Boolean))].sort();
+  ['f-eve','alr-eve'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = id === 'alr-eve' ? '<option value="">Cualquier evento</option>' : '<option value="">Todos</option>';
+    evs.forEach(e => {
+      const o = document.createElement('option');
+      o.value = e; o.textContent = e;
+      sel.appendChild(o);
+    });
+    if (cur) sel.value = cur;
+  });
+}
+
+function poblarSelectBV() {
+  const bvs = [...new Set(DATOS_TODOS.map(r => r.bar_ver_).filter(Boolean))].sort();
+  const sel = document.getElementById('f-bv');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>';
+  bvs.forEach(b => {
+    const o = document.createElement('option');
+    o.value = b; o.textContent = b;
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
+}
+
+// ============================================================
+// UTILIDADES DE DATOS
+// ============================================================
+function agrupar(datos, campo) {
+  const g = {};
+  datos.forEach(r => { const k = r[campo] || 'N/D'; g[k] = (g[k] || 0) + 1; });
+  return g;
+}
+
+function semActual() {
+  const hoy = new Date(), ini = new Date(hoy.getFullYear(), 0, 1);
+  return Math.ceil(((hoy - ini) / 86400000 + ini.getDay() + 1) / 7);
+}
+
+function crearChart(id, tipo, data, extOpts = {}) {
+  if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  const esBarLine = tipo === 'bar' || tipo === 'line';
+  const opts = JSON.parse(JSON.stringify(CHART_OPTS));
+  if (!esBarLine) delete opts.scales;
+  Object.assign(opts, extOpts);
+  CHARTS[id] = new Chart(ctx, { type: tipo, data, options: opts });
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const d = DATOS_FILT;
+  document.getElementById('k-total').textContent = d.length.toLocaleString('es-CO');
+  document.getElementById('k-total-s').textContent = [...new Set(d.map(r=>r.municipio))].length + ' municipio(s)';
+
+  const sa = semActual(), anioA = new Date().getFullYear();
+  const dSem = d.filter(r => r.semana === sa && r.año === anioA);
+  document.getElementById('k-sem').textContent = 'SE ' + sa;
+  document.getElementById('k-sem-s').textContent = dSem.length + ' casos';
+
+  document.getElementById('k-eve').textContent  = [...new Set(d.map(r=>r.nom_eve).filter(Boolean))].length;
+  document.getElementById('k-hosp').textContent = d.filter(r => r.pac_hos_ === 'S' || r.pac_hos_ === '1').length;
+  document.getElementById('k-def').textContent  = d.filter(r => r.con_fin_ === 'M' || r.con_fin_ === '2' || r.con_fin_ === 'MUERTO').length;
+  document.getElementById('k-alr').textContent  = ALERTAS.filter(a => a.disparada).length;
+
+  renderChSemanas(d);
+  renderChEventos(d);
+  renderChMunicipios(d);
+  renderChTipoCaso(d);
+  renderChSexo(d);
+}
+
+function renderChSemanas(d) {
+  const g = {};
+  d.forEach(r => { const k = r.año + '-SE' + String(r.semana).padStart(2,'0'); g[k] = (g[k]||0)+1; });
+  const labs = Object.keys(g).sort();
+  crearChart('ch-sem', 'bar', {
+    labels: labs,
+    datasets: [{ label: 'Casos', data: labs.map(l=>g[l]), backgroundColor: '#3B82F6', borderRadius: 3 }]
+  });
+}
+
+function renderChEventos(d) {
+  const sorted = Object.entries(agrupar(d,'nom_eve')).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  crearChart('ch-eve', 'bar', {
+    labels: sorted.map(([e])=>e.length>22?e.slice(0,20)+'…':e),
+    datasets: [{ label: 'Casos', data: sorted.map(([,n])=>n), backgroundColor: COLORES, borderRadius: 3 }]
+  }, { indexAxis:'y', plugins:{ legend:{ display:false }, tooltip: CHART_OPTS.plugins.tooltip } });
+}
+
+function renderChMunicipios(d) {
+  const g = agrupar(d,'municipio');
+  const labs = Object.keys(g).map(k => MUN[k]?.nombre || k);
+  crearChart('ch-mun', 'doughnut', {
+    labels: labs,
+    datasets: [{ data: Object.values(g), backgroundColor: COLORES }]
+  });
+}
+
+function renderChTipoCaso(d) {
+  const mapa = {'1':'Confirmado','2':'Probable','3':'Sospechoso','C':'Confirmado','P':'Probable','S':'Sospechoso'};
+  const g = {};
+  d.forEach(r => { const k = mapa[r.tip_cas_] || r.tip_cas_ || 'Sin clasificar'; g[k] = (g[k]||0)+1; });
+  crearChart('ch-tipo', 'doughnut', {
+    labels: Object.keys(g),
+    datasets: [{ data: Object.values(g), backgroundColor: ['#38c793','#ffb432','#3B82F6','#8b949e','#e94560'] }]
+  });
+}
+
+function renderChSexo(d) {
+  const g = agrupar(d,'sexo_');
+  const labs = Object.keys(g).map(s => s==='M'?'Masculino':s==='F'?'Femenino':s||'No especificado');
+  crearChart('ch-sexo', 'doughnut', {
+    labels: labs,
+    datasets: [{ data: Object.values(g), backgroundColor: ['#3B82F6','#f472b6','#8b949e'] }]
+  });
+}
+
+// ============================================================
+// MAPA
+// ============================================================
+function renderMapa() {
+  if (!MAPA) {
+    MAPA = L.map('mapa-leaflet').setView([8.3, -73.38], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors', maxZoom: 17,
+    }).addTo(MAPA);
+  }
+  MAPA_LAYERS.forEach(l => MAPA.removeLayer(l));
+  MAPA_LAYERS = [];
+
+  const d = DATOS_FILT;
+  const porMun = agrupar(d, 'municipio');
+  const maxC = Math.max(...Object.values(porMun), 1);
+
+  Object.entries(MUN).forEach(([k, info]) => {
+    const n = porMun[k] || 0;
+    const radio = n === 0 ? 8 : 14 + (n / maxC) * 36;
+    const color = n === 0 ? '#8b949e' : n > maxC * 0.66 ? '#e94560' : n > maxC * 0.33 ? '#ffb432' : '#38c793';
+
+    const circle = L.circleMarker([info.lat, info.lng], {
+      radius: radio, fillColor: color, color: '#0d1117', weight: 2, fillOpacity: 0.75,
+    }).bindPopup(buildPopupMun(k, d.filter(r=>r.municipio===k), info.nombre)).addTo(MAPA);
+    MAPA_LAYERS.push(circle);
+
+    const lbl = L.marker([info.lat, info.lng], {
+      icon: L.divIcon({ className:'', html:`<div style="font-family:sans-serif;font-size:11px;font-weight:700;color:#e6edf3;text-shadow:0 1px 4px #000;white-space:nowrap">${info.nombre}<br><span style="color:${color}">${n} casos</span></div>`, iconAnchor:[0,-12] })
+    }).addTo(MAPA);
+    MAPA_LAYERS.push(lbl);
+  });
+
+  // Puntos individuales con coordenadas GPS
+  const conCoords = d.filter(r => r.lat_dir && r.long_dir && !isNaN(Number(r.lat_dir)) && !isNaN(Number(r.long_dir)) && Number(r.lat_dir) !== 0);
+  conCoords.forEach(r => {
+    const m = L.circleMarker([Number(r.lat_dir), Number(r.long_dir)], {
+      radius: 4, fillColor: '#3B82F6', color: '#fff', weight: 1, fillOpacity: 0.85,
+    }).bindPopup(`<strong>${r.nom_eve}</strong><br>SE${r.semana} · ${r.año}<br>${r.bar_ver_ || r.municipio || ''}`).addTo(MAPA);
+    MAPA_LAYERS.push(m);
+  });
+
+  setTimeout(() => MAPA.invalidateSize(), 100);
+}
+
+function buildPopupMun(mun, datos, nombre) {
+  const top = Object.entries(agrupar(datos,'nom_eve')).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const hosp = datos.filter(r=>r.pac_hos_==='S'||r.pac_hos_==='1').length;
+  const def  = datos.filter(r=>r.con_fin_==='M'||r.con_fin_==='2').length;
+  return `<div style="min-width:200px">
+    <strong style="font-size:14px">${nombre}</strong><br>
+    <span style="color:#666">${datos.length} casos · ${hosp} hosp. · ${def} def.</span>
+    <hr style="border-color:#eee;margin:6px 0">
+    <strong>Top eventos:</strong><br>
+    ${top.map(([e,n])=>`<span>${e}: <b>${n}</b></span>`).join('<br>') || '<i>Sin datos</i>'}
+  </div>`;
+}
+
+// ============================================================
+// LÍNEA DE TIEMPO
+// ============================================================
+function renderTimeline() {
+  const d   = DATOS_FILT;
+  const agr = document.getElementById('tl-agr').value;
+  const vis = document.getElementById('tl-vis').value;
+
+  const clave = r => {
+    if (agr === 'semana') return r.año + '-SE' + String(r.semana).padStart(2,'0');
+    if (agr === 'mes') {
+      const dt = new Date(r.fec_not);
+      return isNaN(dt) ? r.año + '-??' : r.año + '-' + String(dt.getMonth()+1).padStart(2,'0');
+    }
+    return String(r.año);
+  };
+
+  const periodos = [...new Set(d.map(clave))].sort();
+
+  let datasets = [];
+  if (vis === 'total') {
+    const g = {};
+    d.forEach(r => { const k = clave(r); g[k]=(g[k]||0)+1; });
+    datasets = [{ label:'Total casos', data: periodos.map(p=>g[p]||0), borderColor:'#3B82F6', backgroundColor:'rgba(59,130,246,0.1)', fill:true, tension:0.35 }];
+  } else if (vis === 'municipio') {
+    const muns = [...new Set(d.map(r=>r.municipio))];
+    datasets = muns.map((m,i) => {
+      const sub = d.filter(r=>r.municipio===m);
+      const g = {}; sub.forEach(r=>{ const k=clave(r); g[k]=(g[k]||0)+1; });
+      return { label: MUN[m]?.nombre||m, data: periodos.map(p=>g[p]||0), borderColor: COLORES[i], backgroundColor: COLORES[i]+'22', fill:false, tension:0.35 };
+    });
+  } else {
+    const evCount = agrupar(d,'nom_eve');
+    const topEvs  = Object.entries(evCount).sort((a,b)=>b[1]-a[1]).slice(0,5).map(e=>e[0]);
+    datasets = topEvs.map((ev,i) => {
+      const sub = d.filter(r=>r.nom_eve===ev);
+      const g = {}; sub.forEach(r=>{ const k=clave(r); g[k]=(g[k]||0)+1; });
+      return { label: ev.length>22?ev.slice(0,20)+'…':ev, data: periodos.map(p=>g[p]||0), borderColor: COLORES[i], fill:false, tension:0.35 };
+    });
+  }
+
+  crearChart('ch-tl-main', 'line', { labels: periodos, datasets });
+
+  // Por municipio apilado
+  const muns2 = [...new Set(d.map(r=>r.municipio))];
+  const ds2 = muns2.map((m,i) => {
+    const sub = d.filter(r=>r.municipio===m);
+    const g = {}; sub.forEach(r=>{ const k=clave(r); g[k]=(g[k]||0)+1; });
+    return { label: MUN[m]?.nombre||m, data: periodos.map(p=>g[p]||0), backgroundColor: COLORES[i]+'bb' };
+  });
+  crearChart('ch-tl-mun', 'bar', { labels: periodos, datasets: ds2 }, {
+    scales: {
+      x: { stacked:true, ticks:{ color:'#8b949e', font:{size:9} }, grid:{ color:'#21262d' } },
+      y: { stacked:true, ticks:{ color:'#8b949e' },                grid:{ color:'#21262d' } },
+    }
+  });
+
+  // Barrio/Vereda top 10
+  const bvTop = Object.entries(agrupar(d.filter(r=>r.bar_ver_),'bar_ver_')).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  crearChart('ch-tl-bar', 'bar', {
+    labels: bvTop.map(([b])=>b.length>16?b.slice(0,14)+'…':b),
+    datasets: [{ label:'Casos', data: bvTop.map(([,n])=>n), backgroundColor: COLORES, borderRadius:3 }]
+  }, { indexAxis:'y', plugins:{ legend:{display:false}, tooltip: CHART_OPTS.plugins.tooltip } });
+}
+
+// ============================================================
+// TABLA
+// ============================================================
+function renderTabla() { PAG = 0; renderPag(); }
+
+function renderPag() {
+  const ini = PAG * POR_PAG;
+  const fila = DATOS_FILT.slice(ini, ini + POR_PAG);
+  const body = document.getElementById('tb-body');
+  if (!body) return;
+
+  const tipoLabel = {'1':'Confirmado','2':'Probable','3':'Sospechoso','C':'Confirmado','P':'Probable','S':'Sospechoso'};
+  const tipoBdg   = {'Confirmado':'ok','Probable':'pr','Sospechoso':'sp'};
+  const areaNom   = {'1':'Cabecera','2':'Rural','3':'C. Poblado'};
+
+  body.innerHTML = fila.map(r => {
+    const tipo = tipoLabel[r.tip_cas_] || r.tip_cas_ || '—';
+    const bc   = tipoBdg[tipo] || '';
+    const hosp = r.pac_hos_==='S'||r.pac_hos_==='1' ? '<span style="color:var(--warn)">Sí</span>' : 'No';
+    const fin  = r.con_fin_==='M'||r.con_fin_==='2'||r.con_fin_==='MUERTO' ? '<span style="color:var(--danger);font-weight:600">Fallecido</span>' : (r.con_fin_||'—');
+    const carga = r.tipo_carga==='SEMANAL' ? '<span class="bdg bdg-sem">SEM</span>' : '<span class="bdg bdg-men">MEN</span>';
+    const sexo  = r.sexo_==='M'?'Masc.':r.sexo_==='F'?'Fem.':r.sexo_||'—';
+    const mun   = MUN[r.municipio]?.nombre || r.municipio || '—';
+    return `<tr>
+      <td><strong>SE${r.semana}</strong></td>
+      <td>${r.año}</td>
+      <td>${r.fec_not||'—'}</td>
+      <td>${r.nom_eve||'—'}</td>
+      <td>${mun}</td>
+      <td>${areaNom[r.area_]||r.area_||'—'}</td>
+      <td>${r.bar_ver_||'—'}</td>
+      <td>${r.edad_}a</td>
+      <td>${sexo}</td>
+      <td><span class="bdg bdg-${bc}">${tipo}</span></td>
+      <td>${hosp}</td>
+      <td>${fin}</td>
+      <td>${carga}</td>
+    </tr>`;
+  }).join('');
+
+  const total = DATOS_FILT.length;
+  const pags  = Math.ceil(total / POR_PAG);
+  document.getElementById('tb-pag').innerHTML =
+    `Mostrando ${ini+1}–${Math.min(ini+POR_PAG,total)} de ${total.toLocaleString('es-CO')} registros &nbsp;
+     <button class="btn btn-ghost" onclick="cambPag(-1)" ${PAG===0?'disabled':''}>‹ Anterior</button>
+     <button class="btn btn-ghost" onclick="cambPag(1)"  ${PAG>=pags-1?'disabled':''}>Siguiente ›</button>`;
+}
+
+function cambPag(d) {
+  const max = Math.ceil(DATOS_FILT.length / POR_PAG) - 1;
+  PAG = Math.max(0, Math.min(max, PAG + d));
+  renderPag();
+}
+
+// ============================================================
+// ALERTAS
+// ============================================================
+function abrirModalAlerta() {
+  poblarSelectEve();
+  document.getElementById('modal-alr').classList.add('open');
+}
+
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function guardarAlerta() {
+  const nom = document.getElementById('alr-nom').value.trim();
+  if (!nom) { toast('El nombre es obligatorio', 'error'); return; }
+  const umb = Number(document.getElementById('alr-umb').value);
+  if (!umb || umb < 1) { toast('El umbral debe ser ≥ 1', 'error'); return; }
+
+  ALERTAS.push({
+    id:        Date.now(),
+    nombre:    nom,
+    municipio: document.getElementById('alr-mun').value,
+    evento:    document.getElementById('alr-eve').value,
+    umbral:    umb,
+    periodo:   document.getElementById('alr-per').value,
+    nivel:     document.getElementById('alr-niv').value,
+    activa:    true,
+    creada:    new Date().toISOString(),
+    disparada: false,
+    casosAct:  0,
+  });
+
+  localStorage.setItem('siv_alertas', JSON.stringify(ALERTAS));
+  cerrarModal('modal-alr');
+  evaluarAlertas();
+  renderAlertas();
+  toast('Alerta creada correctamente', 'success');
+  document.getElementById('alr-nom').value = '';
+  document.getElementById('alr-umb').value = 5;
+}
+
+function evaluarAlertas() {
+  const saA = semActual(), anioA = new Date().getFullYear(), mesA = new Date().getMonth()+1;
+
+  ALERTAS.forEach(a => {
+    if (!a.activa) { a.disparada = false; return; }
+    let d = DATOS_TODOS;
+    if (a.municipio) d = d.filter(r => r.municipio === a.municipio);
+    if (a.evento)    d = d.filter(r => r.nom_eve   === a.evento);
+    if (a.periodo === 'semana') d = d.filter(r => r.semana === saA && r.año === anioA);
+    else if (a.periodo === 'mes') d = d.filter(r => {
+      const dt = new Date(r.fec_not);
+      return !isNaN(dt) && dt.getFullYear() === anioA && dt.getMonth()+1 === mesA;
+    });
+    a.casosAct = d.length;
+    a.disparada = d.length >= a.umbral;
+  });
+
+  const disp = ALERTAS.filter(a => a.disparada).length;
+  document.getElementById('k-alr').textContent = disp;
+  const badge = document.getElementById('alerta-badge');
+  if (badge) { badge.textContent = disp; badge.classList.toggle('visible', disp > 0); }
+  localStorage.setItem('siv_alertas', JSON.stringify(ALERTAS));
+}
+
+function renderAlertas() {
+  const dispHTML = ALERTAS.filter(a => a.disparada).map(alertaHTML).join('');
+  document.getElementById('alr-disp').innerHTML = dispHTML || '<p style="color:var(--text2);font-size:13px">No hay alertas disparadas actualmente.</p>';
+  const cfgHTML  = ALERTAS.map(alertaHTML).join('');
+  document.getElementById('alr-cfg').innerHTML  = cfgHTML  || '<p style="color:var(--text2);font-size:13px">No hay alertas configuradas.</p>';
+}
+
+function alertaHTML(a) {
+  const munNom = MUN[a.municipio]?.nombre || a.municipio || 'Todos los municipios';
+  const cls    = a.disparada ? (a.nivel==='danger'?'trig':'warn2') : '';
+  return `<div class="ai ${cls}">
+    <div class="ai-dot"></div>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:600">${a.nombre}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">
+        ${a.evento||'Cualquier evento'} · ${munNom} · Umbral: ${a.umbral} casos/${a.periodo}
+        ${a.disparada
+          ? ` — <span style="color:var(--danger);font-weight:700">ALERTA ACTIVA: ${a.casosAct} casos</span>`
+          : ` — ${a.casosAct} casos (sin disparar)`}
+      </div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-ghost" style="font-size:11px" onclick="toggleAlerta(${a.id})">${a.activa?'Pausar':'Activar'}</button>
+      <button class="btn btn-danger" style="font-size:11px" onclick="elimAlerta(${a.id})">×</button>
+    </div>
+  </div>`;
+}
+
+function toggleAlerta(id) {
+  const a = ALERTAS.find(a=>a.id===id);
+  if (a) { a.activa=!a.activa; localStorage.setItem('siv_alertas',JSON.stringify(ALERTAS)); evaluarAlertas(); renderAlertas(); }
+}
+
+function elimAlerta(id) {
+  ALERTAS = ALERTAS.filter(a=>a.id!==id);
+  localStorage.setItem('siv_alertas',JSON.stringify(ALERTAS));
+  renderAlertas(); evaluarAlertas();
+  toast('Alerta eliminada','warn');
+}
+
+// ============================================================
+// CARGA DE ARCHIVOS
+// ============================================================
+function procesarArchivo(event, tipo) {
+  const file = event.target.files[0];
+  if (file) procesarArchivoFile(file, tipo);
+  event.target.value = '';
+}
+
+function procesarArchivoFile(file, tipo) {
+  if (typeof XLSX === 'undefined') { toast('Librería XLSX no disponible. Requiere conexión a internet.','error'); return; }
+  mostrarLoad('Leyendo archivo ' + tipo + '…');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb   = XLSX.read(e.target.result, { type:'binary', cellDates:true });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval:'' });
+
+      const munFile = detectarMunicipioArchivo(file.name);
+      const registros = json.map(r => {
+        const reg = normReg({ ...r });
+        if (!reg.municipio || reg.municipio === 'OTRO') reg.municipio = munFile;
+        return reg;
+      });
+
+      // Deduplicación contra datos existentes
+      const claves = new Set(DATOS_TODOS.map(r => r.num_ide_+'|'+r.cod_eve+'|'+r.semana+'|'+r.año));
+      const nuevos = [], dupls = [];
+      registros.forEach(r => {
+        const k = r.num_ide_+'|'+r.cod_eve+'|'+r.semana+'|'+r.año;
+        if (claves.has(k)) dupls.push(r);
+        else nuevos.push(r);
+      });
+
+      CARGA_PEND = { registros, tipo, nuevos, dupls };
+      ocultarLoad();
+      mostrarPreview(nuevos, dupls, tipo);
+      toast(`Archivo leído: ${registros.length} registros · ${nuevos.length} nuevos · ${dupls.length} duplicados`, 'success');
+    } catch(err) {
+      ocultarLoad();
+      toast('Error al leer el archivo: ' + err.message, 'error');
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function detectarMunicipioArchivo(nom) {
+  const n = nom.toUpperCase();
+  if (n.includes('ABREGO') || n.includes('ÁBREGO'))         return 'ABREGO';
+  if (n.includes('CONVENCION') || n.includes('CONVENCIÓN')) return 'CONVENCION';
+  if (n.includes('CARMEN'))                                  return 'EL CARMEN';
+  if (n.includes('TEORAMA'))                                 return 'TEORAMA';
+  return 'OTRO';
+}
+
+function mostrarPreview(nuevos, dupls, tipo) {
+  document.getElementById('carga-prev').style.display = 'block';
+  document.getElementById('prev-stats').innerHTML =
+    `<span style="color:var(--success)">✓ ${nuevos.length} nuevos a cargar</span> &nbsp; <span style="color:var(--text2)">◎ ${dupls.length} duplicados (se omitirán)</span>`;
+
+  const todos = [
+    ...nuevos.slice(0,150).map(r=>({r,estado:'NUEVO'})),
+    ...dupls.slice(0,50).map(r=>({r,estado:'DUPLICADO'})),
+  ];
+
+  document.getElementById('prev-body').innerHTML = todos.map(({r,estado}) => {
+    const col = estado==='NUEVO'?'var(--success)':'var(--text2)';
+    const opa = estado==='DUPLICADO'?'opacity:0.45':'';
+    const idEnm = r.num_ide_ ? String(r.num_ide_).replace(/.(?=.{4})/g,'*') : '—';
+    return `<tr style="${opa}">
+      <td><span style="color:${col};font-weight:700">${estado}</span></td>
+      <td>SE${r.semana}</td>
+      <td>${r.año}</td>
+      <td>${r.nom_eve||r.cod_eve||'—'}</td>
+      <td style="font-family:monospace">${idEnm}</td>
+      <td>${MUN[r.municipio]?.nombre||r.municipio||'—'}</td>
+      <td>${r.fec_not||'—'}</td>
+      <td>${r.sexo_==='M'?'M':r.sexo_==='F'?'F':r.sexo_||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function confirmarCarga() {
+  if (!CARGA_PEND) return;
+  const { nuevos, tipo } = CARGA_PEND;
+  if (nuevos.length === 0) { toast('No hay registros nuevos para cargar','warn'); return; }
+
+  mostrarLoad(`Cargando ${nuevos.length} registros…`);
+  let msgGAS = '';
+  try {
+    const url = localStorage.getItem('gas_url');
+    if (url) {
+      const res = await enviarAGAS({ accion:'insertar', registros:nuevos, tipo_carga:tipo });
+      if (res.ok) msgGAS = ` · GAS: ${res.insertados} insertados`;
+      else throw new Error(res.error);
+    }
+  } catch(e) { msgGAS = ` · (GAS: ${e.message})`; }
+
+  // Agregar a datos locales
+  DATOS_TODOS = [...DATOS_TODOS, ...nuevos.map(r=>({...r, tipo_carga:tipo}))];
+  localStorage.setItem('siv_datos', JSON.stringify(DATOS_TODOS));
+  localStorage.setItem('siv_ts', new Date().toLocaleString('es-CO'));
+
+  cancelarCarga();
+  aplicarFiltros();
+  ocultarLoad();
+  toast(`Carga completada: ${nuevos.length} registros${msgGAS}`, 'success');
+}
+
+function cancelarCarga() {
+  CARGA_PEND = null;
+  document.getElementById('carga-prev').style.display = 'none';
+  document.getElementById('prev-body').innerHTML = '';
+}
+
+// ============================================================
+// CONFIGURACIÓN
+// ============================================================
+async function guardarConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  localStorage.setItem('gas_url', url);
+  const res = document.getElementById('conn-result');
+  res.textContent = 'Probando conexión…';
+  try {
+    const r = await fetch(url + '?accion=ping', { redirect:'follow' });
+    const d = await r.json();
+    if (d.ok) {
+      actualizarConexion(true);
+      res.textContent = `✓ Conectado · ${d.total||0} registros en Sheets`;
+      res.style.color = 'var(--success)';
+      toast('Conexión exitosa con Apps Script', 'success');
+    } else throw new Error(d.error||'Sin ok');
+  } catch(e) {
+    actualizarConexion(false);
+    res.textContent = '✗ Error: ' + e.message;
+    res.style.color = 'var(--danger)';
+    toast('Error de conexión: ' + e.message, 'error');
+  }
+}
+
+function actualizarConexion(ok) {
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('conn-text');
+  if (ok === undefined) { dot.className='dot'; text.textContent='Sin configurar'; }
+  else if (ok)          { dot.className='dot ok'; text.textContent='Conectado'; }
+  else                  { dot.className='dot err'; text.textContent='Sin conexión'; }
+}
+
+function copiarGAS() {
+  navigator.clipboard.writeText(GAS_CODE_TEXT).then(() => toast('Código Apps Script copiado al portapapeles','success'));
+}
+
+function exportarJSON() {
+  const blob = new Blob([JSON.stringify(DATOS_TODOS,null,2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'SIVIGILA_datos_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+function importarJSON() {
+  const inp = document.createElement('input');
+  inp.type='file'; inp.accept='.json';
+  inp.onchange = e => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data)) throw new Error('Formato inválido: se esperaba un arreglo JSON');
+        DATOS_TODOS = data.map(normReg);
+        localStorage.setItem('siv_datos', JSON.stringify(DATOS_TODOS));
+        aplicarFiltros();
+        actualizarInfoCfg();
+        toast(DATOS_TODOS.length.toLocaleString('es-CO') + ' registros importados', 'success');
+      } catch(err) { toast('Error: ' + err.message, 'error'); }
+    };
+    reader.readAsText(e.target.files[0]);
+  };
+  inp.click();
+}
+
+function limpiarLocal() {
+  if (!confirm('¿Eliminar todos los datos de la caché local? Esta acción no se puede deshacer.')) return;
+  DATOS_TODOS = []; DATOS_FILT = [];
+  localStorage.removeItem('siv_datos');
+  localStorage.removeItem('siv_ts');
+  aplicarFiltros();
+  actualizarInfoCfg();
+  toast('Caché local eliminada','warn');
+}
+
+function actualizarInfoCfg() {
+  const el = document.getElementById('cfg-info');
+  if (!el) return;
+  const ts = localStorage.getItem('siv_ts') || 'nunca';
+  el.textContent = DATOS_TODOS.length.toLocaleString('es-CO') + ' registros en caché · Última actualización: ' + ts;
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function mostrarLoad(txt) {
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('load-txt').textContent = txt || 'Cargando…';
+}
+function ocultarLoad() { document.getElementById('loading').classList.remove('show'); }
+
+function toast(msg, tipo='success') {
+  const cont = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + tipo;
+  el.textContent = msg;
+  cont.appendChild(el);
+  setTimeout(() => el.remove(), 4500);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consolidador Registros Diarios PAI — HRNO</title>
+<script src="xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    color: #e94560;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+  .subtitle {
+    font-size: 0.82rem;
+    color: #8b949e;
+    margin-bottom: 28px;
+  }
+
+  /* ZONA DE CARGA */
+  #zona-carga {
+    border: 2px dashed #30363d;
+    border-radius: 10px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: #161b22;
+    margin-bottom: 20px;
+  }
+  #zona-carga.hover {
+    border-color: #e94560;
+    background: #1c1e26;
+  }
+  #zona-carga .icono { font-size: 2.4rem; margin-bottom: 10px; }
+  #zona-carga .texto-principal { font-size: 1rem; color: #e6edf3; margin-bottom: 6px; }
+  #zona-carga .texto-secundario { font-size: 0.78rem; color: #8b949e; }
+  #input-archivos { display: none; }
+
+  /* TABLA DE ARCHIVOS */
+  #lista-archivos {
+    display: none;
+    margin-bottom: 20px;
+  }
+  .seccion-titulo {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #8b949e;
+    margin-bottom: 10px;
+  }
+  .archivo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+  }
+  .archivo-nombre { flex: 1; color: #e6edf3; word-break: break-all; }
+  .archivo-estado {
+    font-size: 0.75rem;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .estado-ok    { background: #0f3d2e; color: #38c793; border: 1px solid #238636; }
+  .estado-error { background: #3d0f0f; color: #f85149; border: 1px solid #da3633; }
+  .estado-leyendo { background: #1f2d3d; color: #79c0ff; border: 1px solid #388bfd; }
+  .archivo-detalle {
+    font-size: 0.72rem;
+    color: #8b949e;
+    margin-top: 4px;
+  }
+  .archivo-registros {
+    font-size: 0.72rem;
+    color: #38c793;
+    margin-top: 2px;
+  }
+  .archivo-error-msg {
+    font-size: 0.72rem;
+    color: #f85149;
+    margin-top: 4px;
+  }
+  .archivo-content { flex: 1; }
+  .btn-quitar {
+    background: none;
+    border: none;
+    color: #6e7681;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1;
+  }
+  .btn-quitar:hover { color: #f85149; background: #3d0f0f; }
+
+  /* RESUMEN */
+  #resumen {
+    display: none;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .resumen-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 12px;
+  }
+  .resumen-card {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+  }
+  .resumen-card .num { font-size: 1.8rem; font-weight: 700; color: #38c793; }
+  .resumen-card .lbl { font-size: 0.7rem; color: #8b949e; margin-top: 2px; }
+  .resumen-card .hoja { font-size: 0.75rem; color: #79c0ff; margin-bottom: 4px; font-weight: 600; }
+
+  /* BOTONES */
+  .barra-botones { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .btn {
+    padding: 10px 22px;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { opacity: .88; }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-primario { background: #e94560; color: #fff; }
+  .btn-secundario { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+  .btn-peligro { background: #3d0f0f; color: #f85149; border: 1px solid #da3633; }
+
+  /* LOG */
+  #log {
+    display: none;
+    background: #010409;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.75rem;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    color: #8b949e;
+  }
+  .log-ok    { color: #38c793; }
+  .log-error { color: #f85149; }
+  .log-info  { color: #79c0ff; }
+  .log-warn  { color: #ffb432; }
+
+  /* ALERTA */
+  .alerta {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    margin-bottom: 14px;
+  }
+  .alerta-info { background: #1f2d3d; border: 1px solid #388bfd; color: #79c0ff; }
+  .alerta-warn { background: #2d2000; border: 1px solid #ffb432; color: #ffb432; }
+
+  /* OPCIONES */
+  #opciones {
+    display: none;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .opcion-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+  }
+  .opcion-row label { color: #c9d1d9; }
+  input[type="text"] {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    color: #e6edf3;
+    padding: 5px 10px;
+    font-size: 0.82rem;
+    width: 280px;
+  }
+  input[type="checkbox"] { accent-color: #e94560; width: 15px; height: 15px; }
+
+  footer {
+    margin-top: 32px;
+    font-size: 0.72rem;
+    color: #484f58;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>Consolidador — Registros Diarios de Vacunación</h1>
+<p class="subtitle">ESE Hospital Regional Noroccidental · PAI 2026 · Unifica múltiples archivos con la misma estructura en un solo Excel</p>
+
+<div class="alerta alerta-info">
+  Acepta archivos <strong>.xls y .xlsx</strong> con las hojas: RECIEN NACIDOS (40 col.), NIÑOS Y NIÑAS (150 col.) y ADULTOS (108 col.).<br>
+  Detecta y omite automáticamente las filas de encabezado y las filas vacías con fórmulas.
+</div>
+
+<!-- ZONA DE CARGA -->
+<div id="zona-carga">
+  <div class="icono">📂</div>
+  <div class="texto-principal">Arrastra aquí los archivos Excel o haz clic para seleccionarlos</div>
+  <div class="texto-secundario">Puedes agregar varios archivos a la vez</div>
+  <input type="file" id="input-archivos" multiple accept=".xls,.xlsx">
+</div>
+
+<!-- OPCIONES -->
+<div id="opciones">
+  <div class="seccion-titulo">Opciones de exportación</div>
+  <div class="opcion-row">
+    <label for="nombre-salida">Nombre del archivo consolidado:</label>
+    <input type="text" id="nombre-salida" value="Registros_Consolidados_PAI">
+  </div>
+  <div class="opcion-row">
+    <input type="checkbox" id="renumerar" checked>
+    <label for="renumerar">Renumerar CONSECUTIVO en el archivo de salida</label>
+  </div>
+  <div class="opcion-row">
+    <input type="checkbox" id="incluir-rn" checked>
+    <label for="incluir-rn">Incluir hoja RECIEN NACIDOS</label>
+  </div>
+  <div class="opcion-row">
+    <input type="checkbox" id="incluir-ninos" checked>
+    <label for="incluir-ninos">Incluir hoja NIÑOS Y NIÑAS</label>
+  </div>
+  <div class="opcion-row">
+    <input type="checkbox" id="incluir-adultos" checked>
+    <label for="incluir-adultos">Incluir hoja ADULTOS</label>
+  </div>
+</div>
+
+<!-- LISTA DE ARCHIVOS -->
+<div id="lista-archivos">
+  <div class="seccion-titulo">Archivos cargados</div>
+  <div id="contenedor-archivos"></div>
+</div>
+
+<!-- RESUMEN -->
+<div id="resumen">
+  <div class="seccion-titulo">Resumen de registros a consolidar</div>
+  <div class="resumen-grid" id="grid-resumen"></div>
+</div>
+
+<!-- BOTONES -->
+<div class="barra-botones" id="barra-botones" style="display:none">
+  <button class="btn btn-primario" id="btn-consolidar">&#9654; Consolidar y descargar Excel</button>
+  <button class="btn btn-secundario" id="btn-limpiar">Limpiar lista</button>
+</div>
+
+<!-- LOG -->
+<div id="log"></div>
+
+<footer>Consolidador PAI · HRNO · Generado con Claude Code · 2026</footer>
+
+<script>
+// ─────────────────────────────────────────────────────────
+// CONFIGURACIÓN DE LAS HOJAS
+// ─────────────────────────────────────────────────────────
+const HOJAS = {
+  'RECIEN NACIDOS': {
+    ncols: 40,
+    // filas de encabezado a copiar del primer archivo (índices 0-based)
+    filas_header: [0,1,2,3,4,5,6,7,8],  // filas 1-9
+    // columna índice donde está el ID del paciente/madre para detectar dato real
+    col_id: 3,
+  },
+  'NIÑOS Y NIÑAS': {
+    ncols: 150,
+    filas_header: [0,1,2,3,4,5,6,7,8,9], // filas 1-10
+    col_id: 3,
+  },
+  'ADULTOS': {
+    ncols: 108,
+    filas_header: [0,1,2,3,4,5,6,7,8,9,10], // filas 1-11
+    col_id: 3,
+  },
+};
+
+// ─────────────────────────────────────────────────────────
+// ESTADO
+// ─────────────────────────────────────────────────────────
+let archivos = []; // { nombre, wb, valido, error, registros:{hoja:n} }
+
+// ─────────────────────────────────────────────────────────
+// DOM
+// ─────────────────────────────────────────────────────────
+const zonaCarga   = document.getElementById('zona-carga');
+const inputFiles  = document.getElementById('input-archivos');
+const listaDiv    = document.getElementById('lista-archivos');
+const contenedor  = document.getElementById('contenedor-archivos');
+const resumenDiv  = document.getElementById('resumen');
+const gridResumen = document.getElementById('grid-resumen');
+const barraBtn    = document.getElementById('barra-botones');
+const opcionesDiv = document.getElementById('opciones');
+const logDiv      = document.getElementById('log');
+const btnConsol   = document.getElementById('btn-consolidar');
+const btnLimpiar  = document.getElementById('btn-limpiar');
+
+// ─────────────────────────────────────────────────────────
+// DRAG & DROP
+// ─────────────────────────────────────────────────────────
+zonaCarga.addEventListener('click', () => inputFiles.click());
+zonaCarga.addEventListener('dragover', e => { e.preventDefault(); zonaCarga.classList.add('hover'); });
+zonaCarga.addEventListener('dragleave', () => zonaCarga.classList.remove('hover'));
+zonaCarga.addEventListener('drop', e => {
+  e.preventDefault();
+  zonaCarga.classList.remove('hover');
+  procesarArchivos(e.dataTransfer.files);
+});
+inputFiles.addEventListener('change', e => procesarArchivos(e.target.files));
+
+btnLimpiar.addEventListener('click', () => {
+  archivos = [];
+  inputFiles.value = '';
+  contenedor.innerHTML = '';
+  listaDiv.style.display = 'none';
+  resumenDiv.style.display = 'none';
+  barraBtn.style.display = 'none';
+  opcionesDiv.style.display = 'none';
+  logDiv.style.display = 'none';
+  logDiv.innerHTML = '';
+});
+
+btnConsol.addEventListener('click', consolidar);
+
+// ─────────────────────────────────────────────────────────
+// PROCESAMIENTO DE ARCHIVOS
+// ─────────────────────────────────────────────────────────
+function procesarArchivos(fileList) {
+  const nuevos = Array.from(fileList).filter(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    return ext === 'xls' || ext === 'xlsx';
+  });
+  if (!nuevos.length) { log('warn', 'Solo se aceptan archivos .xls o .xlsx'); return; }
+
+  nuevos.forEach(file => {
+    // evitar duplicados por nombre
+    if (archivos.find(a => a.nombre === file.name)) {
+      log('warn', `"${file.name}" ya está en la lista.`);
+      return;
+    }
+    const entrada = { nombre: file.name, valido: null, error: null, wb: null, registros: {} };
+    archivos.push(entrada);
+    renderLista();
+    leerArchivo(file, entrada);
+  });
+}
+
+function leerArchivo(file, entrada) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array', cellDates: false });
+      const resultado = validarWorkbook(wb);
+      entrada.wb = wb;
+      if (resultado.ok) {
+        entrada.valido = true;
+        entrada.registros = contarRegistros(wb);
+        log('ok', `"${entrada.nombre}" — válido. RN:${entrada.registros['RECIEN NACIDOS']} | Niños:${entrada.registros['NIÑOS Y NIÑAS']} | Adultos:${entrada.registros['ADULTOS']}`);
+      } else {
+        entrada.valido = false;
+        entrada.error = resultado.motivo;
+        log('error', `"${entrada.nombre}" — rechazado: ${resultado.motivo}`);
+      }
+    } catch(err) {
+      entrada.valido = false;
+      entrada.error = 'No se pudo leer el archivo. ¿Está dañado o protegido con contraseña?';
+      log('error', `"${entrada.nombre}" — error: ${err.message}`);
+    }
+    renderLista();
+    renderResumen();
+    actualizarBotones();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ─────────────────────────────────────────────────────────
+// VALIDACIÓN
+// ─────────────────────────────────────────────────────────
+function validarWorkbook(wb) {
+  const hojasRequeridas = Object.keys(HOJAS);
+  for (const nombre of hojasRequeridas) {
+    if (!wb.SheetNames.includes(nombre)) {
+      return { ok: false, motivo: `Falta la hoja "${nombre}"` };
+    }
+  }
+  for (const [nombre, config] of Object.entries(HOJAS)) {
+    const ws = wb.Sheets[nombre];
+    const rango = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+    const ncols = rango.e.c + 1;
+    if (ncols < config.ncols) {
+      return { ok: false, motivo: `Hoja "${nombre}": se esperan ${config.ncols} columnas, tiene ${ncols}` };
+    }
+    // Verificar que la primera columna del encabezado principal sea "CONSECUTIVO"
+    const filaHeader = config.filas_header[config.filas_header.length - 1]; // última fila de header
+    const celda = ws[XLSX.utils.encode_cell({ r: filaHeader, c: 0 })];
+    const val = celda ? String(celda.v || '').trim().toUpperCase() : '';
+    if (!val.includes('CONSECUTIVO')) {
+      return { ok: false, motivo: `Hoja "${nombre}": la primera columna del encabezado no dice "CONSECUTIVO" (fila ${filaHeader+1})` };
+    }
+  }
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────
+// CONTAR REGISTROS REALES
+// ─────────────────────────────────────────────────────────
+function contarRegistros(wb) {
+  const result = {};
+  for (const [nombre, config] of Object.entries(HOJAS)) {
+    const ws = wb.Sheets[nombre];
+    const filas = hojaAMatriz(ws);
+    let count = 0;
+    const startRow = config.filas_header.length;
+    for (let r = startRow; r < filas.length; r++) {
+      if (esFilaDeDatos(filas[r], config)) count++;
+    }
+    result[nombre] = count;
+  }
+  return result;
+}
+
+function esFilaDeDatos(fila, config) {
+  const col0 = fila[0];
+  const colId = fila[config.col_id];
+  const tieneConsec = (typeof col0 === 'number' && col0 >= 1) ||
+                      (typeof col0 === 'string' && !isNaN(parseFloat(col0)) && parseFloat(col0) >= 1);
+  const tieneId = colId !== undefined && colId !== null && String(colId).trim() !== '';
+  return tieneConsec && tieneId;
+}
+
+// ─────────────────────────────────────────────────────────
+// CONVERTIR HOJA A MATRIZ (array of arrays)
+// ─────────────────────────────────────────────────────────
+function hojaAMatriz(ws) {
+  if (!ws || !ws['!ref']) return [];
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+}
+
+// ─────────────────────────────────────────────────────────
+// RENDER UI
+// ─────────────────────────────────────────────────────────
+function renderLista() {
+  listaDiv.style.display = archivos.length ? 'block' : 'none';
+  opcionesDiv.style.display = archivos.length ? 'block' : 'none';
+  logDiv.style.display = logDiv.innerHTML ? 'block' : 'none';
+  contenedor.innerHTML = '';
+
+  archivos.forEach((a, idx) => {
+    const div = document.createElement('div');
+    div.className = 'archivo-item';
+    let estadoClass, estadoTxt;
+    if (a.valido === null) { estadoClass = 'estado-leyendo'; estadoTxt = 'Leyendo...'; }
+    else if (a.valido)     { estadoClass = 'estado-ok';      estadoTxt = 'Válido'; }
+    else                   { estadoClass = 'estado-error';   estadoTxt = 'Rechazado'; }
+
+    let extra = '';
+    if (a.valido && a.registros) {
+      extra = `<div class="archivo-registros">RN: ${a.registros['RECIEN NACIDOS']} | Niños/as: ${a.registros['NIÑOS Y NIÑAS']} | Adultos: ${a.registros['ADULTOS']}</div>`;
+    }
+    if (!a.valido && a.error) {
+      extra = `<div class="archivo-error-msg">${a.error}</div>`;
+    }
+
+    div.innerHTML = `
+      <div class="archivo-content">
+        <div class="archivo-nombre">${a.nombre}</div>
+        ${extra}
+      </div>
+      <span class="archivo-estado ${estadoClass}">${estadoTxt}</span>
+      <button class="btn-quitar" data-idx="${idx}" title="Quitar archivo">✕</button>
+    `;
+    contenedor.appendChild(div);
+  });
+
+  contenedor.querySelectorAll('.btn-quitar').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      archivos.splice(idx, 1);
+      renderLista();
+      renderResumen();
+      actualizarBotones();
+    });
+  });
+}
+
+function renderResumen() {
+  const validos = archivos.filter(a => a.valido);
+  if (!validos.length) { resumenDiv.style.display = 'none'; return; }
+
+  const totales = { 'RECIEN NACIDOS': 0, 'NIÑOS Y NIÑAS': 0, 'ADULTOS': 0 };
+  validos.forEach(a => {
+    for (const h of Object.keys(totales)) totales[h] += a.registros[h] || 0;
+  });
+
+  const total = totales['RECIEN NACIDOS'] + totales['NIÑOS Y NIÑAS'] + totales['ADULTOS'];
+
+  gridResumen.innerHTML = `
+    <div class="resumen-card">
+      <div class="hoja">RECIÉN NACIDOS</div>
+      <div class="num">${totales['RECIEN NACIDOS']}</div>
+      <div class="lbl">registros</div>
+    </div>
+    <div class="resumen-card">
+      <div class="hoja">NIÑOS Y NIÑAS</div>
+      <div class="num">${totales['NIÑOS Y NIÑAS']}</div>
+      <div class="lbl">registros</div>
+    </div>
+    <div class="resumen-card">
+      <div class="hoja">ADULTOS</div>
+      <div class="num">${totales['ADULTOS']}</div>
+      <div class="lbl">registros</div>
+    </div>
+  `;
+  resumenDiv.style.display = 'block';
+}
+
+function actualizarBotones() {
+  const hayValidos = archivos.some(a => a.valido);
+  barraBtn.style.display = archivos.length ? 'flex' : 'none';
+  btnConsol.disabled = !hayValidos;
+}
+
+// ─────────────────────────────────────────────────────────
+// LOG
+// ─────────────────────────────────────────────────────────
+function log(tipo, msg) {
+  logDiv.style.display = 'block';
+  const p = document.createElement('p');
+  p.className = `log-${tipo}`;
+  const hora = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  p.textContent = `[${hora}] ${msg}`;
+  logDiv.appendChild(p);
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+// ─────────────────────────────────────────────────────────
+// CONSOLIDACIÓN
+// ─────────────────────────────────────────────────────────
+function consolidar() {
+  const validos = archivos.filter(a => a.valido);
+  if (!validos.length) return;
+
+  const renumerar   = document.getElementById('renumerar').checked;
+  const inclRN      = document.getElementById('incluir-rn').checked;
+  const inclNinos   = document.getElementById('incluir-ninos').checked;
+  const inclAdultos = document.getElementById('incluir-adultos').checked;
+  const nombreSalida = (document.getElementById('nombre-salida').value.trim() || 'Registros_Consolidados_PAI');
+
+  btnConsol.disabled = true;
+  btnConsol.textContent = 'Procesando...';
+  log('info', `Iniciando consolidación de ${validos.length} archivo(s)...`);
+
+  // Hacemos el trabajo en un timeout para no bloquear la UI
+  setTimeout(() => {
+    try {
+      const wbSalida = XLSX.utils.book_new();
+      const hojasActivas = {
+        'RECIEN NACIDOS': inclRN,
+        'NIÑOS Y NIÑAS': inclNinos,
+        'ADULTOS': inclAdultos,
+      };
+
+      for (const [nombreHoja, config] of Object.entries(HOJAS)) {
+        if (!hojasActivas[nombreHoja]) continue;
+
+        log('info', `Procesando hoja "${nombreHoja}"...`);
+
+        // Tomar encabezado del primer archivo válido
+        const primerWB = validos[0].wb;
+        const primerWS = primerWB.Sheets[nombreHoja];
+        const primerMat = hojaAMatriz(primerWS);
+        const headerRows = primerMat.slice(0, config.filas_header.length);
+
+        // Recopilar datos de todos los archivos
+        let allData = [];
+        validos.forEach(a => {
+          const ws = a.wb.Sheets[nombreHoja];
+          const mat = hojaAMatriz(ws);
+          let count = 0;
+          for (let r = config.filas_header.length; r < mat.length; r++) {
+            if (esFilaDeDatos(mat[r], config)) {
+              allData.push(mat[r].slice(0, config.ncols));
+              count++;
+            }
+          }
+          log('ok', `  "${a.nombre}" → ${count} registros`);
+        });
+
+        // Renumerar consecutivo (col 0)
+        if (renumerar) {
+          allData.forEach((fila, i) => { fila[0] = i + 1; });
+        }
+
+        // Combinar: header + datos
+        const matFinal = [...headerRows, ...allData];
+
+        // Crear hoja
+        const wsSalida = XLSX.utils.aoa_to_sheet(matFinal);
+
+        XLSX.utils.book_append_sheet(wbSalida, wsSalida, nombreHoja);
+        log('ok', `Hoja "${nombreHoja}": ${allData.length} registros totales`);
+      }
+
+      // Generar y descargar
+      const nombreArchivo = `${nombreSalida}.xlsx`;
+      XLSX.writeFile(wbSalida, nombreArchivo);
+      log('ok', `¡Listo! Archivo descargado: "${nombreArchivo}"`);
+
+    } catch(err) {
+      log('error', `Error al consolidar: ${err.message}`);
+    }
+
+    btnConsol.disabled = false;
+    btnConsol.innerHTML = '&#9654; Consolidar y descargar Excel';
+  }, 50);
+}
+</script>
+</body>
+</html>

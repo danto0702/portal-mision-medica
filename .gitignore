@@ -1,0 +1,57 @@
+# ──────────────────────────────────────────────
+# Datos sensibles y de pacientes — NUNCA al repo
+# ──────────────────────────────────────────────
+PAI/REGISTROS DIARIOS DE VACUNACIÓN/
+PAI/Consolidado_NinosNinas_PAI.xlsx
+PAI/Consolidado_NinosNinas_PAI - PRUEBA CLAUDE.xlsx
+PAI/CERTIFICADO VACUNACIÓN ABREGO.pdf
+PAI/CERTIFICADO VACUNACIÓN CARMEN - CONVEN- TEORAMA.pdf
+
+# Reportes SIVIGILA por municipio (datos epidemiológicos operativos)
+VIGILANCIA SP/CONVENCION SIVIGILA/
+VIGILANCIA SP/EL CARMEN SIVIGILA/
+VIGILANCIA SP/TEORAMA SIVIGILA/
+
+# ──────────────────────────────────────────────
+# Archivos temporales de Office
+# ──────────────────────────────────────────────
+~$*
+*.tmp
+
+# ──────────────────────────────────────────────
+# Configuración local de Claude Code
+# ──────────────────────────────────────────────
+**/.claude/
+
+# ──────────────────────────────────────────────
+# Worktrees y repos internos de Claude Code
+# ──────────────────────────────────────────────
+**/worktrees/
+**/.git_disabled/
+
+# ──────────────────────────────────────────────
+# Archivos de captura de pantalla de desarrollo (solo debug)
+# ──────────────────────────────────────────────
+Generador CUPS/banner.png
+Generador CUPS/bottom.png
+Generador CUPS/ctrlf.png
+Generador CUPS/odoo_nav.png
+Generador CUPS/odoo_now.png
+Generador CUPS/odoo_reload.png
+Generador CUPS/odoo_settings.png
+Generador CUPS/odoo_tab.png
+Generador CUPS/pwa_found.png
+Generador CUPS/pwa_search.png
+Generador CUPS/result.png
+Generador CUPS/screen_check.png
+Generador CUPS/screen_hd.png
+Generador CUPS/scroll1.png
+Generador CUPS/search_pwa.png
+Generador CUPS/sitio_web.png
+
+# ──────────────────────────────────────────────
+# Sistema operativo
+# ──────────────────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store

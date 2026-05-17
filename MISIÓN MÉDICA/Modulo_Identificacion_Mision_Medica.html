@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Identificación - Misión Médica</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .qr-overlay {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        @media (hover: hover) {
+            .qr-overlay:hover {
+                background-color: rgba(37, 99, 235, 0.1);
+                border: 2px solid rgba(37, 99, 235, 0.4);
+                transform: scale(1.02);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .qr-overlay {
+                border: 1px solid rgba(37, 99, 235, 0.2);
+                background-color: rgba(37, 99, 235, 0.05);
+            }
+        }
+
+        .tooltip {
+            visibility: hidden;
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1e3a8a;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            z-index: 50;
+            opacity: 0;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .qr-overlay:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+            bottom: -38px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+    <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center gap-3">
+            <a href="../index_Principal_Salud_Publica.html" title="Volver al portal principal" class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-500 transition-colors mr-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <div class="bg-blue-700 p-2 rounded-lg shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+            </div>
+            <div>
+                <h1 class="text-lg font-extrabold text-blue-900 leading-none">Misión Médica</h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Gestión de Identificación</p>
+            </div>
+        </div>
+        <div class="hidden sm:flex items-center gap-2 text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+            <span>Interactúa con los QR de la imagen</span>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+
+        <div class="relative w-full shadow-xl rounded-2xl overflow-hidden bg-white border border-slate-200 mb-8">
+
+            <img src="https://res.cloudinary.com/dj7qylkqh/image/upload/v1770672462/new_documents_created_2_tusxmr.jpg" alt="Módulo Institucional Misión Médica" class="w-full h-auto block select-none" draggable="false" loading="lazy">
+
+            <a href="https://drive.google.com/file/d/1GgTHT3hEUTRJmK5fNmQGNcnnovb3rT_q/view?usp=sharing" target="_blank" class="qr-overlay absolute flex items-center justify-center rounded-lg" style="left: 18.7%; top: 74.5%; width: 8.5%; height: 16%;" aria-label="Ver Normativa Vigente">
+                <span class="tooltip">Normativa Vigente</span>
+            </a>
+
+            <a href="https://www.minsalud.gov.co/Documentos%20y%20Publicaciones/Manual%20de%20Misi%C3%B3n%20M%C3%A9dica.pdf" target="_blank" class="qr-overlay absolute flex items-center justify-center rounded-lg" style="left: 35.6%; top: 74.5%; width: 8.5%; height: 16%;" aria-label="Descargar Manual de Misión Médica">
+                <span class="tooltip">Manual Técnico</span>
+            </a>
+
+            <a href="https://saludpublicaesehrno.odoo.com/formulario-de-reporte-de-infracciones-e-incidentes-contra-la-mision-medica" target="_blank" class="qr-overlay absolute flex items-center justify-center rounded-lg" style="left: 54.5%; top: 74.5%; width: 8.5%; height: 16%;" aria-label="Realizar Reporte de Infracciones">
+                <span class="tooltip">Reporte Seguro</span>
+            </a>
+
+            <a href="https://saludpublicaesehrno.odoo.com/solicitudes-de-ti-emblemas" target="_blank" class="qr-overlay absolute flex items-center justify-center rounded-lg" style="left: 72.4%; top: 74.5%; width: 8.5%; height: 16%;" aria-label="Gestionar Trámite de Carnetización">
+                <span class="tooltip">Trámite de Carné y Emblemas</span>
+            </a>
+        </div>
+
+        <div class="mb-6 flex items-center gap-3">
+            <div class="h-6 w-1.5 bg-blue-600 rounded-full"></div>
+            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-widest">Panel de Acceso Rápido</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+
+            <a href="https://drive.google.com/file/d/1GgTHT3hEUTRJmK5fNmQGNcnnovb3rT_q/view?usp=sharing" target="_blank" class="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between hover:border-blue-400 hover:bg-blue-50 transition-all group">
+                <div class="flex items-center gap-4">
+                    <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 text-blue-700 font-extrabold text-sm group-hover:bg-blue-700 group-hover:text-white transition-colors">1</span>
+                    <div>
+                        <span class="block text-sm font-bold text-slate-800">Normativa Vigente</span>
+                        <span class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Circular 005 - 2025</span>
+                    </div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300 group-hover:text-blue-600"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
+
+            <a href="https://www.minsalud.gov.co/Documentos%20y%20Publicaciones/Manual%20de%20Misi%C3%B3n%20M%C3%A9dica.pdf" target="_blank" class="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between hover:border-blue-400 hover:bg-blue-50 transition-all group">
+                <div class="flex items-center gap-4">
+                    <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 text-blue-700 font-extrabold text-sm group-hover:bg-blue-700 group-hover:text-white transition-colors">2</span>
+                    <div>
+                        <span class="block text-sm font-bold text-slate-800">Manual Misión Médica</span>
+                        <span class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Guía Técnica Nacional</span>
+                    </div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300 group-hover:text-blue-600"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
+
+            <a href="https://saludpublicaesehrno.odoo.com/formulario-de-reporte-de-infracciones-e-incidentes-contra-la-mision-medica" target="_blank" class="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between hover:border-blue-400 hover:bg-blue-50 transition-all group">
+                <div class="flex items-center gap-4">
+                    <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 text-blue-700 font-extrabold text-sm group-hover:bg-blue-700 group-hover:text-white transition-colors">3</span>
+                    <div>
+                        <span class="block text-sm font-bold text-slate-800">Reporte de Infracciones e Incidentes</span>
+                        <span class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Canal Seguro y Directo</span>
+                    </div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300 group-hover:text-blue-600"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
+
+            <a href="https://saludpublicaesehrno.odoo.com/solicitudes-de-ti-emblemas" target="_blank" class="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between hover:border-blue-400 hover:bg-blue-50 transition-all group">
+                <div class="flex items-center gap-4">
+                    <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 text-blue-700 font-extrabold text-sm group-hover:bg-blue-700 group-hover:text-white transition-colors">4</span>
+                    <div>
+                        <span class="block text-sm font-bold text-slate-800">Trámite de Carné y Emblemas</span>
+                        <span class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Solicitud Digital</span>
+                    </div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300 group-hover:text-blue-600"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
+        </div>
+    </main>
+
+    <footer class="py-12 px-4 text-center">
+        <div class="max-w-md mx-auto border-t border-slate-200 pt-8">
+            <p class="text-[11px] font-black text-blue-900 uppercase tracking-[0.2em] mb-2">Módulo de Gestión Misión Médica</p>
+            <p class="text-[10px] text-slate-400 font-medium">ESE Hospital Regional Noroccidental • Misión Médica • Salud Pública • 2026</p>
+        </div>
+    </footer>
+
+</body>
+</html>

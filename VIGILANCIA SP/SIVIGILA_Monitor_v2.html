@@ -230,6 +230,11 @@ pre.gas{background:var(--bg3);border:1px solid var(--border);border-radius:6px;p
 </style>
 </head>
 <body>
+<!-- Portal: botón retorno -->
+<a href="../index.html" title="Volver al Portal de Salud Pública" style="position:fixed;top:12px;left:12px;z-index:9999;display:flex;align-items:center;gap:6px;background:#0f4c81;color:#fff;text-decoration:none;padding:6px 12px 6px 8px;border-radius:8px;font-size:12px;font-weight:700;font-family:'Inter','Segoe UI',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,0.30);letter-spacing:.2px;" onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#0f4c81'">
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+  Portal
+</a>
 
 <!-- ========== SIDEBAR ========== -->
 <aside class="sb" id="sb">
@@ -385,7 +390,7 @@ pre.gas{background:var(--bg3);border:1px solid var(--border);border-radius:6px;p
       </div>
       <div class="tw">
         <table><thead><tr>
-          <th>SE</th><th>Año</th><th>Fecha Not.</th><th>Evento</th>
+          <th>SE</th><th>Año</th><th>Tipo Doc.</th><th>N° Documento</th><th>Nombre</th><th>Fecha Not.</th><th>Evento</th>
           <th>Municipio</th><th>Área</th><th>Zona</th>
           <th>Edad</th><th>Sexo</th><th>Tipo caso</th><th>Hosp.</th><th>Cond. final</th><th>Carga</th>
         </tr></thead>
@@ -399,6 +404,7 @@ pre.gas{background:var(--bg3);border:1px solid var(--border);border-radius:6px;p
       <div class="tabs print-hide" style="margin-bottom:0">
         <div class="tab on" onclick="switchInfTabs('se',this)">Semana EPI</div>
         <div class="tab" onclick="switchInfTabs('mensual',this)">Mensual</div>
+        <div class="tab" onclick="switchInfTabs('anual',this)">Anual</div>
       </div>
 
       <!-- Controles SE -->
@@ -449,6 +455,27 @@ pre.gas{background:var(--bg3);border:1px solid var(--border);border-radius:6px;p
           <select id="inf-eve-m" onchange="renderInformeMensual()"><option value="">Todos los eventos</option></select>
           <button class="btn bg print-hide" onclick="window.print()">⎙ Imprimir / PDF</button>
           <button class="btn bp print-hide" onclick="downloadInformeHTML('mensual')">⬇ Descargar</button>
+        </div>
+      </div>
+
+      <!-- Controles Anual -->
+      <div class="sh print-hide" id="inf-ctrl-anu" style="display:none">
+        <div class="st">Informe Anual SIVIGILA</div>
+        <div class="fg" style="flex-wrap:wrap;gap:6px">
+          <span class="fl">Año:</span>
+          <select id="inf-ano-a" onchange="renderInformeAnual()">
+            <option>2023</option><option>2024</option><option>2025</option><option selected>2026</option>
+          </select>
+          <span class="fl">Municipio:</span>
+          <select id="inf-mun-a" onchange="renderInformeAnual()">
+            <option value="">Todos</option>
+            <option value="ABREGO">Ábrego</option><option value="CONVENCION">Convención</option>
+            <option value="EL CARMEN">El Carmen</option><option value="TEORAMA">Teorama</option>
+          </select>
+          <span class="fl">Evento:</span>
+          <select id="inf-eve-a" onchange="renderInformeAnual()"><option value="">Todos los eventos</option></select>
+          <button class="btn bg print-hide" onclick="window.print()">⎙ Imprimir / PDF</button>
+          <button class="btn bp print-hide" onclick="downloadInformeHTML('anual')">⬇ Descargar</button>
         </div>
       </div>
 
@@ -983,7 +1010,7 @@ function setV(v){
   if(v==='mapa')     renderMapa();
   if(v==='timeline') renderTL();
   if(v==='alertas')  renderAlertas();
-  if(v==='informe')  { if(INF_MODO==='mensual'){fillInfEveSel();renderInformeMensual();}else renderInforme(); }
+  if(v==='informe')  { if(INF_MODO==='mensual'){fillInfEveSel();renderInformeMensual();}else if(INF_MODO==='anual'){fillInfEveSelAnual();renderInformeAnual();}else renderInforme(); }
   if(v==='dashboard'){renderDB();fillCriticosList();}
   if(v==='config')   {fillCriticosList();updCfgInfo();}
 }
@@ -1064,6 +1091,11 @@ function nr(r){
   r._lugar   = (r.bar_ver_!=='NO APLICA'&&r.bar_ver_)||r.vereda_||(r.localidad_!=='NO APLICA'&&r.localidad_)||'';
   r.num_ide_ =String(r.num_ide_||'').trim();
   r.tip_ide_ =String(r.tip_ide_||'').trim();
+  r.pri_nom_ =String(r.pri_nom_||'').trim();
+  r.seg_nom_ =String(r.seg_nom_||'').trim();
+  r.pri_ape_ =String(r.pri_ape_||'').trim();
+  r.seg_ape_ =String(r.seg_ape_||'').trim();
+  r._nombre  =[r.pri_nom_,r.seg_nom_,r.pri_ape_,r.seg_ape_].filter(Boolean).join(' ')||'';
   r.fec_not  =String(r.fec_not||'').trim();
   r.tipo_carga=String(r.tipo_carga||'SEMANAL').toUpperCase();
   return r;
@@ -1155,7 +1187,8 @@ function renderDB(){
   const sa=semNow(), ya=new Date().getFullYear();
   const dSe=d.filter(r=>r.semana===sa&&r.año===ya);
   document.getElementById('k-tot').textContent=d.length.toLocaleString('es-CO');
-  document.getElementById('k-tot-s').textContent=[...new Set(d.map(r=>r.municipio))].length+' municipio(s)';
+  const munsDB=[...new Set(d.map(r=>r.municipio).filter(Boolean))];
+  document.getElementById('k-tot-s').textContent=munsDB.map(m=>MUN[m]?.nom||m).join(', ')||'Sin datos';
   document.getElementById('k-se').textContent='SE '+sa;
   document.getElementById('k-se-s').textContent=dSe.length+' casos';
   document.getElementById('k-ev').textContent=[...new Set(d.map(r=>r.nom_eve).filter(Boolean))].length;
@@ -1297,7 +1330,10 @@ function renderPag(){
     const sx=r.sexo_==='M'?'Masc.':r.sexo_==='F'?'Fem.':r.sexo_||'—';
     const isCrit=CRITICOS.includes(r.nom_eve)?'border-left:3px solid var(--red);':'';
     return `<tr style="${isCrit}">
-      <td><strong>SE${r.semana}</strong></td><td>${r.año}</td><td>${r.fec_not||'—'}</td>
+      <td><strong>SE${r.semana}</strong></td><td>${r.año}</td>
+      <td style="font-size:11px">${r.tip_ide_||'—'}</td><td style="font-family:monospace;font-size:12px">${r.num_ide_||'—'}</td>
+      <td style="font-size:11px">${r._nombre||'—'}</td>
+      <td>${r.fec_not||'—'}</td>
       <td>${r.nom_eve||'—'}</td><td>${MUN[r.municipio]?.nom||r.municipio||'—'}</td>
       <td>${AREA_NM[r.area_]||r.area_||'—'}</td><td>${r._lugar||'—'}</td>
       <td>${r.edad_}a</td><td>${sx}</td>
@@ -1312,8 +1348,8 @@ function renderPag(){
 function chPag(d){ const max=Math.ceil(D_F.length/PPP)-1; PAG=Math.max(0,Math.min(max,PAG+d)); renderPag(); }
 
 function exportCSV(){
-  const hd=['SE','Año','Fecha Not.','Evento','Municipio','Área','Zona','Edad','Sexo','Tipo caso','Hospitalizado','Cond. final','Carga'];
-  const rows=D_F.map(r=>[r.semana,r.año,r.fec_not,r.nom_eve,MUN[r.municipio]?.nom||r.municipio,AREA_NM[r.area_]||r.area_,r._lugar,r.edad_,r.sexo_,TIP_CAS[r.tip_cas_]||r.tip_cas_,PAC_HOS[r.pac_hos_]||r.pac_hos_,CON_FIN[r.con_fin_]||r.con_fin_,r.tipo_carga].map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(','));
+  const hd=['SE','Año','Tipo Doc.','N° Documento','Nombre','Fecha Not.','Evento','Municipio','Área','Zona','Edad','Sexo','Tipo caso','Hospitalizado','Cond. final','Carga'];
+  const rows=D_F.map(r=>[r.semana,r.año,r.tip_ide_,r.num_ide_,r._nombre,r.fec_not,r.nom_eve,MUN[r.municipio]?.nom||r.municipio,AREA_NM[r.area_]||r.area_,r._lugar,r.edad_,r.sexo_,TIP_CAS[r.tip_cas_]||r.tip_cas_,PAC_HOS[r.pac_hos_]||r.pac_hos_,CON_FIN[r.con_fin_]||r.con_fin_,r.tipo_carga].map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(','));
   const blob=new Blob([[hd.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='SIVIGILA_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
@@ -1607,7 +1643,9 @@ function renderInforme(){
   const hosp     = d.filter(r=>r.pac_hos_==='1').length;
   const def      = d.filter(r=>r.con_fin_==='2').length;
   const eventos  = [...new Set(d.map(r=>r.nom_eve).filter(Boolean))].length;
-  const munActivos=[...new Set(d.map(r=>r.municipio).filter(Boolean))].length;
+  const munActivosSet=[...new Set(d.map(r=>r.municipio).filter(Boolean))];
+  const munActivos=munActivosSet.length;
+  const munActivosNoms=munActivosSet.map(m=>MUN[m]?.nom||m).join(', ')||'—';
 
   const trend = delta===0?`<span class="rep-trend rt-eq">= igual</span>`:
     delta>0?`<span class="rep-trend rt-up">▲ ${Math.abs(delta)} (+${pctCh}% vs SE${sePrev})</span>`:
@@ -1637,7 +1675,7 @@ function renderInforme(){
       <td style="text-align:center">${tr}</td>
       <td style="text-align:center;color:${v.hosp?'var(--warn)':'var(--text2)'}">${v.hosp||'—'}</td>
       <td style="text-align:center;color:${v.def?'var(--red)':'var(--text2)'}">${v.def||'—'}</td>
-      <td style="text-align:center">${v.muns.size}</td>
+      <td style="text-align:center;font-size:11px">${[...v.muns].map(m=>MUN[m]?.nom||m).join(', ')||'—'}</td>
     </tr>`;
   };
 
@@ -1659,6 +1697,8 @@ function renderInforme(){
   const filaEsp=r=>`<tr>
     <td>${r.nom_eve||'—'}</td>
     <td>${MUN[r.municipio]?.nom||r.municipio||'—'}</td>
+    <td style="font-size:11px">${r._nombre||'—'}</td>
+    <td style="font-family:monospace;font-size:11px">${r.tip_ide_?r.tip_ide_+' ':''}${r.num_ide_||'—'}</td>
     <td>${r.edad_}a · ${r.sexo_==='M'?'Masc.':r.sexo_==='F'?'Fem.':r.sexo_||'—'}</td>
     <td>${AREA_NM[r.area_]||r.area_||'—'}</td>
     <td>${r._lugar||'—'}</td>
@@ -1696,7 +1736,7 @@ function renderInforme(){
     <div class="rep-kpis">
       <div class="rep-kpi blue"><div class="lbl">Total casos</div><div class="val">${tot}</div><div class="sub">${trend}</div></div>
       <div class="rep-kpi"><div class="lbl">Eventos distintos</div><div class="val">${eventos}</div><div class="sub">enfermedades</div></div>
-      <div class="rep-kpi"><div class="lbl">Municipios activos</div><div class="val">${munActivos}</div><div class="sub">con casos</div></div>
+      <div class="rep-kpi"><div class="lbl">Municipios activos</div><div class="val">${munActivos}</div><div class="sub">${munActivosNoms}</div></div>
       <div class="rep-kpi warn"><div class="lbl">Hospitalizados</div><div class="val">${hosp}</div><div class="sub">${tot?((hosp/tot*100).toFixed(1)):'0'}% del total</div></div>
       <div class="rep-kpi ${def?'red':''}"><div class="lbl">Fallecidos</div><div class="val">${def||'0'}</div><div class="sub">condición final = 2</div></div>
       <div class="rep-kpi"><div class="lbl">SE anterior</div><div class="val">${totPrev}</div><div class="sub">SE${sePrev} · ${anoPrev}</div></div>
@@ -1714,7 +1754,7 @@ function renderInforme(){
           <th>Evento</th><th style="text-align:center">SE${String(se).padStart(2,'0')}</th>
           <th style="text-align:center">SE${sePrev}</th><th style="text-align:center">Tendencia</th>
           <th style="text-align:center">Hosp.</th><th style="text-align:center">Def.</th>
-          <th style="text-align:center">Mun.</th>
+          <th style="text-align:center">Municipios</th>
         </tr></thead>
         <tbody>${eveRows.map(filaEve).join('')}</tbody>
         <tfoot><tr style="border-top:2px solid var(--border)">
@@ -1753,7 +1793,7 @@ function renderInforme(){
     </div>
     <div class="rep-matrix">
       <table>
-        <thead><tr><th>Evento</th><th>Municipio</th><th>Paciente</th><th>Área</th><th>Zona</th><th>Fecha not.</th></tr></thead>
+        <thead><tr><th>Evento</th><th>Municipio</th><th>Nombre</th><th>Documento</th><th>Paciente</th><th>Área</th><th>Zona</th><th>Fecha not.</th></tr></thead>
         <tbody>${hospitalizados.map(filaEsp).join('')}</tbody>
       </table>
     </div>
@@ -1766,7 +1806,7 @@ function renderInforme(){
     </div>
     <div class="rep-matrix">
       <table>
-        <thead><tr><th>Evento</th><th>Municipio</th><th>Paciente</th><th>Área</th><th>Zona</th><th>Fecha not.</th></tr></thead>
+        <thead><tr><th>Evento</th><th>Municipio</th><th>Nombre</th><th>Documento</th><th>Paciente</th><th>Área</th><th>Zona</th><th>Fecha not.</th></tr></thead>
         <tbody>${fallecidos.map(filaEsp).join('')}</tbody>
       </table>
     </div>
@@ -1790,8 +1830,11 @@ function switchInfTabs(modo, el){
   el.classList.add('on');
   document.getElementById('inf-ctrl-se').style.display  = modo==='se'      ? '' : 'none';
   document.getElementById('inf-ctrl-men').style.display = modo==='mensual'  ? '' : 'none';
+  document.getElementById('inf-ctrl-anu').style.display = modo==='anual'    ? '' : 'none';
   document.getElementById('informe-body').innerHTML='';
-  if(modo==='se') renderInforme(); else {fillInfEveSel(); renderInformeMensual();}
+  if(modo==='se') renderInforme();
+  else if(modo==='mensual'){fillInfEveSel(); renderInformeMensual();}
+  else {fillInfEveSelAnual(); renderInformeAnual();}
 }
 
 function fillInfEveSel(){
@@ -1801,6 +1844,205 @@ function fillInfEveSel(){
   [...new Set(D_ALL.map(r=>r.nom_eve).filter(Boolean))].sort()
     .forEach(e=>{const o=document.createElement('option');o.value=e;o.textContent=e;sel.appendChild(o);});
   if(cur)sel.value=cur;
+}
+
+function fillInfEveSelAnual(){
+  const sel=document.getElementById('inf-eve-a'); if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Todos los eventos</option>';
+  [...new Set(D_ALL.map(r=>r.nom_eve).filter(Boolean))].sort()
+    .forEach(e=>{const o=document.createElement('option');o.value=e;o.textContent=e;sel.appendChild(o);});
+  if(cur)sel.value=cur;
+}
+
+// ============================================================
+// INFORME ANUAL
+// ============================================================
+function renderInformeAnual(){
+  const el=document.getElementById('informe-body'); if(!el)return;
+  const ano   = Number(document.getElementById('inf-ano-a')?.value)||new Date().getFullYear();
+  const munFil= document.getElementById('inf-mun-a')?.value||'';
+  const eveFil= document.getElementById('inf-eve-a')?.value||'';
+
+  if(!D_ALL.length){el.innerHTML='<div class="no-data">No hay datos cargados. Ve a <strong>Cargar datos</strong> primero.</div>';return;}
+  fillInfEveSelAnual();
+
+  let d=D_ALL.filter(r=>r.año===ano);
+  if(munFil) d=d.filter(r=>r.municipio===munFil);
+  if(eveFil) d=d.filter(r=>r.nom_eve===eveFil);
+
+  let dPrev=D_ALL.filter(r=>r.año===ano-1);
+  if(munFil) dPrev=dPrev.filter(r=>r.municipio===munFil);
+  if(eveFil) dPrev=dPrev.filter(r=>r.nom_eve===eveFil);
+
+  const munNom=munFil?(MUN[munFil]?.nom||munFil):'Todos los municipios';
+  const ahora=new Date().toLocaleString('es-CO',{dateStyle:'full',timeStyle:'short'});
+
+  const tot=d.length, totPrev=dPrev.length, delta=tot-totPrev;
+  const pctCh=totPrev?((delta/totPrev)*100).toFixed(0):null;
+  const hosp=d.filter(r=>r.pac_hos_==='1').length;
+  const def =d.filter(r=>r.con_fin_==='2').length;
+  const eventos=[...new Set(d.map(r=>r.nom_eve).filter(Boolean))].length;
+  const munActivosSetA=[...new Set(d.map(r=>r.municipio).filter(Boolean))];
+  const munActivosNomsA=munActivosSetA.map(m=>MUN[m]?.nom||m).join(', ')||'—';
+
+  const trend=delta===0?`<span class="rep-trend rt-eq">= igual</span>`:
+    delta>0?`<span class="rep-trend rt-up">▲ ${Math.abs(delta)} (+${pctCh}% vs ${ano-1})</span>`:
+            `<span class="rep-trend rt-dn">▼ ${Math.abs(delta)} (${pctCh}% vs ${ano-1})</span>`;
+
+  // Distribución mensual
+  const porMes={};
+  d.forEach(r=>{const mes=mesDeRegistro(r);if(mes)porMes[mes]=(porMes[mes]||0)+1;});
+  const mesMax=Math.max(...Object.values(porMes),1);
+  const mesBar=mes=>{const n=porMes[mes]||0,w=Math.round((n/mesMax)*100);
+    return `<tr><td style="white-space:nowrap;padding-right:12px;font-size:12px">${MESES[mes-1]}</td>
+      <td style="width:100%"><div style="background:var(--blue);height:14px;width:${w}%;min-width:${n?6:0}px;border-radius:2px;display:inline-block"></div></td>
+      <td style="text-align:right;font-weight:700;padding-left:10px;font-family:monospace;font-size:12px;color:var(--blue)">${n||'—'}</td></tr>`;};
+
+  // Tabla por evento
+  const porEve={};
+  d.forEach(r=>{const k=r.nom_eve||'Sin clasificar';if(!porEve[k])porEve[k]={tot:0,hosp:0,def:0,muns:new Set(),prev:0};porEve[k].tot++;if(r.pac_hos_==='1')porEve[k].hosp++;if(r.con_fin_==='2')porEve[k].def++;porEve[k].muns.add(r.municipio);});
+  dPrev.forEach(r=>{const k=r.nom_eve||'Sin clasificar';if(porEve[k])porEve[k].prev++;});
+  const eveRows=Object.entries(porEve).sort((a,b)=>b[1].tot-a[1].tot);
+
+  const filaEveA=([eve,v])=>{
+    const d2=v.tot-v.prev;
+    const tr=d2===0?'→':d2>0?`<span style="color:var(--red)">▲ ${d2}</span>`:`<span style="color:var(--green)">▼ ${Math.abs(d2)}</span>`;
+    const isCrit=CRITICOS.includes(eve);
+    const pct=tot?((v.tot/tot*100).toFixed(1)):'0.0';
+    return `<tr style="${isCrit?'border-left:3px solid var(--red)':''}">
+      <td style="font-weight:${isCrit?700:400}">${eve}${isCrit?' <span style="color:var(--red);font-size:10px">●</span>':''}</td>
+      <td style="text-align:center;font-weight:700">${v.tot}</td>
+      <td style="text-align:center;color:var(--text2)">${pct}%</td>
+      <td style="text-align:center;color:var(--text2)">${v.prev}</td>
+      <td style="text-align:center">${tr}</td>
+      <td style="text-align:center;color:${v.hosp?'var(--warn)':'var(--text2)'}">${v.hosp||'—'}</td>
+      <td style="text-align:center;color:${v.def?'var(--red)':'var(--text2)'}">${v.def||'—'}</td>
+      <td style="text-align:center;font-size:11px">${[...v.muns].map(m=>MUN[m]?.nom||m).join(', ')||'—'}</td>
+    </tr>`;};
+
+  // Tabla por municipio
+  const munsPresentes=[...new Set(d.map(r=>r.municipio).filter(Boolean))].sort();
+  const filaMunA=mun=>{
+    const sub=d.filter(r=>r.municipio===mun);
+    const h=sub.filter(r=>r.pac_hos_==='1').length, df=sub.filter(r=>r.con_fin_==='2').length;
+    const topEve=Object.entries(sub.reduce((g,r)=>{const k=r.nom_eve||'N/D';g[k]=(g[k]||0)+1;return g;},{})).sort((a,b)=>b[1]-a[1])[0];
+    return `<tr>
+      <td style="font-weight:600">${MUN[mun]?.nom||mun}</td>
+      <td style="text-align:center;font-weight:700;color:var(--blue)">${sub.length}</td>
+      <td style="text-align:center;color:var(--text2)">${tot?((sub.length/tot*100).toFixed(1)):0}%</td>
+      <td style="text-align:center;color:${h?'var(--warn)':'var(--text2)'}">${h||'—'}</td>
+      <td style="text-align:center;color:${df?'var(--red)':'var(--text2)'}">${df||'—'}</td>
+      <td style="font-size:11px">${topEve?topEve[0]+' ('+topEve[1]+')':'—'}</td>
+    </tr>`;};
+
+  // Casos especiales
+  const hospitalizados=d.filter(r=>r.pac_hos_==='1');
+  const fallecidos    =d.filter(r=>r.con_fin_==='2');
+  const filaEspA=r=>`<tr>
+    <td>${r.nom_eve||'—'}</td>
+    <td>${MUN[r.municipio]?.nom||r.municipio||'—'}</td>
+    <td style="font-size:11px">${r._nombre||'—'}</td>
+    <td style="font-family:monospace;font-size:11px">${r.tip_ide_?r.tip_ide_+' ':''}${r.num_ide_||'—'}</td>
+    <td>${r.edad_}a · ${r.sexo_==='M'?'Masc.':r.sexo_==='F'?'Fem.':r.sexo_||'—'}</td>
+    <td>${AREA_NM[r.area_]||r.area_||'—'}</td>
+    <td>${r.fec_not||'—'}</td><td>${MESES[(mesDeRegistro(r)||1)-1]||'—'}</td>
+  </tr>`;
+
+  const alertasDisp=ALERTAS.filter(a=>a.disparada);
+
+  el.innerHTML=`
+  <div class="rep-header">
+    <div class="rep-header-main">
+      <h2>Informe Anual — ${ano}</h2>
+      <p>ESE Hospital Regional Noroccidental · Salud Pública · Norte de Santander<br>
+         Cobertura: ${munNom}${eveFil?' · Evento: <strong>'+eveFil+'</strong>':''}</p>
+    </div>
+    <div class="rep-header-meta print-hide">
+      Generado: ${ahora}<br>
+      Total en sistema: ${D_ALL.length.toLocaleString('es-CO')} registros<br>
+      SIVIGILA Monitor v2
+    </div>
+  </div>
+
+  ${alertasDisp.length?`<div class="rep-sect"><div class="rep-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Alertas activas</div>
+  ${alertasDisp.map(a=>`<div class="alerta-rep"><strong>⚠ ${a.nombre}</strong> — ${a.casosAct} casos (umbral: ${a.umbral}/${a.periodo})</div>`).join('')}</div>`:''}
+
+  <div class="rep-sect">
+    <div class="rep-t">Resumen — Año ${ano}</div>
+    <div class="rep-kpis">
+      <div class="rep-kpi blue"><div class="lbl">Total casos</div><div class="val">${tot}</div><div class="sub">${trend}</div></div>
+      <div class="rep-kpi"><div class="lbl">Eventos</div><div class="val">${eventos}</div><div class="sub">enfermedades distintas</div></div>
+      <div class="rep-kpi"><div class="lbl">Municipios</div><div class="val">${munActivosSetA.length}</div><div class="sub">${munActivosNomsA}</div></div>
+      <div class="rep-kpi warn"><div class="lbl">Hospitalizados</div><div class="val">${hosp}</div><div class="sub">${tot?((hosp/tot*100).toFixed(1)):0}% del total</div></div>
+      <div class="rep-kpi ${def?'red':''}"><div class="lbl">Fallecidos</div><div class="val">${def||0}</div><div class="sub">condición final = 2</div></div>
+      <div class="rep-kpi"><div class="lbl">Año anterior</div><div class="val">${totPrev}</div><div class="sub">${ano-1}</div></div>
+    </div>
+  </div>
+
+  ${Object.keys(porMes).length?`<div class="rep-sect">
+    <div class="rep-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Distribución mensual — ${ano}</div>
+    <div style="max-width:520px">
+      <table style="width:100%;border-collapse:collapse">${Array.from({length:12},(_,i)=>mesBar(i+1)).join('')}</table>
+    </div>
+  </div>`:''}
+
+  ${eveRows.length?`<div class="rep-sect">
+    <div class="rep-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Casos por evento — ${ano} vs ${ano-1}</div>
+    <div class="rep-matrix">
+      <table>
+        <thead><tr>
+          <th>Evento</th><th style="text-align:center">${ano}</th><th style="text-align:center">%</th>
+          <th style="text-align:center">${ano-1}</th><th style="text-align:center">Tendencia</th>
+          <th style="text-align:center">Hosp.</th><th style="text-align:center">Def.</th>
+          <th style="text-align:center">Municipios</th>
+        </tr></thead>
+        <tbody>${eveRows.map(filaEveA).join('')}</tbody>
+        <tfoot><tr style="border-top:2px solid var(--border)">
+          <td style="font-weight:700">TOTAL</td>
+          <td style="text-align:center;font-weight:700;color:var(--blue)">${tot}</td><td></td>
+          <td style="text-align:center;color:var(--text2)">${totPrev}</td><td></td>
+          <td style="text-align:center;font-weight:700;color:var(--warn)">${hosp}</td>
+          <td style="text-align:center;font-weight:700;color:var(--red)">${def}</td><td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+    ${CRITICOS.length?`<p style="font-size:10px;color:var(--text2);margin-top:6px">● Evento crítico configurado</p>`:''}
+  </div>`:'<div class="no-data">No hay casos registrados para el año '+ano+'.</div>'}
+
+  ${munsPresentes.length?`<div class="rep-sect">
+    <div class="rep-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Distribución por municipio — ${ano}</div>
+    <div class="rep-matrix">
+      <table>
+        <thead><tr><th>Municipio</th><th style="text-align:center">Casos</th><th style="text-align:center">%</th><th style="text-align:center">Hosp.</th><th style="text-align:center">Def.</th><th>Evento principal</th></tr></thead>
+        <tbody>${munsPresentes.map(filaMunA).join('')}</tbody>
+      </table>
+    </div>
+  </div>`:''}
+
+  ${hospitalizados.length?`<div class="rep-sect">
+    <div class="rep-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Hospitalizados — ${ano} (${hospitalizados.length})</div>
+    <div class="rep-matrix"><table>
+      <thead><tr><th>Evento</th><th>Municipio</th><th>Nombre</th><th>Documento</th><th>Paciente</th><th>Área</th><th>Fecha not.</th><th>Mes</th></tr></thead>
+      <tbody>${hospitalizados.map(filaEspA).join('')}</tbody>
+    </table></div>
+  </div>`:''}
+
+  ${fallecidos.length?`<div class="rep-sect">
+    <div class="rep-t" style="color:var(--red)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Fallecidos — ${ano} (${fallecidos.length})</div>
+    <div class="rep-matrix"><table>
+      <thead><tr><th>Evento</th><th>Municipio</th><th>Nombre</th><th>Documento</th><th>Paciente</th><th>Área</th><th>Fecha not.</th><th>Mes</th></tr></thead>
+      <tbody>${fallecidos.map(filaEspA).join('')}</tbody>
+    </table></div>
+  </div>`:''}
+
+  <div class="rep-sect" style="margin-top:24px;padding-top:14px;border-top:1px solid var(--border)">
+    <p style="font-size:10px;color:var(--text2);line-height:1.8">
+      Informe generado automáticamente · SIVIGILA Monitor v2 · ESE Hospital Regional Noroccidental<br>
+      Fuente de datos: Sistema Nacional de Vigilancia en Salud Pública (SIVIGILA) — Año ${ano}<br>
+      Coordinador Salud Pública HRNO · Norte de Santander, Colombia
+    </p>
+  </div>`;
 }
 
 // ============================================================
@@ -1840,7 +2082,9 @@ function renderInformeMensual(){
   const hosp=d.filter(r=>r.pac_hos_==='1').length;
   const def =d.filter(r=>r.con_fin_==='2').length;
   const eventos=[...new Set(d.map(r=>r.nom_eve).filter(Boolean))].length;
-  const munActivos=[...new Set(d.map(r=>r.municipio).filter(Boolean))].length;
+  const munActivosSetM=[...new Set(d.map(r=>r.municipio).filter(Boolean))];
+  const munActivos=munActivosSetM.length;
+  const munActivosNomsM=munActivosSetM.map(m=>MUN[m]?.nom||m).join(', ')||'—';
 
   const trend=delta===0?`<span class="rep-trend rt-eq">= igual</span>`:
     delta>0?`<span class="rep-trend rt-up">▲ ${Math.abs(delta)} (+${pctCh}% vs ${mesNomPrev})</span>`:
@@ -1875,7 +2119,7 @@ function renderInformeMensual(){
       <td style="text-align:center">${tr}</td>
       <td style="text-align:center;color:${v.hosp?'var(--warn)':'var(--text2)'}">${v.hosp||'—'}</td>
       <td style="text-align:center;color:${v.def?'var(--red)':'var(--text2)'}">${v.def||'—'}</td>
-      <td style="text-align:center">${v.muns.size}</td>
+      <td style="text-align:center;font-size:11px">${[...v.muns].map(m=>MUN[m]?.nom||m).join(', ')||'—'}</td>
     </tr>`;};
 
   // Tabla por municipio
@@ -1902,6 +2146,8 @@ function renderInformeMensual(){
   const fallecidos    =d.filter(r=>r.con_fin_==='2');
   const filaEsp=r=>`<tr>
     <td>${r.nom_eve||'—'}</td><td>${MUN[r.municipio]?.nom||r.municipio||'—'}</td>
+    <td style="font-size:11px">${r._nombre||'—'}</td>
+    <td style="font-family:monospace;font-size:11px">${r.tip_ide_?r.tip_ide_+' ':''}${r.num_ide_||'—'}</td>
     <td>${r.edad_}a · ${r.sexo_==='M'?'Masc.':r.sexo_==='F'?'Fem.':r.sexo_||'—'}</td>
     <td>${AREA_NM[r.area_]||r.area_||'—'}</td><td>${r._lugar||'—'}</td>
     <td>${r.fec_not||'—'}</td><td>SE${r.semana}</td>
@@ -1931,7 +2177,7 @@ function renderInformeMensual(){
     <div class="rep-kpis">
       <div class="rep-kpi blue"><div class="lbl">Total casos</div><div class="val">${tot}</div><div class="sub">${trend}</div></div>
       <div class="rep-kpi"><div class="lbl">Eventos</div><div class="val">${eventos}</div><div class="sub">enfermedades</div></div>
-      <div class="rep-kpi"><div class="lbl">Municipios</div><div class="val">${munActivos}</div><div class="sub">con casos</div></div>
+      <div class="rep-kpi"><div class="lbl">Municipios</div><div class="val">${munActivos}</div><div class="sub">${munActivosNomsM}</div></div>
       <div class="rep-kpi warn"><div class="lbl">Hospitalizados</div><div class="val">${hosp}</div><div class="sub">${tot?((hosp/tot*100).toFixed(1)):0}% del total</div></div>
       <div class="rep-kpi ${def?'red':''}"><div class="lbl">Fallecidos</div><div class="val">${def||0}</div><div class="sub">condición final = 2</div></div>
       <div class="rep-kpi"><div class="lbl">Mes anterior</div><div class="val">${totPrev}</div><div class="sub">${mesNomPrev} · ${anoPrev}</div></div>
@@ -1984,7 +2230,7 @@ function renderInformeMensual(){
   ${hospitalizados.length?`<div class="rep-sect">
     <div class="rep-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Hospitalizados (${hospitalizados.length})</div>
     <div class="rep-matrix"><table>
-      <thead><tr><th>Evento</th><th>Municipio</th><th>Paciente</th><th>Área</th><th>Zona</th><th>Fecha not.</th><th>SE</th></tr></thead>
+      <thead><tr><th>Evento</th><th>Municipio</th><th>Nombre</th><th>Documento</th><th>Paciente</th><th>Área</th><th>Zona</th><th>Fecha not.</th><th>SE</th></tr></thead>
       <tbody>${hospitalizados.map(filaEsp).join('')}</tbody>
     </table></div>
   </div>`:''}
@@ -1992,7 +2238,7 @@ function renderInformeMensual(){
   ${fallecidos.length?`<div class="rep-sect">
     <div class="rep-t" style="color:var(--red)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Fallecidos (${fallecidos.length})</div>
     <div class="rep-matrix"><table>
-      <thead><tr><th>Evento</th><th>Municipio</th><th>Paciente</th><th>Área</th><th>Zona</th><th>Fecha not.</th><th>SE</th></tr></thead>
+      <thead><tr><th>Evento</th><th>Municipio</th><th>Nombre</th><th>Documento</th><th>Paciente</th><th>Área</th><th>Zona</th><th>Fecha not.</th><th>SE</th></tr></thead>
       <tbody>${fallecidos.map(filaEsp).join('')}</tbody>
     </table></div>
   </div>`:''}
@@ -2018,6 +2264,11 @@ function downloadInformeHTML(tipo){
     const ano=document.getElementById('inf-ano')?.value||'';
     const mun=document.getElementById('inf-mun')?.value||'TODOS';
     nom=`Informe_SE${String(se).padStart(2,'0')}_${ano}_${mun}`;
+  }else if(tipo==='anual'){
+    const ano=document.getElementById('inf-ano-a')?.value||'';
+    const mun=document.getElementById('inf-mun-a')?.value||'TODOS';
+    const eve=(document.getElementById('inf-eve-a')?.value||'').replace(/\s+/g,'_').slice(0,25);
+    nom=`Informe_Anual_${ano}_${mun}${eve?'_'+eve:''}`;
   }else{
     const mes=document.getElementById('inf-mes')?.value||'1';
     const ano=document.getElementById('inf-ano-m')?.value||'';

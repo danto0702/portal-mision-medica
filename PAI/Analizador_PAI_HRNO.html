@@ -979,6 +979,7 @@ function mapColumns(hdrs) {
   C.bcg           = find('bcg');
   C.hepB          = n.findIndex(h=>h.includes('hepatitis b')&&h.includes('dosis')&&!h.includes('no pai'));
   C.vpob          = n.findIndex(h=>(h.includes('vpob')||h.includes('oralmonovalente'))&&h.includes('dosis'));
+  if(C.vpob<0) C.vpob = n.findIndex(h=>h.includes('polio')&&h.includes('dosis')&&!h.includes('inactivado')&&!h.includes('no pai'));
   C.vpi           = n.findIndex(h=>(h.includes('vpi')||h.includes('inactivado'))&&h.includes('dosis')&&!h.endsWith('1'));
   C.pentavalente  = n.findIndex(h=>h.includes('pentavalente')&&h.includes('dosis'));
   C.dpt           = n.findIndex(h=>h.startsWith('dpt')&&h.includes('dosis')&&!h.includes('pediatri')&&!h.includes('acelular')&&!h.includes('hib'));
@@ -1146,10 +1147,37 @@ function processFile(file){
     try {
       const data = new Uint8Array(e.target.result);
       const wb = XLSX.read(data, {type:'array', cellDates:true});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:false, dateNF:'yyyy-mm-dd'});
-      if(!json || json.length < 2){ alert('El archivo no tiene datos suficientes.'); return; }
-      processData(json[0], json.slice(1), file.name);
+
+      // ── Detectar si es plantilla MINSALUD de Registro Diario de Vacunación
+      if (esPlantillaMinsalud(wb)) {
+        const det = detectMetaFromFilename(file.name);
+        // Intentar detectar municipio desde la hoja si el nombre no lo indica
+        if (!det.municipio) {
+          const sh = wb.SheetNames.find(n => {
+            const nl = n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+            return nl.includes('ni') && nl.includes('as');
+          }) || wb.SheetNames[1] || wb.SheetNames[0];
+          const rawSh = XLSX.utils.sheet_to_json(wb.Sheets[sh], {header:1, defval:null, raw:false});
+          const inst = ((rawSh[2]||[])[18]||'').toString().toUpperCase();
+          for (const [k,v] of Object.entries({ABREGO:'Ábrego',CONVENCION:'Convención',CARMEN:'El Carmen',TEORAMA:'Teorama'})) {
+            if (inst.includes(k)) { det.municipio = v; break; }
+          }
+        }
+        const result = parsePlantillaWb(wb, det);
+        if (!result.rows.length) {
+          fi.textContent = '❌ No se encontraron registros en la plantilla (0 filas detectadas)';
+          fi.className = 'ds-status err';
+          return;
+        }
+        const hdrs = [...ENCABEZADO_BASE, ...result.vaccineHdrs];
+        processData(hdrs, result.rows, file.name);
+      } else {
+        // Consolidado normal: primera hoja, primera fila = encabezados
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:false, dateNF:'yyyy-mm-dd'});
+        if (!json || json.length < 2) { alert('El archivo no tiene datos suficientes.'); return; }
+        processData(json[0], json.slice(1), file.name);
+      }
     } catch(err){
       fi.textContent = '❌ ' + err.message;
       fi.className = 'ds-status err';
@@ -1157,6 +1185,17 @@ function processFile(file){
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+// Detecta si el workbook es una Plantilla MINSALUD de Registro Diario de Vacunación
+function esPlantillaMinsalud(wb) {
+  const shNinos = wb.SheetNames.find(n => {
+    const nl = n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    return (nl.includes('ni') && nl.includes('as')) || nl.includes('ninas');
+  });
+  if (!shNinos) return false;
+  const raw = XLSX.utils.sheet_to_json(wb.Sheets[shNinos], {header:1, defval:null, raw:false});
+  return ((raw[5]||[])[0]||'').toString().trim().toUpperCase().includes('CONSECUTIVO');
 }
 
 function populateMunicipios(){
@@ -1832,6 +1871,21 @@ function detectMetaFromFilename(filename) {
   return { municipio, mes, anio };
 }
 
+// ==================== EDAD ACTUAL DESDE FECHA NACIMIENTO ====================
+function calcEdadActualText(fechaNac) {
+  const dob = toDate(fechaNac);
+  if (!dob) return '';
+  const now = new Date();
+  let anios = now.getFullYear() - dob.getFullYear();
+  let meses = now.getMonth() - dob.getMonth();
+  if (now.getDate() < dob.getDate()) meses--;
+  if (meses < 0) { anios--; meses += 12; }
+  anios = Math.max(0, anios);
+  meses = Math.max(0, meses);
+  if (anios > 0) return `${anios} años, ${meses} meses`;
+  return `${meses} meses`;
+}
+
 // ==================== PARSE PLANTILLA ====================
 function parsePlantillaWb(wb, meta) {
   // Buscar hoja NIÑOS Y NIÑAS
@@ -1847,30 +1901,33 @@ function parsePlantillaWb(wb, meta) {
   const mes  = meta.mes  || '01';
   const anio = meta.anio || '2026';
 
-  // Extraer headers de vacunas: recorrer filas 5-8 y quedarse con la que más celdas llenas tenga
-  let vaccineHdrs = [];
-  for (let ri = 8; ri >= 5; ri--) {
-    const hRow = raw[ri] || [];
-    const vcols = hRow.slice(30).map(h => (h || '').toString().trim());
-    if (vcols.filter(Boolean).length > vaccineHdrs.filter(Boolean).length) {
-      vaccineHdrs = vcols;
-    }
-  }
+  // Extraer headers de vacunas: combinar nombre de vacuna (fila 7) + subtipo DOSIS/LOTE (fila 8)
+  const r7v = (raw[7]||[]).slice(30);
+  const r8v = (raw[8]||[]).slice(30);
+  const ncv = Math.max(r7v.length, r8v.length);
+  let grVac = '';
+  const vaccineHdrs = Array.from({length:ncv}, (_,i) => {
+    const v7 = (r7v[i]||'').toString().trim().replace(/[\n\r]+/g,' ');
+    const v8 = (r8v[i]||'').toString().trim();
+    if (v7) grVac = v7.toUpperCase();
+    if (grVac && v8) return grVac + ' ' + v8.toUpperCase();
+    if (grVac) return grVac;
+    return v8.toUpperCase();
+  });
 
   const rows = [];
-  // Datos reales empiezan en fila 10 (índice 9 o 10); saltar filas sin consecutivo numérico
+  // Detectar filas de datos por DÍA (col 1): CONSECUTIVO (col 0) suele estar vacío en este formato
   for (let i = 9; i < raw.length; i++) {
     const row = raw[i];
     if (!row) continue;
-    const cons = row[0];
-    if (!cons) continue;
-    const n = parseInt(cons);
-    if (isNaN(n) || n < 1 || n > 999) continue;
-    // Saltar si no hay documento de niño
+    const diaVal = row[1];
+    if (diaVal == null || diaVal === '') continue;
+    const diaNum = parseInt(diaVal);
+    if (isNaN(diaNum) || diaNum < 1 || diaNum > 31) continue;
+    // Saltar si no hay documento de niño ni de madre
     if (!row[9] && !row[3]) continue;
 
-    const diaRaw = row[1];
-    const dia = diaRaw ? String(parseInt(diaRaw) || 1).padStart(2, '0') : '01';
+    const dia = String(diaNum).padStart(2, '0');
     const fechaVac = `${anio}-${mes}-${dia}`;
 
     // Transformar al formato del consolidado (mismo orden de columnas)
@@ -1890,7 +1947,7 @@ function parsePlantillaWb(wb, meta) {
       row[10],     // M: FECHA NACIMIENTO
       row[11],     // N: TIPO EDAD
       row[12],     // O: EDAD A LA FECHA
-      '',          // P: EDAD ACTUAL (calculada, vacía)
+      calcEdadActualText(row[10]),  // P: EDAD ACTUAL calculada desde fecha de nacimiento
       row[13],     // Q: SEXO
       row[14],     // R: PRIMER APELLIDO NIÑO
       row[15],     // S: SEGUNDO APELLIDO NIÑO

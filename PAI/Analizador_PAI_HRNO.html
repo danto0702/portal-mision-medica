@@ -2067,10 +2067,7 @@ async function sendToSheets() {
     }
 
     // Guardar en localStorage para el grid de estado
-    const municipio = document.getElementById('metaMunicipio').value;
-    const mes  = document.getElementById('metaMes').value;
-    const anio = document.getElementById('metaAnio').value;
-    markLocalStatus(municipio, `${anio}-${mes}`, total);
+    markLocalStatus(municipio, yearMon, total);
 
     prog.style.color = 'var(--green)';
     prog.textContent = `✅ ${total} registros enviados correctamente`;

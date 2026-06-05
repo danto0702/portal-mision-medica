@@ -329,8 +329,51 @@ b2d8873  fix: sincronizar index.html con portal actualizado
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
-| Verificar `sendToSheets` funciona tras fix TDZ (en producción GitHub Pages) | Alta | Pendiente confirmar |
+| Verificar `sendToSheets` funciona tras fix TDZ (en producción GitHub Pages) | Alta | ✅ Confirmado — canónico corregido, copia externa sincronizada (Jun 2026) |
 | Generador de Informes Word/Excel (Python `python-docx` + `openpyxl`) | Media | No iniciado |
 | Gestor de Certificaciones (PAI + Misión Médica unificado) | Media | No iniciado |
 | Módulo Jornadas Rurales (checklist + solicitud medicamentos) | Baja | No iniciado |
 | Botones "volver" en módulos faltantes | Baja | Mayormente completo (commit 52fd13d) |
+
+---
+
+## Diccionario de Alias (Atajos para Prompts)
+
+Cuando un prompt use uno de estos alias, mapear obligatoriamente a la ruta exacta sin pedirle la ruta al usuario.
+
+### Portal Principal
+
+| Alias | Ruta exacta |
+|-------|-------------|
+| **Portal Principal** | `index.html` |
+| **Portal Local** | `index_Principal_Salud_Publica.html` |
+
+### Módulos Principales
+
+| Alias | Ruta exacta |
+|-------|-------------|
+| **Analizador PAI** | `PAI/Analizador_PAI_HRNO.html` |
+| **CertiVac** | `PAI/CertiVac.html` |
+| **Backend PAI** | `PAI/CertiVac_Backend.gs` |
+| **Monitor SIVIGILA** | `VIGILANCIA SP/SIVIGILA_Monitor_v2.html` |
+| **Misión Médica** | `MISIÓN MÉDICA/Modulo_Identificacion_Mision_Medica.html` |
+
+### Herramientas Interoperables
+
+| Alias | Ruta exacta |
+|-------|-------------|
+| **App PCI** | `HERRAMIENTAS INTEROPERABLES/PCI-App/index.html` |
+| **Backend PCI** | `HERRAMIENTAS INTEROPERABLES/PCI-App/PCI_Backend.gs` |
+| **DiagramFlow** | `HERRAMIENTAS INTEROPERABLES/DiagramFlow.html` |
+| **Buscador CUPS** | `HERRAMIENTAS INTEROPERABLES/Buscador_CUPS.html` |
+| **Generador CUPS** | `Generador CUPS/index.html` |
+
+### Scripts y Herramientas de Consolidación
+
+| Alias | Ruta exacta |
+|-------|-------------|
+| **Consolidador HTML** | `HERRAMIENTAS/Consolidador_PAI.html` |
+| **Consolidador Python** | `HERRAMIENTAS/consolidar_pai.py` |
+| **Script Build CUPS** | `Generador CUPS/build_pwa.py` |
+
+> Módulos en desarrollo (EBS, PIC, JEP, HOPE) se añadirán al diccionario cuando se defina su estructura de directorios.

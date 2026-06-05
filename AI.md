@@ -28,7 +28,7 @@ PORTAL SALUD PÚBLICA/               ← raíz del repo
 │
 ├── PAI/                            ← Plan Ampliado de Inmunizaciones
 │   ├── index.html                  ← Página de módulo PAI
-│   ├── Analizador_PAI_HRNO.html   ← Analizador vacunación niños/niñas (✅ activo)
+│   ├── Analizador_PAI_HRNO.html   ← Analizador vacunación niños/niñas (✅ validado, NO tocar)
 │   ├── CertiVac.html              ← Sistema certificados PAI (incluye Analizador en iframe)
 │   ├── CertiVac_Backend.gs        ← Google Apps Script backend de CertiVac
 │   ├── CertiVac_BD_Template.xlsx  ← Plantilla base de datos Google Sheets
@@ -43,8 +43,8 @@ PORTAL SALUD PÚBLICA/               ← raíz del repo
 │   ├── METAS VACUNACIÓN *.xlsx    ← Por municipio
 │   ├── Consolidado_NinosNinas_PAI.xlsx  ← Consolidado exportado
 │   ├── libs/
-│   │   ├── chart.umd.min.js       ← Chart.js (offline)
-│   │   └── xlsx.full.min.js       ← SheetJS (offline)
+│   │   ├── chart.umd.min.js       ← Chart.js (offline) ← USAR ESTA, no CDN
+│   │   └── xlsx.full.min.js       ← SheetJS (offline) ← USAR ESTA, no CDN
 │   └── REGISTROS DIARIOS DE VACUNACIÓN/
 │       └── REGISTROS DIARIOS DE VACUNACIÓN/
 │           ├── ABREGO/
@@ -106,14 +106,25 @@ PORTAL SALUD PÚBLICA/               ← raíz del repo
 
 ### 1. SIVIGILA_Monitor_v2.html
 **Ruta:** `VIGILANCIA SP/SIVIGILA_Monitor_v2.html`
-**Tecnología:** HTML + CSS + JS puro · Chart.js · Leaflet · SheetJS · Google Apps Script backend
+**Tecnología:** HTML + CSS + JS puro · Chart.js (CDN) · Leaflet (CDN) · SheetJS (CDN) · Google Apps Script backend
+
+> ⚠️ **Dependencias de CDN:** Leaflet y Google Fonts se cargan de CDN externo. Sin internet el mapa falla; las demás funciones operan con los datos en caché local.
 
 **Arquitectura:**
 - Carga archivos `.xlsx` de SIVIGILA localmente con SheetJS (`XLSX.read`)
 - Datos normalizados en array global `DB` mediante función `nr(row)`
-- Persistencia en `localStorage` (clave `sivDB`, `sivMeta`)
+- Persistencia en `localStorage` (claves `sivDB`, `sivMeta`)
 - Informes: SE (semana epidemiológica), Mensual, **Anual** (tab agregado Jun 2026)
 - Mapa Leaflet con municipios de cobertura
+
+**Sistema de autenticación (commit d68438e):**
+- Contraseña hasheada con **SHA-256** via `crypto.subtle.digest` — nunca en plaintext
+- Hash almacenado en `localStorage` como `siv_pw_hash`
+- Clave de recuperación de **20 caracteres** (`XXXX-XXXX-XXXX-XXXX-XXXX`) generada al cambiar contraseña
+- Hash de la clave de recuperación en `siv_rk_hash`
+- Contraseña por defecto inicial: `HRNO2026` (se migra a hash en el primer login)
+- Flujo de recuperación: botón en modal login → ingresar clave → nueva contraseña → nueva clave generada
+- Funciones clave: `hashPW()`, `genClaveRec()`, `mostrarClaveRec()`, `checkRecovery()`
 
 **Campos de datos SIVIGILA (claves en los objetos normalizados):**
 ```
@@ -125,6 +136,14 @@ pri_nom_, seg_nom_, pri_ape_, seg_ape_  →  compuesto en: _nombre
 
 **Tabla municipios (`MUN`):** objeto JS con claves de código DANE → `{ nom, dep }`
 Municipios cubiertos: Ábrego, Convención, El Carmen, Teorama (y otros de Norte de Santander)
+
+**Funciones de seguridad y utilidad (commit d68438e):**
+```js
+escH(s)          // escape HTML para prevenir XSS en innerHTML — SIEMPRE usar al insertar datos de archivo
+safeLSSet(k,v)   // wrapper seguro de localStorage.setItem — captura QuotaExceededError
+hashPW(pw)       // async, SHA-256 → hex string
+genClaveRec()    // genera clave 20 chars alfanuméricos sin ambigüedad
+```
 
 **Cambios recientes (commit 52fd13d):**
 - Tab "Anual" con KPIs, distribución mensual (bar chart), comparativo por evento, tabla por municipio, lista hospitalizados/fallecidos
@@ -139,6 +158,14 @@ Municipios cubiertos: Ábrego, Convención, El Carmen, Teorama (y otros de Norte
 - `PAI/CertiVac.html` — sistema integral PAI (frontend principal)
 - `PAI/Analizador_PAI_HRNO.html` — verificador de población susceptible (cargado en iframe desde CertiVac)
 
+> 🔒 **REGLA FIJA:** El `Analizador_PAI_HRNO.html` está **validado y no se modifica**. Cualquier auditoría o cambio lo excluye explícitamente.
+
+**Librerías (offline-first desde commit d68438e):**
+- `PAI/libs/xlsx.full.min.js` — SheetJS local
+- `PAI/libs/chart.umd.min.js` — Chart.js local
+- Google Fonts se carga vía `@import` (falla silenciosamente sin internet, usa fuentes del sistema)
+- **NO usar CDN de cdnjs/jsdelivr para estas librerías** — ya existen versiones locales
+
 **CertiVac.html — módulos internos:**
 | Módulo | Descripción |
 |--------|-------------|
@@ -150,30 +177,45 @@ Municipios cubiertos: Ábrego, Convención, El Carmen, Teorama (y otros de Norte
 | Informe por Municipio | Informe consolidado |
 | Gráficas & Análisis | Visualizaciones de cobertura |
 | Exportar Excel | Exportar datos consolidados |
-| Verificador Pob. Susceptible | → carga `Analizador_PAI_HRNO.html` en iframe (línea ~1329) |
+| Verificador Pob. Susceptible | → carga `Analizador_PAI_HRNO.html` en iframe |
 | Unificar Vacunadoras | Gestión de nombres de vacunadoras |
 | Vacunadora → Municipio | Asignación de vacunadoras por municipio |
+| Editar Valores/Metas | Edición inline de metas y precio por dosis |
+
+**Funciones de utilidad para seguridad (commit d68438e):**
+```js
+escH(s)       // escape HTML — SIEMPRE usar al insertar datos del backend en innerHTML
+escJ(s)       // escape JS para strings dentro de atributos onclick
+              // Patrón correcto en onclick: escH(escJ(valor))
+```
 
 **Backend Google Apps Script (`CertiVac_Backend.gs`):**
-- URL del script desplegado: guardada en la app como `SCRIPT_URL`
-- Endpoints principales: `/exec?action=getRecords`, `/exec?action=saveRecords`, etc.
-- Base de datos: Google Sheets con hoja "Registros" (ver `CertiVac_BD_Template.xlsx`)
+- URL del script: guardada en `localStorage` como `certivac_api_url`
+- También configurable vía parámetro URL `?api=URL_DEL_SCRIPT`
+- Función `getApiUrl()`: retorna la URL hardcodeada si existe, sino la del localStorage
+- Endpoints: `accion=ping`, `accion=liquidacion`, `accion=archivos`, `accion=periodos`, `accion=guardar_lote`, `accion=borrar_archivo`, `accion=borrar_todo`, `accion=asignaciones`
 
-**Analizador_PAI_HRNO.html — arquitectura:**
+**ETL local — parseo de archivos XLS MINSALUD:**
 
-Dos tabs:
-1. **Análisis PAI** — carga archivos, detecta susceptibles, calcula esquema
-2. **Carga Mensual** — envía datos a Google Sheets
+`extraerMesAno(meta, fileName)` — función centralizada (DRY, commit d68438e):
+- Parsea mes (1-12) y año (YYYY) del metadata del archivo
+- Fallback al nombre del archivo (detecta años 20XX, nombres de mes completos y abreviaturas: FEB, JUL, AGO, SEP/SEPT, OCT, NOV, DIC)
+- Usada por `procesarYGuardar` y `diagnosticarXLS`
 
-**Función `processFile(file)`** — punto de entrada para cargar archivos:
-- Detecta formato con `esPlantillaMinsalud(wb)` → enruta a `parsePlantillaWb()` o lectura directa
-- `esPlantillaMinsalud(wb)`: hoja "Niñas/Niños" existe + celda (5,0) == "CONSECUTIVO"
+`extraerMeta(wb, hs)` — lee metadatos de la hoja "Niños/Niñas":
+- **Fila índice 2 (fila 3 visual):** departamento[6], municipio[7], mes[9], año[10], institución[18]
+- Fallback institución en fila índice 3 si la 2 viene vacía
+
+`parsNinos(ws, regs, fuente, mesNum, anio)` — detección de columna VACUNADOR:
+- Busca hacia atrás en la fila de encabezados
+- Si no encuentra, muestra **toast de advertencia visible** y retorna (antes fallaba silenciosamente)
+- Mismo comportamiento en `parsAdultos` y `parsRN`
 
 **Formato Plantilla MINSALUD (estructura de filas en la hoja):**
 ```
 Fila 0: Título ("REGISTRO DIARIO DE VACUNACIÓN...")
 Fila 1: vacía
-Fila 2: metadatos (institución en col 18, mes en col X, año en col Y)
+Fila 2: metadatos (col 6=dpto, col 7=municipio, col 9=mes, col 10=año, col 18=institución)
 Fila 3: vacía
 Fila 4: encabezados categoría superior
 Fila 5: CONSECUTIVO | DÍA | ... (encabezados principales)
@@ -186,39 +228,30 @@ Fila 10+: datos reales
 
 **Detección de filas de datos:** por columna DÍA (col 1), valor 1-31. **NO** por CONSECUTIVO (col 0) — ese campo suele estar vacío en registros de campo.
 
-**Headers de vacunas** generados combinando filas 7 + 8:
-```js
-// Ejemplo de resultado: "BCG DOSIS", "BCG LOTE", "HEPATITIS B DOSIS", "HEPATITIS B LOTE"...
-```
+**`CICLOS[]`:** Array de objetos con definición completa de cada ciclo PAI (vacuna, dosis, rango de edad en meses, meta, valor). VPH tiene 3 entradas (VPH, VPH2, VPH3) para manejar variaciones de nombre con espacios en el Excel.
 
-**`mapColumns(headers)`** — mapea índices de columnas a variables semánticas:
-- Requiere "dosis" en el nombre de la columna para vacunas (ej: `C.bcg = findIndex(h => h.includes('bcg') && h.includes('dosis'))`)
-- VPOb (Polio oral): busca "vpob" o "oralmonovalente"; fallback: "polio" + "dosis" sin "inactivado"
-
-**`sendToSheets()`** — envía registros a Google Apps Script:
+**`sendToSheets()`** y **`guardar_lote`:**
 - Variables `municipio`, `mes`, `anio`, `yearMon` declaradas **antes** del bloque `try`
 - **Error TDZ corregido (commit a783d2d):** no redeclarar `const` dentro del `try`
+- Envía en chunks de 200 registros para respetar límite de payload de Apps Script
 - `markLocalStatus(municipio, yearMon, total)` actualiza indicador local post-envío
-
-**ESQUEMA_PAI** — dosis requeridas por grupo de edad:
-```js
-const ESQUEMA_PAI = {
-  '2M':  { bcg:1, hepB:1, penta:1, polio:1, ... },
-  '4M':  { penta:2, polio:2, ... },
-  '6M':  { penta:3, polio:3, ... },
-  '7M':  { influenza:1, ... },
-  '1A':  { srp:1, varicela:1, ... },
-  '18M': { penta:4 (refuerzo), srp:2, ... },
-  '5A':  { dpt:1, polio:4, ... }
-};
-```
 
 ---
 
 ### 3. Modulo_Identificacion_Mision_Medica.html
 **Ruta:** `MISIÓN MÉDICA/Modulo_Identificacion_Mision_Medica.html`
-- Registro de infracciones al DIH / Misión Médica
-- Formulario local, exporta a Excel
+
+**Arquitectura (desde commit d68438e):**
+- CSS nativo inline — **sin Tailwind CDN, sin dependencias externas obligatorias**
+- Imagen principal desde Cloudinary: si no carga, muestra bloque `#img-fallback` automáticamente
+- 4 overlays de QR posicionados con `%` sobre la imagen
+- Panel de acceso rápido con 4 tarjetas de acción
+- Todos los `<a target="_blank">` tienen `rel="noopener noreferrer"`
+- Canal de contacto alternativo visible si Odoo no responde
+
+**Dependencias externas (opcionales, solo si hay internet):**
+- Imagen de módulo: Cloudinary (tiene fallback)
+- Google Fonts Noto Sans (tiene fallback a fuentes del sistema)
 
 ---
 
@@ -236,7 +269,7 @@ const ESQUEMA_PAI = {
 | Regla | Detalle |
 |-------|---------|
 | Un archivo por app | Todo HTML + CSS + JS en un solo `.html`. Sin frameworks externos. |
-| Sin CDN | Librerías en `libs/` local o inline. La app debe funcionar sin internet. |
+| Sin CDN obligatorio | Librerías en `libs/` local o inline. La app debe funcionar sin internet. Google Fonts y Cloudinary son opcionales con fallback. |
 | Sin servidor | Solo archivos estáticos. GitHub Pages o apertura local en navegador. |
 | Persistencia | `localStorage` del navegador para estado de la UI |
 | Nombres de archivos | En español, sin espacios en código (usar `_`). Documentos institucionales sí pueden tener espacios. |
@@ -245,6 +278,10 @@ const ESQUEMA_PAI = {
 | Datos sensibles | No exponer datos de pacientes ni nombres JEP en `console.log` ni logs |
 | `.xlsb` | Solo lectura, no modificar directamente |
 | `~$*` | Archivos de bloqueo de Office — no borrar |
+| Escape HTML | Usar `escH(s)` siempre que se inserte dato de archivo/backend en `innerHTML` |
+| Escape JS en onclick | Usar `escH(escJ(valor))` para datos en atributos `onclick` |
+| localStorage masivo | Usar `safeLSSet(key, val)` para escrituras de arrays grandes (captura `QuotaExceededError`) |
+| Carga de archivos | Usar `readAsArrayBuffer` + `{type:'array'}` para SheetJS — `readAsBinaryString` está deprecado |
 
 **Paleta de colores institucional:**
 ```css
@@ -266,15 +303,16 @@ Los archivos `.gs` son scripts de Google Apps Script desplegados como "Web App":
 
 **Patrón de llamada desde el frontend:**
 ```js
-fetch(SCRIPT_URL, {
-  method: 'POST',
-  body: JSON.stringify({ action: 'saveRecords', data: [...] })
-})
-.then(r => r.json())
-.then(resp => { ... });
+// GET (lectura)
+fetch(url + '?accion=ping', { method: 'GET', redirect: 'follow' })
+
+// POST (escritura) — form-urlencoded para evitar preflight OPTIONS
+const form = new URLSearchParams();
+form.set('payload', JSON.stringify(body));
+fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString(), redirect: 'follow' })
 ```
 
-**CORS:** Los scripts de Google Apps Script retornan JSON con `Content-Type: text/plain` para evitar preflight. El frontend siempre hace POST con body JSON.
+**CORS:** Los scripts retornan JSON. El frontend usa POST con `application/x-www-form-urlencoded` para evitar preflight.
 
 ---
 
@@ -287,7 +325,7 @@ fetch(SCRIPT_URL, {
 | El Carmen | 54245 | Norte de Santander |
 | Teorama | 54800 | Norte de Santander |
 
-Los archivos SIVIGILA y PAI se organizan por municipio. Los registros del Analizador PAI detectan el municipio del nombre del archivo (ej: `ABREGO`, `CONVENCION`, `EL CARMEN`, `TEORAMA`) o de la celda de institución en la plantilla (fila 2, col 18).
+Los archivos SIVIGILA y PAI se organizan por municipio. Los registros del Analizador PAI detectan el municipio del nombre del archivo (ej: `ABREGO`, `CONVENCION`, `EL CARMEN`, `TEORAMA`) o de la celda de institución en la plantilla (fila 2, col 7).
 
 ---
 
@@ -310,17 +348,42 @@ Los archivos SIVIGILA y PAI se organizan por municipio. Los registros del Analiz
 **Síntoma:** Correcciones no se reflejan en el sitio.
 **Solución:** `Ctrl+Shift+R` en el navegador. Si hay iframe, abrir el archivo directamente y hacer hard-refresh ahí también.
 
+### QuotaExceededError en localStorage
+**Síntoma:** La carga de datos falla silenciosamente o el navegador lanza excepción al guardar.
+**Causa:** `localStorage` tiene límite de 5-10 MB. Con múltiples años de datos SIVIGILA puede saturarse.
+**Solución:** Usar `safeLSSet(key, val)` en lugar de `localStorage.setItem` directo — captura el error y muestra toast informativo.
+
+### Columna VACUNADOR no encontrada en XLS PAI
+**Síntoma:** Archivo se marca como procesado pero contiene 0 dosis registradas.
+**Causa:** La búsqueda inversa de la columna "VACUNADOR" no la encontró (variación tipográfica o formato diferente de plantilla).
+**Solución (commit d68438e):** `parsNinos`/`parsAdultos`/`parsRN` ahora muestran toast de advertencia y retornan inmediatamente. Revisar el formato del XLS.
+
+### XSS en innerHTML con datos de archivo/backend
+**Síntoma:** Potencial ejecución de código si un nombre de evento SIVIGILA o nombre de vacunadora contiene HTML.
+**Solución:** Siempre usar `escH(valor)` al insertar strings de datos en `innerHTML`. Para atributos `onclick`, usar `escH(escJ(valor))`.
+
+### Contraseña de admin en texto plano (legacy)
+**Síntoma:** `localStorage.getItem('siv_pw')` retorna la contraseña visible.
+**Solución (commit d68438e):** En el primer login con el nuevo código, la contraseña legacy se compara en texto plano, se migra a SHA-256 (`siv_pw_hash`), se elimina `siv_pw`, y se genera la clave de recuperación.
+
 ---
 
 ## Commits recientes relevantes
 
 ```
+d68438e  security(audit): corregir 20 hallazgos de auditoría en 3 sistemas
+           - SIVIGILA: hash SHA-256 + clave de recuperación, escH(), safeLSSet(),
+             switchTab corregido, readAsArrayBuffer, IDs seguros en checkboxes
+           - CertiVac: libs locales, escH(escJ()) en onclick, borrado masivo
+             con confirmación de texto, warnings de VACUNADOR, extraerMesAno()
+             centralizado, extraerMeta fila correcta, precio sincronizado
+           - Misión Médica: CSS nativo (sin Tailwind CDN), fallback de imagen,
+             noopener en links, canal alternativo de reporte DIH
+0bccab9  docs(ai): agregar diccionario de alias de rutas y actualizar estado TDZ
 a783d2d  fix(pai): TDZ en sendToSheets - eliminar redeclaración const municipio en try
 42d828a  fix(pai): parsear plantillas MINSALUD - filas por DÍA, headers con DOSIS, EDAD ACTUAL
 52fd13d  feat(sivigila): informe anual, nombres municipios, documento+nombre paciente
 b2d8873  fix: sincronizar index.html con portal actualizado
-887311c  feat: módulo Vigilancia Epidemiológica con SIVIGILA Monitor v2
-4a84195  feat: módulo de Identificación Misión Médica
 ```
 
 ---
@@ -329,11 +392,12 @@ b2d8873  fix: sincronizar index.html con portal actualizado
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
-| Verificar `sendToSheets` funciona tras fix TDZ (en producción GitHub Pages) | Alta | ✅ Confirmado — canónico corregido, copia externa sincronizada (Jun 2026) |
+| Descargar Leaflet localmente para mapa SIVIGILA offline | Alta | Pendiente — mapa falla sin internet |
+| Guardar imagen de Misión Médica en el repo | Media | Pendiente — actualmente en Cloudinary (tiene fallback) |
 | Generador de Informes Word/Excel (Python `python-docx` + `openpyxl`) | Media | No iniciado |
 | Gestor de Certificaciones (PAI + Misión Médica unificado) | Media | No iniciado |
 | Módulo Jornadas Rurales (checklist + solicitud medicamentos) | Baja | No iniciado |
-| Botones "volver" en módulos faltantes | Baja | Mayormente completo (commit 52fd13d) |
+| Verificar `sendToSheets` funciona tras fix TDZ (en producción GitHub Pages) | Alta | ✅ Confirmado — canónico corregido, copia externa sincronizada (Jun 2026) |
 
 ---
 

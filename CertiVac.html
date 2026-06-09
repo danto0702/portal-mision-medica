@@ -2105,7 +2105,6 @@ async function verCert(nombre){
   const tbody=$('c-tbody');
   let html='';
   const ord=['2 meses','4 meses','6 meses','7 meses','1 año','18 meses','5 años','COVID 19','VPH','Influenza Adultos','Recién Nacido','Otros'];
-  const dets=[...v.detalles].sort((a,b)=>{const ia=ord.indexOf(a.grupo),ib=ord.indexOf(b.grupo);return(ia<0?99:ia)-(ib<0?99:ib);});
   let grpCur='';
   // Función interna para renderizar una fila editable (reutilizada por dets y por filas manuales)
   function certFila(ciclo, grupo, meta, ap, precio){
@@ -2133,22 +2132,25 @@ async function verCert(nombre){
     </tr>`;
   }
 
-  dets.forEach(d=>{
-    if(d.grupo!==grpCur){
-      grpCur=d.grupo;
+  // ── Lista maestra: TODOS los ciclos del contrato, con o sin registros ──
+  // VPH2/VPH3 son aliases de matching del ETL, no filas separadas en la liquidación
+  const SKIP_CICLOS=new Set(['VPH2','VPH3']);
+  const detMap={};
+  v.detalles.forEach(d=>{ detMap[d.ciclo]=d; });
+  const listaMaestra=CICLOS
+    .filter(c=>!SKIP_CICLOS.has(c.ciclo))
+    .sort((a,b)=>{const ia=ord.indexOf(a.grupo),ib=ord.indexOf(b.grupo);return(ia<0?99:ia)-(ib<0?99:ib);});
+
+  listaMaestra.forEach(c=>{
+    const det=detMap[c.ciclo];
+    const ap=det?det.ap:0;
+    const meta=det?det.meta:c.meta;
+    if(c.grupo!==grpCur){
+      grpCur=c.grupo;
       html+=`<tr class="cert-grp-row" style="background:var(--s1)"><td colspan="9" style="font-weight:800;font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--ink);padding:6px 10px">${grpCur}</td></tr>`;
     }
-    html+=certFila(d.ciclo, d.grupo, d.meta, d.ap, precioGlobal);
+    html+=certFila(c.ciclo, c.grupo, meta, ap, precioGlobal);
   });
-
-  // ── COVID-19: siempre presente aunque no haya datos en Sheets ──
-  const yaHayCovid=dets.some(d=>d.grupo==='COVID 19');
-  if(!yaHayCovid){
-    const covidCiclo=CICLOS.find(c=>c.ciclo==='COVID');
-    const covidMeta=covidCiclo?covidCiclo.meta:5;
-    html+=`<tr class="cert-grp-row" style="background:var(--s1)"><td colspan="9" style="font-weight:800;font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--ink);padding:6px 10px">COVID 19</td></tr>`;
-    html+=certFila('COVID','COVID 19', covidMeta, 0, precioGlobal);
-  }
 
   // ── Otros Biológicos: dosis fuera del esquema contratado ──
   const fsc = v.fueraSinCiclo || 0;

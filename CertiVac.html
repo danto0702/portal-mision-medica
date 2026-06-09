@@ -518,7 +518,7 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
       <button class="ni" onclick="nav('config',this)"><span class="ico">⚙️</span>Configuración API</button>
     </nav>
     <div class="sfooter">
-      <div class="sf-ver">CertiVac v5.1 · Contrato CPSESEHRNO-0064-2026</div>
+      <div class="sf-ver">CertiVac v5.2-fix · Contrato CPSESEHRNO-0064-2026</div>
       <div class="sf-fl" id="sf-fl">Conectando con Google Sheets…</div>
     </div>
   </aside>
@@ -1784,12 +1784,21 @@ function buildDC(fb,fd){
   return m;
 }
 function normN(v){if(!v)return'';const s=v.toString().trim().toUpperCase().replace(/\s+/g,' ');return(s===''||s==='0'||s==='NULL')?'':s;}
+// Devuelve una copia superficial del sheet con !ref limitado a maxRows filas.
+// NO muta el original — seguro para reutilizar el mismo wb.Sheets[x] varias veces.
+function trimWS(ws, maxRows){
+  if(!ws||!ws['!ref']) return ws;
+  const r=XLSX.utils.decode_range(ws['!ref']);
+  if(r.e.r < maxRows) return ws;
+  r.e.r = maxRows - 1;
+  return Object.assign(Object.create(null), ws, {'!ref': XLSX.utils.encode_range(r)});
+}
 function extraerMeta(wb,hs){
   const m={municipio:'',departamento:'',mes:'',año:'',institucion:''};
   // Intentar leer metadata de NIÑOS Y NIÑAS primero
   const hn=hs.find(h=>h.toUpperCase().includes('NI')&&h.toUpperCase().includes('A'));
   if(hn){
-    const d=XLSX.utils.sheet_to_json(wb.Sheets[hn],{header:1,defval:null,raw:false});
+    const d=XLSX.utils.sheet_to_json(trimWS(wb.Sheets[hn],20),{header:1,defval:null,raw:false});
     const f3=d[2]||[],f4=d[3]||[];
     m.departamento=(f3[6]||'').toString().trim();
     // f3[7] suele estar vacío en la plantilla 2026 — se deja para fallback por nombre de archivo
@@ -1955,7 +1964,7 @@ function construirFecha(diaRaw, mesNum, anio){
 }
 
 function parsNinos(ws,regs,fuente,mesNum,anio){
-  const d=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false});
+  const d=XLSX.utils.sheet_to_json(trimWS(ws,2000),{header:1,defval:null,raw:false});
   if(d.length<8)return;
   const dc=buildDC(d[7]||[],d[8]||[]);
   const f6=d[5]||[];let cv=146;
@@ -1973,7 +1982,7 @@ function parsNinos(ws,regs,fuente,mesNum,anio){
   }
 }
 function parsAdultos(ws,regs,fuente,mesNum,anio){
-  const d=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false});
+  const d=XLSX.utils.sheet_to_json(trimWS(ws,2000),{header:1,defval:null,raw:false});
   if(d.length<10)return;
   const dc=buildDC(d[8]||[],d[9]||[]);
   const f7=d[6]||[];let cv=107;
@@ -1990,7 +1999,7 @@ function parsAdultos(ws,regs,fuente,mesNum,anio){
   }
 }
 function parsRN(ws,regs,fuente,mesNum,anio){
-  const d=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false});
+  const d=XLSX.utils.sheet_to_json(trimWS(ws,2000),{header:1,defval:null,raw:false});
   if(d.length<8)return;
   const dc=buildDC(d[6]||[],d[7]||[]);
   const f6=d[5]||[];let cv=39;

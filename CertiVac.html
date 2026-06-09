@@ -518,7 +518,7 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
       <button class="ni" onclick="nav('config',this)"><span class="ico">⚙️</span>Configuración API</button>
     </nav>
     <div class="sfooter">
-      <div class="sf-ver">CertiVac v5.2-fix · Contrato CPSESEHRNO-0064-2026</div>
+      <div class="sf-ver">CertiVac v5.3 · Contrato CPSESEHRNO-0064-2026</div>
       <div class="sf-fl" id="sf-fl">Conectando con Google Sheets…</div>
     </div>
   </aside>
@@ -1613,8 +1613,8 @@ async function procesarYGuardar(file){
 
         setFP(id,82,'Validando registros…');
 
-        // Municipio: primero desde la celda del Excel, luego desde el nombre del archivo
-        const municipioFinal = meta.municipio || extraerMunicipioDeNombre(file.name);
+        // Municipio: primero desde la celda del Excel, luego desde el nombre del archivo — siempre normalizado
+        const municipioFinal = normalizarMunicipio(meta.municipio) || extraerMunicipioDeNombre(file.name);
         const MESES_LABEL=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
         const periodoLabel=`${MESES_LABEL[mesNum]||mesNum} ${anioNum}`;
 
@@ -1822,15 +1822,28 @@ function extraerMeta(wb,hs){
   return m;
 }
 // Extrae el municipio desde el nombre del archivo (fuente más confiable en la plantilla 2026)
+// Estandariza cualquier variante de municipio al formato canónico (mayúsculas, sin tilde)
+function normalizarMunicipio(raw){
+  if(!raw) return '';
+  const n=raw.toString().toUpperCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const mapa={
+    'ABREGO':'ABREGO','ÁBREGO':'ABREGO',
+    'CONVENCION':'CONVENCION','CONVENCIÓN':'CONVENCION',
+    'EL CARMEN':'EL CARMEN',
+    'TEORAMA':'TEORAMA',
+    'ITUANGO':'ITUANGO',
+  };
+  return mapa[n] || '';
+}
 function extraerMunicipioDeNombre(nombre){
   const n=nombre.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   const tabla=[
-    {clave:'ABREGO',    label:'Ábrego'},
-    {clave:'CONVENCION',label:'Convención'},
-    {clave:'EL CARMEN', label:'El Carmen'},
-    {clave:'ELCARMEN',  label:'El Carmen'},
-    {clave:'TEORAMA',   label:'Teorama'},
-    {clave:'ITUANGO',   label:'Ituango'},
+    {clave:'ABREGO',    label:'ABREGO'},
+    {clave:'CONVENCION',label:'CONVENCION'},
+    {clave:'EL CARMEN', label:'EL CARMEN'},
+    {clave:'ELCARMEN',  label:'EL CARMEN'},
+    {clave:'TEORAMA',   label:'TEORAMA'},
+    {clave:'ITUANGO',   label:'ITUANGO'},
   ];
   for(const{clave,label} of tabla){
     if(n.includes(clave)) return label;

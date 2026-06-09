@@ -1611,14 +1611,30 @@ async function procesarYGuardar(file){
         const hr2=hs.find(h=>h.toUpperCase().includes('RECIEN')||h.toUpperCase().includes('NACIDO'));
         if(hr2)parsRN(wb.Sheets[hr2],registros,meta.nombre||file.name,mesNum,anioNum);
 
+        setFP(id,82,'Validando registros…');
+
+        // Municipio: primero desde la celda del Excel, luego desde el nombre del archivo
+        const municipioFinal = meta.municipio || extraerMunicipioDeNombre(file.name);
+        const MESES_LABEL=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const periodoLabel=`${MESES_LABEL[mesNum]||mesNum} ${anioNum}`;
+
+        // ── Mostrar modal de validación antes de guardar ──
+        const confirmado = await mostrarValidacion(file.name, registros, municipioFinal, periodoLabel);
+        if(!confirmado){
+          st.estado='error';st.error='Cancelado por el usuario';
+          renderFI(st);
+          toast(`⚠️ ${file.name}: cancelado`,'warn');
+          resolve();return;
+        }
+
         setFP(id,85,'Guardando en Google Sheets…');
 
         // Dividir en lotes de 200 para evitar límite de payload de Apps Script
         const CHUNK = 200;
         const archivoMeta = {
           nombre:file.name, tamaño:fmtSz(file.size),
-          mes:meta.mes, año:meta.año,
-          municipio:meta.municipio, departamento:meta.departamento,
+          mes:meta.mes||String(mesNum), año:meta.año||String(anioNum),
+          municipio:municipioFinal, departamento:meta.departamento,
           institucion:meta.institucion||'ESE Hospital Regional Noroccidental - PAI'
         };
         let totalGuardados=0;
@@ -1657,6 +1673,86 @@ async function procesarYGuardar(file){
   });
 }
 
+// ── Modal de validación previa al guardado ──
+function mostrarValidacion(nombreArchivo, registros, municipio, periodo){
+  return new Promise(resolve=>{
+    const ninos  = registros.filter(r=>r.poblacion==='Niños y Niñas').length;
+    const adultos= registros.filter(r=>r.poblacion==='Adultos').length;
+    const rn     = registros.filter(r=>r.poblacion==='Recién Nacidos').length;
+    const total  = registros.length;
+    const conCiclo= registros.filter(r=>r.ciclo).length;
+    const sinCiclo= total - conCiclo;
+    const hayError= total === 0;
+    const hayWarn = sinCiclo > total * 0.3; // más del 30% sin ciclo identificado
+
+    const colorBadge=(n,ok='#00B4A0',warn='#F59E0B',bad='#DC2626')=>
+      n===0 ? bad : (n>0?ok:warn);
+
+    const pill=(label,n,color)=>
+      `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:${color}18;border:1px solid ${color}44;font-size:12px;font-weight:700;color:${color}">
+        ${label}: <strong>${n.toLocaleString('es-CO')}</strong></span>`;
+
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(12,27,51,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+    overlay.innerHTML=`
+      <div style="background:#fff;border-radius:18px;max-width:560px;width:100%;box-shadow:0 24px 72px rgba(0,0,0,.35);overflow:hidden;font-family:'Syne',sans-serif">
+        <div style="background:#0C1B33;padding:22px 28px 18px;color:#fff">
+          <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#00B4A0;font-weight:700;margin-bottom:6px">Validación previa · CertiVac</div>
+          <div style="font-size:15px;font-weight:800;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${nombreArchivo}">📄 ${nombreArchivo}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4)">Revisá los datos antes de guardar en Google Sheets</div>
+        </div>
+        <div style="padding:22px 28px">
+          <!-- Municipio / Período -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+            <div style="background:#F7F9FD;border-radius:10px;padding:12px 16px">
+              <div style="font-size:9.5px;text-transform:uppercase;letter-spacing:1.2px;color:#7D8AA3;font-weight:600;margin-bottom:4px">Municipio detectado</div>
+              <div style="font-size:14px;font-weight:800;color:${municipio?'#0C1B33':'#DC2626'}">${municipio||'⚠️ No detectado'}</div>
+              ${!municipio?`<div style="font-size:10px;color:#DC2626;margin-top:3px">El nombre del archivo no contiene un municipio reconocido</div>`:''}
+            </div>
+            <div style="background:#F7F9FD;border-radius:10px;padding:12px 16px">
+              <div style="font-size:9.5px;text-transform:uppercase;letter-spacing:1.2px;color:#7D8AA3;font-weight:600;margin-bottom:4px">Período</div>
+              <div style="font-size:14px;font-weight:800;color:${periodo&&periodo.trim()!=='0'?'#0C1B33':'#DC2626'}">${periodo||'⚠️ No detectado'}</div>
+            </div>
+          </div>
+          <!-- Conteos por hoja -->
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:#7D8AA3;font-weight:600;margin-bottom:8px">Registros detectados por hoja</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+            ${pill('Niños y Niñas',ninos,colorBadge(ninos))}
+            ${pill('Adultos',adultos,colorBadge(adultos))}
+            ${pill('Recién Nacidos',rn,colorBadge(rn))}
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:${hayError?'#FEF2F2':hayWarn?'#FFFBEB':'#F0FDF9'};border:1.5px solid ${hayError?'#FCA5A5':hayWarn?'#FCD34D':'#6EE7B7'};border-radius:10px;padding:12px 16px;margin-bottom:18px">
+            <div>
+              <div style="font-size:13px;font-weight:800;color:${hayError?'#DC2626':hayWarn?'#92600A':'#065F46'}">
+                ${hayError?'❌ Sin registros':'✅'} Total: ${total.toLocaleString('es-CO')} dosis
+              </div>
+              <div style="font-size:11px;color:${hayError?'#DC2626':hayWarn?'#92600A':'#059669'};margin-top:2px">
+                ${hayError
+                  ? 'No se encontraron registros. Verificá la estructura del archivo.'
+                  : `${conCiclo.toLocaleString('es-CO')} en ciclo PAI · ${sinCiclo>0?`<span style="color:#EA580C">${sinCiclo} sin clasificar</span>`:'todos clasificados'}`
+                }
+              </div>
+            </div>
+            ${total>0?`<div style="font-size:22px;font-weight:900;color:${hayWarn?'#F59E0B':'#00B4A0'}">${total.toLocaleString('es-CO')}</div>`:''}
+          </div>
+          ${hayError?`<div style="background:#FEF2F2;border-radius:8px;padding:10px 14px;font-size:12px;color:#DC2626;margin-bottom:14px">
+            💡 Causas posibles: plantilla con estructura diferente, hoja sin datos, o archivo vacío. Usá el diagnóstico local (🔍 Diagnosticar XLS) para más detalles.
+          </div>`:''}
+          <!-- Botones -->
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button id="val-cancel" style="padding:9px 20px;border-radius:9px;border:1.5px solid #D4D9E8;background:#fff;color:#3D4B63;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>
+            <button id="val-confirm" ${hayError?'disabled':''} style="padding:9px 22px;border-radius:9px;border:none;background:${hayError?'#D4D9E8':'#1B4FD8'};color:${hayError?'#7D8AA3':'#fff'};font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:${hayError?'not-allowed':'pointer'}">
+              ${hayError?'Sin registros':'☁️ Guardar en Google Sheets'}
+            </button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#val-cancel').onclick=()=>{overlay.remove();resolve(false);};
+    overlay.querySelector('#val-confirm').onclick=()=>{if(!hayError){overlay.remove();resolve(true);}};
+  });
+}
+
 // ── ETL helpers ──
 function edadEnMeses(tipo,num){
   const n=parseInt(num)||0,t=String(tipo||'').trim().toUpperCase();
@@ -1690,14 +1786,47 @@ function buildDC(fb,fd){
 function normN(v){if(!v)return'';const s=v.toString().trim().toUpperCase().replace(/\s+/g,' ');return(s===''||s==='0'||s==='NULL')?'':s;}
 function extraerMeta(wb,hs){
   const m={municipio:'',departamento:'',mes:'',año:'',institucion:''};
+  // Intentar leer metadata de NIÑOS Y NIÑAS primero
   const hn=hs.find(h=>h.toUpperCase().includes('NI')&&h.toUpperCase().includes('A'));
-  if(hn){const d=XLSX.utils.sheet_to_json(wb.Sheets[hn],{header:1,defval:null,raw:false});
+  if(hn){
+    const d=XLSX.utils.sheet_to_json(wb.Sheets[hn],{header:1,defval:null,raw:false});
     const f3=d[2]||[],f4=d[3]||[];
-    m.departamento=(f3[6]||'').toString().trim();m.municipio=(f3[7]||'').toString().trim();
-    m.mes=(f3[9]||'').toString().trim();m.año=(f3[10]||'').toString().trim();
-    m.institucion=(f4[18]||'').toString().trim();
+    m.departamento=(f3[6]||'').toString().trim();
+    // f3[7] suele estar vacío en la plantilla 2026 — se deja para fallback por nombre de archivo
+    m.municipio=(f3[7]||'').toString().trim();
+    m.mes=(f3[9]||'').toString().trim();
+    m.año=(f3[10]||'').toString().trim();
+    m.institucion=(f3[18]||f4[18]||'').toString().trim();
+  }
+  // Fallback a ADULTOS si no se obtuvo mes/año (estructura ligeramente diferente)
+  if(!m.mes||!m.año){
+    const ha=hs.find(h=>h.toUpperCase().includes('ADULTO'));
+    if(ha){
+      const d=XLSX.utils.sheet_to_json(wb.Sheets[ha],{header:1,defval:null,raw:false});
+      const f4=d[3]||[];
+      if(!m.mes) m.mes=(f4[9]||'').toString().trim();
+      if(!m.año) m.año=(f4[10]||'').toString().trim();
+      if(!m.departamento) m.departamento=(f4[7]||'').toString().trim();
+      if(!m.institucion) m.institucion=(f4[13]||'').toString().trim();
+    }
   }
   return m;
+}
+// Extrae el municipio desde el nombre del archivo (fuente más confiable en la plantilla 2026)
+function extraerMunicipioDeNombre(nombre){
+  const n=nombre.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const tabla=[
+    {clave:'ABREGO',    label:'Ábrego'},
+    {clave:'CONVENCION',label:'Convención'},
+    {clave:'EL CARMEN', label:'El Carmen'},
+    {clave:'ELCARMEN',  label:'El Carmen'},
+    {clave:'TEORAMA',   label:'Teorama'},
+    {clave:'ITUANGO',   label:'Ituango'},
+  ];
+  for(const{clave,label} of tabla){
+    if(n.includes(clave)) return label;
+  }
+  return '';
 }
 function pushReg(regs,dia,vac,idp,tipoEdad,edadNum,edadM,pobl,bio,dosisTexto,fuente){
   const cInfo=identificarCiclo(bio,dosisTexto,edadM);
@@ -1832,7 +1961,7 @@ function parsNinos(ws,regs,fuente,mesNum,anio){
   const f6=d[5]||[];let cv=146;
   for(let i=f6.length-1;i>=0;i--){if((f6[i]||'').toString().toUpperCase().includes('VACUNADOR')){cv=i;break;}}
   for(let r=10;r<d.length;r++){
-    const row=d[r];if(!row||row[0]==null||row[0]===''||row[0]==='0')continue;
+    const row=d[r];if(!row||row[1]==null||row[1]==='')continue;
     const vac=normN(row[cv]);if(!vac)continue;
     const dia=construirFecha(row[1],mesNum,anio);
     const idp=(row[9]||row[8]||'').toString().trim();
@@ -1850,7 +1979,7 @@ function parsAdultos(ws,regs,fuente,mesNum,anio){
   const f7=d[6]||[];let cv=107;
   for(let i=f7.length-1;i>=0;i--){if((f7[i]||'').toString().toUpperCase().includes('VACUNADOR')){cv=i;break;}}
   for(let r=11;r<d.length;r++){
-    const row=d[r];if(!row||row[0]==null||row[0]===''||row[0]==='0')continue;
+    const row=d[r];if(!row||row[1]==null||row[1]==='')continue;
     const vac=normN(row[cv]);if(!vac)continue;
     const dia=construirFecha(row[1],mesNum,anio);
     const edadM=edadEnMeses(row[5],row[6]);
@@ -1867,7 +1996,7 @@ function parsRN(ws,regs,fuente,mesNum,anio){
   const f6=d[5]||[];let cv=39;
   for(let i=f6.length-1;i>=0;i--){if((f6[i]||'').toString().toUpperCase().includes('VACUNADOR')){cv=i;break;}}
   for(let r=9;r<d.length;r++){
-    const row=d[r];if(!row||row[0]==null||row[0]===''||row[0]==='0')continue;
+    const row=d[r];if(!row||row[1]==null||row[1]==='')continue;
     const vac=normN(row[cv]);if(!vac)continue;
     const dia=construirFecha(row[1],mesNum,anio);
     for(const[ci,bio]of Object.entries(dc)){

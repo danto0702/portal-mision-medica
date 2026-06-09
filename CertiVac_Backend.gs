@@ -1064,3 +1064,51 @@ function borrarTodoDesdeMenu() {
     ui.alert('✅','Datos eliminados.',ui.ButtonSet.OK);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────
+// LIMPIEZA ÚNICA — estandarizar columna X (municipio) de REGISTROS_PAI
+// Ejecutar una sola vez desde el editor de Apps Script: Ejecutar → limpiarMunicipios
+// Solo toca columna X. No modifica ninguna otra columna.
+// ─────────────────────────────────────────────────────────────────
+function limpiarMunicipios() {
+  const MAPA = {
+    'ABREGO':    'ABREGO',
+    'CONVENCION':'CONVENCION',
+    'EL CARMEN': 'EL CARMEN',
+    'TEORAMA':   'TEORAMA',
+    'ITUANGO':   'ITUANGO',
+  };
+
+  function canonico(raw) {
+    if (!raw) return raw;
+    const n = raw.toString().trim().toUpperCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return MAPA[n] || raw; // si no está en el mapa, deja el valor tal como estaba
+  }
+
+  const ss   = SpreadsheetApp.getActiveSpreadsheet();
+  const hoja = ss.getSheetByName(CONFIG.HOJA_REGISTROS);
+  if (!hoja) { Logger.log('Hoja no encontrada: ' + CONFIG.HOJA_REGISTROS); return; }
+
+  const ultimaFila = hoja.getLastRow();
+  if (ultimaFila < 2) { Logger.log('Sin datos.'); return; }
+
+  // Columna X = columna 24 (1-based en Apps Script)
+  const COL_MUNICIPIO = 24;
+  const rango = hoja.getRange(2, COL_MUNICIPIO, ultimaFila - 1, 1);
+  const valores = rango.getValues();
+
+  let cambios = 0;
+  const nuevos = valores.map(([v]) => {
+    const c = canonico(v);
+    if (c !== v) cambios++;
+    return [c];
+  });
+
+  rango.setValues(nuevos);
+  SpreadsheetApp.getActiveSpreadsheet().toast(
+    `Municipios estandarizados: ${cambios} celdas actualizadas de ${ultimaFila - 1} filas.`,
+    'limpiarMunicipios ✅', 5
+  );
+  Logger.log(`limpiarMunicipios: ${cambios} cambios en ${ultimaFila - 1} filas.`);
+}

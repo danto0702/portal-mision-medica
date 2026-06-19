@@ -2689,7 +2689,7 @@ async function openTarjetaOverlay(id){
           <div style="font-size:.82rem;font-weight:700;font-family:monospace;color:var(--purple)">${data.numero_carnet}</div>
           <div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-top:.2rem">Válido institucional</div>
         </div>
-        <div id="qr-code-container" style="background:#fff;padding:5px;border-radius:6px;width:96px;height:96px;flex-shrink:0"></div>
+        <div id="qr-code-container" style="background:#fff;padding:6px;border-radius:8px;width:120px;height:120px;flex-shrink:0"></div>
       </div>
     </div>
 
@@ -2717,7 +2717,7 @@ async function openTarjetaOverlay(id){
   // Generate QR
   setTimeout(()=>{
     const qrEl = document.getElementById('qr-code-container');
-    if(qrEl){ try{ new QRCode(qrEl,{text:tarjetaUrl,width:86,height:86,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H}); }catch(e){} }
+    if(qrEl){ try{ new QRCode(qrEl,{text:id,width:108,height:108,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M}); }catch(e){} }
   },200);
 }
 

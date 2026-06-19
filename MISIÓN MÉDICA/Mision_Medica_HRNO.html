@@ -2213,7 +2213,7 @@ async function loadCarnets(){
             <td>
               <div style="display:flex;gap:.35rem;flex-wrap:wrap">
                 ${r.estado==='pendiente'?`
-                  <button class="btn btn-green btn-sm" onclick="autorizarCarnet('${r.id}','${r.correo}','${r.nombres} ${r.apellidos}')">Autorizar</button>
+                  <button class="btn btn-green btn-sm" onclick="autorizarCarnet('${r.id}')">Autorizar</button>
                   <button class="btn btn-secondary btn-sm" style="color:var(--red)" onclick="rechazarCarnet('${r.id}')">Rechazar</button>
                 `:''}
                 ${r.estado==='completado'?`<button class="btn btn-blue btn-sm" onclick="verTarjeta('${r.id}')">Ver tarjeta</button>`:''}
@@ -2226,13 +2226,48 @@ async function loadCarnets(){
   </div>`;
 }
 
-async function autorizarCarnet(id, correo, nombre){
+async function autorizarCarnet(id){
+  // Leer datos frescos desde Supabase para evitar problemas de escaping en onclick
+  const {data:reg, error:fetchErr} = await supa.from('mm_solicitudes_carnet')
+    .select('correo,nombres,apellidos').eq('id',id).single();
+  if(fetchErr){ toast('Error leyendo solicitud: '+fetchErr.message,'error'); return; }
+
+  const correo = (reg.correo||'').trim();
+  const nombre = `${reg.nombres||''} ${reg.apellidos||''}`.trim();
+
+  if(!correo){ toast('Esta solicitud no tiene correo registrado','warn'); return; }
+
   const num = genRadicado('CA');
   const fotoUrl = `${window.location.origin}${window.location.pathname}#foto?id=${id}`;
-  const {error} = await supa.from('mm_solicitudes_carnet').update({estado:'autorizado', numero_carnet:num, fecha_autorizacion:new Date().toISOString()}).eq('id',id);
+
+  const {error} = await supa.from('mm_solicitudes_carnet')
+    .update({estado:'autorizado', numero_carnet:num, fecha_autorizacion:new Date().toISOString()})
+    .eq('id',id);
   if(error){ toast('Error: '+error.message,'error'); return; }
-  // Send email via Apps Script
-  await callAppsScript({action:'sendEmail',to:correo,subject:'Tu carnet de Misión Médica fue autorizado — ESE HRNO',body:`Estimado(a) ${nombre},\n\nTu solicitud de carnet de identificación de la Misión Médica ha sido AUTORIZADA.\n\nNúmero de carnet: ${num}\n\nPara completar el proceso debes:\n1. Abrir el siguiente enlace desde tu celular o computador\n2. Tomar tu fotografía institucional\n3. Firmar el consentimiento informado\n\nEnlace de foto: ${fotoUrl}\n\nAtentamente,\nMisión Médica — ESE Hospital Regional Noroccidental`});
+
+  await callAppsScript({
+    action: 'sendEmail',
+    to: correo,
+    subject: 'Tu carnet de Mision Medica fue autorizado - ESE HRNO',
+    body: [
+      'Estimado(a) ' + nombre + ',',
+      '',
+      'Tu solicitud de carnet de identificacion de la Mision Medica ha sido AUTORIZADA.',
+      '',
+      'Numero de carnet: ' + num,
+      '',
+      'Para completar el proceso debes:',
+      '1. Abrir el siguiente enlace desde tu celular o computador',
+      '2. Tomar tu fotografia institucional',
+      '3. Firmar el consentimiento informado',
+      '',
+      'Enlace: ' + fotoUrl,
+      '',
+      'Atentamente,',
+      'Mision Medica - ESE Hospital Regional Noroccidental'
+    ].join('\n')
+  });
+
   toast(`Carnet ${num} autorizado. Correo enviado a ${correo}`,'success',5000);
   loadCarnets();
 }

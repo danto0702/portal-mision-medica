@@ -518,7 +518,7 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
       <button class="ni" onclick="nav('config',this)"><span class="ico">⚙️</span>Configuración API</button>
     </nav>
     <div class="sfooter">
-      <div class="sf-ver">CertiVac v5.3 · Contrato CPSESEHRNO-0064-2026</div>
+      <div class="sf-ver">CertiVac v5.4 · Contrato CPSESEHRNO-0064-2026</div>
       <div class="sf-fl" id="sf-fl">Conectando con Google Sheets…</div>
     </div>
   </aside>
@@ -1223,10 +1223,12 @@ async function apiGet(params, reintentos=2){
   if(!url_base) throw new Error('URL del API no configurada. Use el panel ⚙️ Configuración.');
   const url=new URL(url_base);
   Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,String(v)));
+  // Evita que el navegador sirva una respuesta cacheada de Apps Script (datos viejos)
+  url.searchParams.set('_ts', Date.now());
   let ultimoError;
   for(let intento=0; intento<=reintentos; intento++){
     try{
-      const r=await fetch(url.toString(),{method:'GET',redirect:'follow'});
+      const r=await fetch(url.toString(),{method:'GET',redirect:'follow',cache:'no-store'});
       const text=await r.text();
       try{ return JSON.parse(text); }
       catch(e){ throw new Error('Respuesta no JSON del servidor. Verifique la URL del API.'); }

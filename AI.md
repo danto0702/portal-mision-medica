@@ -98,7 +98,10 @@ PORTAL SALUD PÚBLICA/               ← raíz del repo
 └── README.md
 ```
 
-**Archivos duplicados conocidos:** `Analizador_PAI_HRNO.html` y `CertiVac.html` existen tanto en la raíz como en `PAI/`. La versión canónica es la que está en `PAI/` (es la que sirve GitHub Pages y la que referencia `CertiVac.html` en el iframe). Los archivos de la raíz son copias locales de desarrollo.
+**Archivos duplicados — estado actual:**
+- `CertiVac.html` en la raíz (`PORTAL SALUD PÚBLICA/CertiVac.html`) → **v5.4 — versión activa y canónica**
+- `PAI/CertiVac.html` → **v5.1 — DEPRECADA**. El usuario siempre abre la copia de la raíz.
+- `Analizador_PAI_HRNO.html` existe en raíz y en `PAI/`. La canónica para GitHub Pages es `PAI/Analizador_PAI_HRNO.html`.
 
 ---
 
@@ -166,21 +169,37 @@ genClaveRec()    // genera clave 20 chars alfanuméricos sin ambigüedad
 - Google Fonts se carga vía `@import` (falla silenciosamente sin internet, usa fuentes del sistema)
 - **NO usar CDN de cdnjs/jsdelivr para estas librerías** — ya existen versiones locales
 
+**CertiVac v5.4 — versión actual** · Contrato CPSESEHRNO-0064-2026
+
 **CertiVac.html — módulos internos:**
 | Módulo | Descripción |
 |--------|-------------|
-| Dashboard | KPIs de cobertura vacunal |
-| Cargar Archivos | Upload de plantillas MINSALUD y consolidados |
-| Historial de Archivos | Registros cargados a Google Sheets |
-| Liquidaciones | Gestión de liquidación PAI |
-| Tabla de Metas | Metas por municipio y biológico |
-| Informe por Municipio | Informe consolidado |
-| Gráficas & Análisis | Visualizaciones de cobertura |
-| Exportar Excel | Exportar datos consolidados |
-| Verificador Pob. Susceptible | → carga `Analizador_PAI_HRNO.html` en iframe |
-| Unificar Vacunadoras | Gestión de nombres de vacunadoras |
-| Vacunadora → Municipio | Asignación de vacunadoras por municipio |
-| Editar Valores/Metas | Edición inline de metas y precio por dosis |
+| Dashboard | KPIs: dosis en BD, vacunadoras activas, archivos cargados, monto a pagar (en meta), monto fuera de meta. Tabla resumen por vacunadora. |
+| Cargar Archivos | ETL XLS → Sheets: XLSX.js parsea en navegador → `buildDC` → `parsNinos`/`parsAdultos`/`parsRN` → upload en chunks de 200 al Apps Script |
+| Historial de Archivos | Listado de archivos importados. Borrado por archivo o borrar todo. |
+| Liquidaciones | Tabla por vacunadora. Abre **Constancia de Liquidación** individual editable. Filtros: año y mes. Muestra TODOS los 28 ciclos aunque aplicadas=0. |
+| Tabla de Metas | Array `CICLOS` (28 entradas) con meta y valor COP por ciclo. |
+| Informe por Municipio | Consolidado de dosis por municipio con desglose por ciclo. |
+| Gráficas & Análisis | 7 tabs: Vacunadoras, Biológico, Ciclo Edad, Municipio, Tendencia Diaria, Trazadores PAI, Ranking. Filtros: agrupación (día/semana/mes/trimestre/semestre/año), vacunadora, municipio, mes, año, rango de fechas. |
+| Exportar Excel | Exportar datos filtrados en `.xlsx`. |
+| Verificador Pob. Susceptible | Análisis de cobertura vs. población objetivo. |
+| Unificar Vacunadoras | Mapa alias: variantes de nombre → nombre canónico. |
+| Vacunadora → Municipio | Asignación manual de municipio a cada vacunadora. |
+| Editar Valores/Metas | Precio por dosis (COP) y meta contractual por ciclo. |
+
+**CICLOS — lista maestra del contrato (28 entradas, 10 grupos):**
+Grupos: `2 meses` (4 ciclos), `4 meses` (4), `6 meses` (3), `7 meses` (1), `1 año` (4), `18 meses` (3), `5 años` (3), `COVID 19` (1), `VPH` (3 entradas ETL → 1 fila), `Influenza Adultos` (1).
+VPH aliases: `VPH_CLAVES=['VPH','VPH2','VPH3']`. En la Constancia, `VPH2` y `VPH3` se saltan (`SKIP_CICLOS`); solo se muestra la fila `VPH`.
+
+**Municipios canónicos (estandarización obligatoria — sin tildes, mayúsculas):**
+```
+ABREGO | CONVENCION | EL CARMEN | TEORAMA | ITUANGO
+```
+Función `normalizarMunicipio(raw)` en el frontend convierte cualquier variante.
+Función `limpiarMunicipios()` en el backend estandariza la columna X de REGISTROS_PAI (ejecutar una sola vez desde Apps Script si hay datos históricos con variantes).
+
+**Columna municipio en REGISTROS_PAI:** índice 23 = columna X (24ª columna, 1-based).
+Prioridad de asignación: 1) asignación manual (tabla Vacunadora→Municipio), 2) celda Excel normalizada, 3) nombre del archivo.
 
 **Funciones de utilidad para seguridad (commit d68438e):**
 ```js
@@ -303,8 +322,9 @@ Los archivos `.gs` son scripts de Google Apps Script desplegados como "Web App":
 
 **Patrón de llamada desde el frontend:**
 ```js
-// GET (lectura)
-fetch(url + '?accion=ping', { method: 'GET', redirect: 'follow' })
+// GET (lectura) — SIEMPRE con _ts y cache:'no-store' para evitar caché de Apps Script
+url.searchParams.set('_ts', Date.now()); // cache-buster obligatorio
+fetch(url.toString(), { method: 'GET', redirect: 'follow', cache: 'no-store' })
 
 // POST (escritura) — form-urlencoded para evitar preflight OPTIONS
 const form = new URLSearchParams();
@@ -314,18 +334,21 @@ fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-
 
 **CORS:** Los scripts retornan JSON. El frontend usa POST con `application/x-www-form-urlencoded` para evitar preflight.
 
+**Caché de Apps Script:** El browser puede cachear respuestas GET hacia `script.googleusercontent.com` para URLs idénticas. Siempre agregar `_ts=Date.now()` al URL y `cache:'no-store'` al fetch. Si se omite, "Actualizar" no mostrará datos nuevos aunque el JS interno borre su caché (`APP.anCache=null`).
+
 ---
 
 ## Municipios de cobertura
 
-| Municipio | Código DANE | Dpto |
-|-----------|------------|------|
-| Ábrego | 54003 | Norte de Santander |
-| Convención | 54206 | Norte de Santander |
-| El Carmen | 54245 | Norte de Santander |
-| Teorama | 54800 | Norte de Santander |
+| Municipio | Código DANE | Dpto | Clave canónica |
+|-----------|------------|------|----------------|
+| Ábrego | 54003 | Norte de Santander | `ABREGO` |
+| Convención | 54206 | Norte de Santander | `CONVENCION` |
+| El Carmen | 54245 | Norte de Santander | `EL CARMEN` |
+| Teorama | 54800 | Norte de Santander | `TEORAMA` |
+| Ituango | 05361 | Antioquia | `ITUANGO` |
 
-Los archivos SIVIGILA y PAI se organizan por municipio. Los registros del Analizador PAI detectan el municipio del nombre del archivo (ej: `ABREGO`, `CONVENCION`, `EL CARMEN`, `TEORAMA`) o de la celda de institución en la plantilla (fila 2, col 7).
+Los archivos SIVIGILA y PAI se organizan por municipio. Los registros del Analizador PAI detectan el municipio del nombre del archivo (ej: `ABREGO`, `CONVENCION`, `EL CARMEN`, `TEORAMA`) o de la celda de institución en la plantilla (fila 2, col 7). Las claves canónicas siempre son mayúsculas sin tilde.
 
 ---
 
@@ -371,6 +394,20 @@ Los archivos SIVIGILA y PAI se organizan por municipio. Los registros del Analiz
 ## Commits recientes relevantes
 
 ```
+23be480  feat(certivac): mostrar todos los biológicos en liquidación aunque ap=0
+           - Constancia de Liquidación muestra los 28 ciclos del contrato siempre
+           - Ciclos sin datos: META:X | APLICADAS:0 | EN META:0 | FUERA:— | %:0%
+           - VPH2/VPH3 se saltan (SKIP_CICLOS) → solo fila VPH visible
+           - CertiVac v5.3 → v5.4 (fix caching browser con _ts + cache:'no-store')
+0fc50a0  fix(backend): agregar limpiarMunicipios() para estandarizar columna X existente
+           - Solo toca columna X (municipio, índice 23). No modifica nada más.
+           - Ejecutar una sola vez desde Apps Script si hay registros históricos con variantes
+288b7d8  fix(certivac): estandarizar nombres de municipio a mayúsculas sin tilde
+           - normalizarMunicipio(raw): ABREGO | CONVENCION | EL CARMEN | TEORAMA | ITUANGO
+           - extraerMunicipioDeNombre() actualizada con labels canónicos
+           - Se aplica tanto a celda Excel como al nombre del archivo
+a7eb1a5  perf(certivac): corregir timeout del ETL en plantillas con 65k filas vacías
+f484720  fix(certivac): corregir pérdida de registros y municipio vacío en carga XLS
 d68438e  security(audit): corregir 20 hallazgos de auditoría en 3 sistemas
            - SIVIGILA: hash SHA-256 + clave de recuperación, escH(), safeLSSet(),
              switchTab corregido, readAsArrayBuffer, IDs seguros en checkboxes
@@ -398,6 +435,8 @@ b2d8873  fix: sincronizar index.html con portal actualizado
 | Gestor de Certificaciones (PAI + Misión Médica unificado) | Media | No iniciado |
 | Módulo Jornadas Rurales (checklist + solicitud medicamentos) | Baja | No iniciado |
 | Verificar `sendToSheets` funciona tras fix TDZ (en producción GitHub Pages) | Alta | ✅ Confirmado — canónico corregido, copia externa sincronizada (Jun 2026) |
+| Actualizar `index.html` del portal — referencia CertiVac v5.2 (desactualizada) | Baja | Pendiente — solo texto, no funcionalidad |
+| Eliminar `PAI/CertiVac.html` (v5.1 deprecado) para evitar confusión | Baja | Pendiente — usuario eligió opción A (siempre abrir desde raíz) |
 
 ---
 

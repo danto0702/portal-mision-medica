@@ -2717,7 +2717,7 @@ async function openTarjetaOverlay(id){
   // Generate QR
   setTimeout(()=>{
     const qrEl = document.getElementById('qr-code-container');
-    if(qrEl){ try{ new QRCode(qrEl,{text:id,width:108,height:108,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M}); }catch(e){} }
+    if(qrEl){ try{ new QRCode(qrEl,{text:tarjetaUrl,width:108,height:108,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.L}); }catch(e){} }
   },200);
 }
 

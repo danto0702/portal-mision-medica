@@ -1364,7 +1364,11 @@ async function submitInfraccion(e){
 
   const fd = new FormData(e.target);
   const data = Object.fromEntries(fd.entries());
-  data.radicado = genRadicado('MM');
+
+  // Radicado secuencial RIICMM-YYYY-NNN
+  const yr = new Date().getFullYear();
+  const {count} = await supa.from('mm_infracciones').select('*',{count:'exact',head:true});
+  data.radicado = `RIICMM-${yr}-${String((count||0)+1).padStart(3,'0')}`;
 
   const {error} = await supa.from('mm_infracciones').insert([data]);
   if(error){
@@ -1372,84 +1376,182 @@ async function submitInfraccion(e){
     btn.disabled=false; btn.innerHTML='Registrar y Generar PDF'; return;
   }
 
-  toast('Reporte registrado con radicado '+data.radicado,'success',5000);
+  // Notificar al administrador
+  await callAppsScript({
+    action:'sendEmail',
+    to:'danto0702@gmail.com',
+    subject:`Nuevo reporte Mision Medica - ${data.radicado}`,
+    body:[
+      'Se registro un nuevo reporte de infracciones o incidentes a la Mision Medica.',
+      '',
+      'Radicado: '+data.radicado,
+      'Tipo de evento: '+data.tipo_evento,
+      'Fecha ocurrencia: '+data.fecha_ocurrencia,
+      'Municipio: '+data.municipio_ocurrencia,
+      'Institucion afectada: '+data.institucion_afectada,
+      'Diligenciado por: '+data.quien_diligencia,
+      '',
+      'Ingrese al panel administrativo para revisar el reporte.',
+      '',
+      'Mision Medica - ESE Hospital Regional Noroccidental'
+    ].join('\n')
+  });
+
+  toast('Reporte registrado — Radicado: '+data.radicado,'success',6000);
   generarPDFInfraccion(data);
   e.target.reset();
   document.querySelector('[name=fecha_reporte]').value = new Date().toISOString().split('T')[0];
   btn.disabled=false;
-  btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Registrar y Generar PDF';
+  btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Registrar y Generar PDF';
 }
 
 function generarPDFInfraccion(d){
   const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const W=210, m=15, cw=W-m*2;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const PW=210, PM=15, cw=PW-PM*2;
+  let y = PM;
 
-  // Header
-  doc.setFillColor(13,17,23);
-  doc.rect(0,0,W,30,'F');
-  doc.setTextColor(233,69,96);
-  doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text('MISIÓN MÉDICA — ESE HRNO',W/2,12,{align:'center'});
-  doc.setTextColor(230,237,243);
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Formato de Reporte de Infracciones e Incidentes — Resolución 4481 de 2012',W/2,19,{align:'center'});
-  doc.setFontSize(8);
-  doc.text(`Radicado: ${d.radicado}`,W/2,25,{align:'center'});
+  // ── Helpers ─────────────────────────────────────────────────────
+  function borde(x,yy,w,h){ doc.setDrawColor(0,0,0); doc.setLineWidth(0.25); doc.rect(x,yy,w,h); }
 
-  // Content
-  doc.setTextColor(0,0,0);
-  let y=40;
-  const line=(label,val,x=m,w=cw)=>{
-    doc.setFont('helvetica','bold'); doc.setFontSize(8);
-    doc.text(label+': ',x,y);
-    const lw=doc.getTextWidth(label+': ');
-    doc.setFont('helvetica','normal');
-    doc.text(String(val||'—'),x+lw,y);
-    y+=6;
-  };
-  const section=(title)=>{
-    y+=3;
-    doc.setFillColor(240,240,240);
-    doc.rect(m,y-4,cw,7,'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(50,50,50);
-    doc.text(title,m+2,y);
+  // Celda simple: label bold pequeño + valor normal, una sola línea
+  function celda(x,yy,w,h,label,val,vfs){
+    borde(x,yy,w,h);
+    const mid = yy+h*0.65;
     doc.setTextColor(0,0,0);
-    y+=6;
-  };
+    if(label){ doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.text(label,x+1.5,mid); }
+    const lw = label ? doc.getTextWidth(label)+0.8 : 0;
+    doc.setFont('helvetica','normal'); doc.setFontSize(vfs||8);
+    doc.text(String(val||''), x+1.5+lw, mid, {maxWidth:w-lw-3});
+  }
 
-  section('INFORMACIÓN DEL DILIGENCIAMIENTO');
-  line('Fecha reporte', fmtDate(d.fecha_reporte));
-  line('Quien diligencia', d.quien_diligencia);
-  line('Lugar / Municipio / Dpto', `${d.lugar_diligenciamiento} / ${d.municipio_diligenciamiento} / ${d.departamento_diligenciamiento}`);
+  // Encabezado de sección gris
+  function secHead(yy,text){
+    doc.setFillColor(195,195,195); doc.setDrawColor(0,0,0); doc.setLineWidth(0.25);
+    doc.rect(PM,yy,cw,6,'FD');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0);
+    doc.text(text, PM+cw/2, yy+4.2, {align:'center'});
+    return yy+6;
+  }
 
-  section('INFORMACIÓN DEL EVENTO');
-  line('Tipo de evento', d.tipo_evento);
-  line('Categoría', d.categoria_evento);
-  line('Fecha ocurrencia', fmtDate(d.fecha_ocurrencia));
-  line('Lugar / Municipio', `${d.lugar_ocurrencia} / ${d.municipio_ocurrencia}`);
-  line('Institución afectada', d.institucion_afectada);
-  line('Tipo institución', d.tipo_institucion + (d.detalle_institucion?' — '+d.detalle_institucion:''));
-  line('Fuente de información', d.fuente_informacion);
-  line('Instalaciones señalizadas', d.emblema);
-  line('Personal identificado', d.personal_identificado);
+  // Celda multilinea (descripción, emblema, etc.) — altura dinámica
+  function celdaMulti(x,yy,w,label,val,minH,fs){
+    fs = fs||7.5;
+    const lh=4.2, pad=2;
+    const avail = w - pad*2;
+    const lines = doc.splitTextToSize(String(val||''), avail);
+    const h = Math.max(lines.length*lh + (label?9:5), minH||8);
+    borde(x,yy,w,h);
+    doc.setTextColor(0,0,0);
+    let ty = yy+4.5;
+    if(label){ doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.text(label,x+pad,ty); ty+=5; }
+    doc.setFont('helvetica','normal'); doc.setFontSize(fs);
+    lines.forEach((l,i)=>doc.text(l,x+pad,ty+i*lh));
+    return yy+h;
+  }
 
-  section('DESCRIPCIÓN');
-  doc.setFont('helvetica','normal'); doc.setFontSize(8);
-  const lines = doc.splitTextToSize(d.descripcion||'', cw);
-  lines.forEach(l=>{ doc.text(l,m,y); y+=5; });
+  const RH=8; // altura estándar de fila
 
-  section('APOYO RECIBIDO');
-  line('¿Recibió apoyo?', d.apoyo);
-  if(d.cual_apoyo) line('¿Cuál apoyo?', d.cual_apoyo);
+  // ── RADICADO (esquina superior izquierda) ────────────────────────
+  celda(PM, y, 72, 7, 'Radicado:', d.radicado, 8);
 
-  // Footer
-  doc.setDrawColor(200,200,200);
-  doc.line(m,y+5,W-m,y+5);
-  doc.setFontSize(7); doc.setTextColor(120,120,120);
-  doc.text('Documento generado automáticamente por el Sistema de Gestión Misión Médica · ESE HRNO',W/2,y+10,{align:'center'});
+  // Texto resolución a la derecha del radicado
+  doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(40,40,40);
+  const resLines = doc.splitTextToSize(
+    'Resolución Nro. 4481 de 2012, "Por la cual se adopta el Manual de Misión Médica y se establecen normas relacionadas con la señalización y divulgación de su Emblema"',
+    cw-76
+  );
+  resLines.forEach((l,i)=>doc.text(l, PM+75, y+3+i*3.3));
 
-  doc.save(`Reporte_MM_${d.radicado}.pdf`);
+  y += 12;
+
+  // ── TÍTULOS ──────────────────────────────────────────────────────
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(0,0,0);
+  doc.text('FORMATO DE REPORTE DE INFRACCIONES', PW/2, y, {align:'center'}); y+=6;
+  doc.text('E INCIDENTES A LA MISIÓN MÉDICA EN COLOMBIA', PW/2, y, {align:'center'}); y+=5;
+  doc.setFont('helvetica','bolditalic'); doc.setFontSize(9);
+  doc.text('Antes de diligenciar el formulario, por favor lea el instructivo', PW/2, y, {align:'center'});
+  y += 9;
+
+  // ── CHECKBOXES Infracción / Incidente ────────────────────────────
+  const ckW=58, ckH=7, ckX=PW/2-ckW;
+  borde(ckX, y, ckW, ckH); borde(ckX+ckW, y, ckW, ckH);
+  doc.setFontSize(9); doc.setTextColor(0,0,0);
+  const ckY=y+5;
+  doc.setFont('helvetica','bold');
+  doc.text(d.tipo_evento==='Infracción'?'X':' ', ckX+3, ckY);
+  doc.text(d.tipo_evento==='Incidente' ?'X':' ', ckX+ckW+3, ckY);
+  doc.setFont('helvetica','normal');
+  doc.text('Infracción', ckX+8, ckY);
+  doc.text('Incidente',  ckX+ckW+8, ckY);
+  y += ckH+4;
+
+  // ── SECCIÓN 1: DILIGENCIAMIENTO ──────────────────────────────────
+  y = secHead(y, 'INFORMACIÓN DEL DILIGENCIAMIENTO DEL FORMULARIO');
+  celda(PM,        y, 62,  RH, 'Fecha reporte:', fmtDate(d.fecha_reporte));
+  celda(PM+62,     y, cw-62, RH, 'Quien diligencia (institución o persona):', d.quien_diligencia);
+  y += RH;
+  celda(PM,        y, 55,  RH, 'Lugar:', d.lugar_diligenciamiento);
+  celda(PM+55,     y, 65,  RH, 'Municipio:', d.municipio_diligenciamiento);
+  celda(PM+120,    y, cw-120, RH, 'Departamento:', d.departamento_diligenciamiento);
+  y += RH+3;
+
+  // ── SECCIÓN 2: SOBRE LA INFRACCIÓN/INCIDENTE ─────────────────────
+  y = secHead(y, 'INFORMACIÓN SOBRE LA '+(d.tipo_evento||'INFRACCIÓN O INCIDENTE').toUpperCase());
+  const H2=cw/2;
+  celda(PM,     y, H2,     RH, 'Fecha ocurrencia:', fmtDate(d.fecha_ocurrencia));
+  celda(PM+H2,  y, H2,     RH, 'Lugar:', d.lugar_ocurrencia);
+  y += RH;
+  celda(PM,     y, H2,     RH, 'Municipio:', d.municipio_ocurrencia);
+  celda(PM+H2,  y, H2,     RH, 'Departamento:', d.departamento_ocurrencia);
+  y += RH;
+  celda(PM,     y, cw,     RH, 'Institución afectada:', d.institucion_afectada);
+  y += RH;
+
+  // Tipo institución: Publica / Privada / detalle
+  const tp = d.tipo_institucion||'';
+  const tipoTxt = `Publica: ${tp==='Publica'?'X':'__'}   Privada: ${tp==='Privada'?'X':'__'}     Hospital: __   Puesto de salud: __   Centro de salud: __   Otra, cual: ${d.detalle_institucion||''}`;
+  celda(PM, y, cw, RH, '', tipoTxt, 7.5); y += RH;
+
+  celda(PM, y, cw, RH, 'Fuente de la información (institución o persona):', d.fuente_informacion); y += RH;
+
+  // Emblema / Personal identificado — celdas gemelas de altura dinámica
+  const emTxt = '¿Las instalaciones o medios de transporte estaban debidamente señalizados con el Emblema Protector?  SI '+
+    (d.emblema==='SI'?'X':'__')+'   NO '+(d.emblema==='NO'?'X':'__')+'   NO SABE: '+(d.emblema==='NO SABE'?'X':'__');
+  const peTxt = '¿El personal sanitario estaba debidamente identificado?  SI '+
+    (d.personal_identificado==='SI'?'X':'__')+'   NO '+(d.personal_identificado==='NO'?'X':'__')+'   NO SABE: '+(d.personal_identificado==='NO SABE'?'X':'__');
+  const eLs = doc.splitTextToSize(emTxt, H2-4);
+  const pLs = doc.splitTextToSize(peTxt, H2-4);
+  const dblH = Math.max(eLs.length, pLs.length)*4.2+6;
+  borde(PM,    y, H2, dblH); borde(PM+H2, y, H2, dblH);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(0,0,0);
+  eLs.forEach((l,i)=>doc.text(l, PM+2,    y+5+i*4.2));
+  pLs.forEach((l,i)=>doc.text(l, PM+H2+2, y+5+i*4.2));
+  y += dblH+4;
+
+  // ── DESCRIPCIÓN (ajustable al contenido) ─────────────────────────
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0);
+  doc.text('DESCRIPCIÓN DE LA INFRACCIÓN O INCIDENTE:', PM, y+4);
+  y += 7;
+  y = celdaMulti(PM, y, cw, null, d.descripcion, 35, 8);
+  y += 4;
+
+  // ── SECCIÓN 3: APOYO ─────────────────────────────────────────────
+  y = secHead(y, 'APOYO O SOPORTE RECIBIDO');
+  const apTxt = '¿Recibió apoyo inicial la institución o persona afectada?   SI: '+
+    (d.apoyo==='SI'?'X':'__')+'   NO: '+(d.apoyo==='NO'?'X':'__')+'   NO SABE: '+(d.apoyo==='NO SABE'?'X':'__');
+  celda(PM, y, cw, RH, '', apTxt, 7.5); y += RH;
+  if(d.cual_apoyo){ celda(PM, y, cw, RH, '¿Cuál apoyo recibió?:', d.cual_apoyo); y += RH; }
+
+  y += 8;
+
+  // ── PIE DE PÁGINA ────────────────────────────────────────────────
+  doc.setDrawColor(170,170,170); doc.setLineWidth(0.3);
+  doc.line(PM, y, PW-PM, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(110,110,110);
+  doc.text('Documento generado automáticamente por el Sistema de Gestión Misión Médica · ESE Hospital Regional Noroccidental', PW/2, y+4, {align:'center'});
+
+  doc.save(`${d.radicado}.pdf`);
 }
 
 /* ═══════════════════════════════════════════
@@ -2252,7 +2354,7 @@ function destroyChart(k){ if(S.chartRefs[k]){ S.chartRefs[k].destroy(); delete S
 function renderTablaInfracciones(data){
   if(!data.length) return '<div style="padding:1.5rem;text-align:center;color:var(--muted)">No hay registros.</div>';
   return `<table class="data-table">
-    <thead><tr><th>Radicado</th><th>Tipo</th><th>Categoría</th><th>Municipio</th><th>Fecha ocurrencia</th><th>Institución</th></tr></thead>
+    <thead><tr><th>Radicado</th><th>Tipo</th><th>Categoría</th><th>Municipio</th><th>Fecha ocurrencia</th><th>Institución</th><th>PDF</th></tr></thead>
     <tbody>${data.slice(0,50).map(r=>`
       <tr>
         <td style="font-family:monospace;font-size:.78rem;color:var(--blue)">${r.radicado}</td>
@@ -2261,9 +2363,16 @@ function renderTablaInfracciones(data){
         <td>${r.municipio_ocurrencia}</td>
         <td style="color:var(--muted);font-size:.8rem">${fmtDate(r.fecha_ocurrencia)}</td>
         <td style="font-size:.8rem">${r.institucion_afectada}</td>
+        <td><button class="btn btn-secondary btn-sm" onclick="descargarPDFAdmin('${r.id}')">⬇ PDF</button></td>
       </tr>`).join('')}
     </tbody>
   </table>`;
+}
+
+function descargarPDFAdmin(id){
+  const d = (window._infraccionesData||[]).find(r=>r.id===id);
+  if(!d){ toast('Registro no encontrado','error'); return; }
+  generarPDFInfraccion(d);
 }
 
 function filtrarTabla(){

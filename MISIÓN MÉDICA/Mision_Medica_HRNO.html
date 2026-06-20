@@ -1493,19 +1493,57 @@ function renderEmblemas(){
       <h2 style="font-size:1rem;font-weight:700">Solicitud de Tarjeta de Identificación Misión Médica</h2>
     </div>
     <form id="form-carnet" onsubmit="submitCarnet(event)">
+
+      <!-- 1. Datos personales -->
       <div class="card" style="margin-bottom:1rem">
         <div class="card-header">Datos Personales</div>
         <div class="grid-2">
+          <div class="form-group"><label class="form-label">Fecha de Solicitud</label><input name="fecha_solicitud_display" class="form-input" readonly id="fecha-sol-display" style="opacity:.6;cursor:default"></div>
+          <div class="form-group"><label class="form-label">Fecha de Nacimiento <span class="req">*</span></label><input name="fecha_nacimiento" type="date" class="form-input" required></div>
           <div class="form-group"><label class="form-label">Nombres <span class="req">*</span></label><input name="nombres" class="form-input" required placeholder="Nombres completos"></div>
           <div class="form-group"><label class="form-label">Apellidos <span class="req">*</span></label><input name="apellidos" class="form-input" required placeholder="Apellidos completos"></div>
           <div class="form-group"><label class="form-label">Tipo documento <span class="req">*</span></label><select name="tipo_documento" class="form-select" required>${selOpts(CFG.TIPOS_DOC,'Seleccione...')}</select></div>
           <div class="form-group"><label class="form-label">Número documento <span class="req">*</span></label><input name="numero_documento" class="form-input" required placeholder="Sin puntos ni comas"></div>
-          <div class="form-group"><label class="form-label">Cargo <span class="req">*</span></label><select name="cargo" class="form-select" required>${selOpts(CFG.CARGOS,'Seleccione cargo...')}</select></div>
-          <div class="form-group"><label class="form-label">Municipio <span class="req">*</span></label><select name="municipio" class="form-select" required>${selOpts(CFG.MUNICIPIOS,'Seleccione municipio...')}</select></div>
-          <div class="form-group"><label class="form-label">Correo electrónico <span class="req">*</span></label><input name="correo" type="email" class="form-input" required placeholder="correo@ejemplo.com"></div>
-          <div class="form-group"><label class="form-label">Teléfono</label><input name="telefono" type="tel" class="form-input" placeholder="Celular o fijo"></div>
+          <div class="form-group"><label class="form-label">Sexo <span class="req">*</span></label><select name="sexo" class="form-select" required>${selOpts(['Masculino','Femenino'],'Seleccione...')}</select></div>
+          <div class="form-group"><label class="form-label">Grupo Sanguíneo y RH <span class="req">*</span></label><select name="grupo_sanguineo" class="form-select" required>${selOpts(['A+','A-','B+','B-','O+','O-','AB+','AB-'],'Seleccione...')}</select></div>
+          <div class="form-group"><label class="form-label">Estatura (cm) <span class="req">*</span></label><input name="estatura" type="number" min="100" max="220" class="form-input" required placeholder="Ej: 168"></div>
+          <div class="form-group"><label class="form-label">Teléfono <span class="req">*</span></label><input name="telefono" type="tel" class="form-input" required placeholder="Celular o fijo"></div>
+          <div class="form-group" style="grid-column:1/-1"><label class="form-label">Correo Electrónico <span class="req">*</span></label><input name="correo" type="email" class="form-input" required placeholder="correo@ejemplo.com"></div>
         </div>
       </div>
+
+      <!-- 2. Información institucional -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header">Información Institucional</div>
+        <div class="grid-2">
+          <div class="form-group"><label class="form-label">Perfil / Profesión <span class="req">*</span></label><input name="perfil_profesion" class="form-input" required placeholder="Ej: Médico General, Enfermero, Odontólogo..."></div>
+          <div class="form-group"><label class="form-label">Cargo <span class="req">*</span></label><select name="cargo" class="form-select" required>${selOpts(CFG.CARGOS,'Seleccione cargo...')}</select></div>
+          <div class="form-group"><label class="form-label">Vinculación <span class="req">*</span></label><select name="vinculacion" class="form-select" required>${selOpts(['Nómina','SSO','OPS','Contrato Sindical','Otro'],'Seleccione...')}</select></div>
+          <div class="form-group"><label class="form-label">Municipio <span class="req">*</span></label><select name="municipio" class="form-select" required onchange="actualizarIPS(this.value)">${selOpts(CFG.MUNICIPIOS,'Seleccione municipio...')}</select></div>
+          <div class="form-group" style="grid-column:1/-1"><label class="form-label">IPS <span class="req">*</span></label><select name="ips" class="form-select" required id="sel-ips"><option value="">Seleccione municipio primero...</option></select></div>
+        </div>
+      </div>
+
+      <!-- 3. Responsable y documento -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header">Responsable y Documento</div>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label class="form-label">Responsable de la Solicitud <span class="req">*</span></label>
+          <select name="responsable_solicitud" class="form-select" required>
+            ${selOpts(['Mónica Quintero Pérez - IPS San Pablo','Jesus Evelio Ríos - IPS Convención','Danilo Torrado Blanco - IPS Ábrego','Zayde Quintero - IPS El Carmen'],'Seleccione responsable...')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Documento de Identidad PDF — ambas caras <span class="req">*</span></label>
+          <div id="pdf-drop-zone" style="border:2px dashed rgba(124,29,111,.5);border-radius:10px;padding:1.5rem;text-align:center;cursor:pointer;transition:border-color .2s" onclick="document.getElementById('inp-pdf').click()" ondragover="event.preventDefault();this.style.borderColor='var(--purple)'" ondragleave="this.style.borderColor='rgba(124,29,111,.5)'" ondrop="handlePdfDrop(event)">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.5" style="margin:0 auto .5rem;display:block"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            <p id="pdf-label" style="font-size:.85rem;color:var(--muted)">Haz clic o arrastra el PDF aquí<br><span style="font-size:.75rem;opacity:.6">Máx. 10 MB · Solo archivos PDF</span></p>
+          </div>
+          <input type="file" id="inp-pdf" accept=".pdf,application/pdf" style="display:none" onchange="onPdfSelect(this)">
+        </div>
+      </div>
+
+      <!-- 4. Autorización -->
       <div class="card" style="margin-bottom:1rem;background:rgba(124,29,111,.05);border-color:rgba(124,29,111,.3)">
         <div style="display:flex;gap:.75rem;align-items:flex-start">
           <input type="checkbox" id="ck-terms-carnet" required style="margin-top:3px;accent-color:var(--purple);width:16px;height:16px;flex-shrink:0">
@@ -1586,20 +1624,78 @@ function mostrarFormEmblema(tipo){
   document.getElementById('emblema-selector').style.display = tipo ? 'none' : 'grid';
   document.getElementById('form-carnet-wrap').style.display = tipo==='carnet' ? 'block' : 'none';
   document.getElementById('form-emblema-wrap').style.display = tipo==='emblema' ? 'block' : 'none';
+  if(tipo==='carnet'){
+    const hoy = new Date();
+    const el = document.getElementById('fecha-sol-display');
+    if(el) el.value = hoy.toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
+  }
+}
+
+// IPS por municipio
+const IPS_POR_MUNICIPIO = {
+  'Ábrego':     ['IPS Ábrego'],
+  'El Carmen':  ['IPS El Carmen','IPS Guamalito','PS La Trinidad','PS Cartagenita','PS Aserrío'],
+  'Convención': ['IPS Convención','IPS San Pablo','PS Casitas','PS Capitanlargo'],
+  'Teorama':    ['IPS El Carmen'],
+};
+function actualizarIPS(mun){
+  const sel = document.getElementById('sel-ips');
+  if(!sel) return;
+  const opts = IPS_POR_MUNICIPIO[mun] || [];
+  sel.innerHTML = opts.length
+    ? '<option value="">Seleccione IPS...</option>' + opts.map(o=>`<option value="${o}">${o}</option>`).join('')
+    : '<option value="">Seleccione municipio primero...</option>';
+}
+
+// PDF — selección y drag-drop
+let _pdfFile = null;
+function onPdfSelect(inp){
+  const f = inp.files[0];
+  if(!f) return;
+  if(f.type !== 'application/pdf'){ toast('Solo se aceptan archivos PDF','error'); inp.value=''; return; }
+  if(f.size > 10*1024*1024){ toast('El archivo supera el límite de 10 MB','error'); inp.value=''; return; }
+  _pdfFile = f;
+  document.getElementById('pdf-label').innerHTML = `<strong style="color:var(--green)">✓ ${f.name}</strong><br><span style="font-size:.75rem;opacity:.6">${(f.size/1024/1024).toFixed(2)} MB</span>`;
+  document.getElementById('pdf-drop-zone').style.borderColor = 'var(--green)';
+}
+function handlePdfDrop(ev){
+  ev.preventDefault();
+  document.getElementById('pdf-drop-zone').style.borderColor = 'rgba(124,29,111,.5)';
+  const f = ev.dataTransfer.files[0];
+  if(!f) return;
+  const fakeInp = {files:[f]};
+  onPdfSelect(fakeInp);
 }
 
 async function submitCarnet(e){
   e.preventDefault();
+  if(!_pdfFile){ toast('Debes adjuntar el PDF del documento de identidad','error'); return; }
   const btn = document.getElementById('btn-submit-carnet');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Enviando...';
+
+  // Subir PDF a Supabase Storage
+  const ext = 'pdf';
+  const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const {data:upData, error:upErr} = await supa.storage.from('documentos-carnet').upload(fileName, _pdfFile, {contentType:'application/pdf'});
+  if(upErr){ toast('Error subiendo PDF: '+upErr.message,'error'); btn.disabled=false; btn.innerHTML='Enviar Solicitud'; return; }
+  const { data: urlData } = supa.storage.from('documentos-carnet').getPublicUrl(fileName);
+  const pdfUrl = urlData.publicUrl;
+
   const fd = new FormData(e.target);
   const data = Object.fromEntries(fd.entries());
+  delete data.fecha_solicitud_display;
+  data.documento_pdf_url = pdfUrl;
+  data.fecha_solicitud = new Date().toISOString();
+
   const {error} = await supa.from('mm_solicitudes_carnet').insert([data]);
-  if(error){ toast('Error: '+error.message,'error'); btn.disabled=false; btn.textContent='Enviar Solicitud'; return; }
+  if(error){ toast('Error: '+error.message,'error'); btn.disabled=false; btn.innerHTML='Enviar Solicitud'; return; }
   toast('Solicitud enviada. Recibirás un correo cuando sea autorizada.','success',6000);
   e.target.reset();
+  _pdfFile = null;
+  document.getElementById('pdf-label').innerHTML = 'Haz clic o arrastra el PDF aquí<br><span style="font-size:.75rem;opacity:.6">Máx. 10 MB · Solo archivos PDF</span>';
+  document.getElementById('pdf-drop-zone').style.borderColor = 'rgba(124,29,111,.5)';
   mostrarFormEmblema(null);
-  btn.disabled=false; btn.textContent='Enviar Solicitud';
+  btn.disabled=false; btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Enviar Solicitud';
 }
 
 async function submitEmblemaPub(e){

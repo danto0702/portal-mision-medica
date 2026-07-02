@@ -24,12 +24,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#EBF2FA;color:#1e293
 .nav-tabs button:hover:not(.activo){color:#1e293b}
 
 .tab{display:none}.tab.activo{display:block}
-.inner{max-width:900px;margin:0 auto;padding:20px 16px}
+.inner{max-width:960px;margin:0 auto;padding:20px 16px}
 
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
 
 .card{background:#fff;border-radius:12px;border:0.5px solid #e2e8f0;overflow:hidden}
-.card-head{padding:13px 18px;border-bottom:0.5px solid #f1f5f9}
+.card-head{padding:13px 18px;border-bottom:0.5px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between}
 .card-head p{font-size:13px;font-weight:500;color:#64748b;margin:0}
 .card-body{padding:16px 18px;display:flex;flex-direction:column;gap:10px}
 
@@ -38,15 +38,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#EBF2FA;color:#1e293
 .fld input,.fld select,.fld textarea{width:100%;padding:8px 11px;border:0.5px solid #cbd5e1;border-radius:8px;font-size:13px;font-family:inherit;color:#1e293b;background:#fff;transition:border-color .2s}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:#185FA5;box-shadow:0 0 0 3px rgba(24,95,165,.1)}
 .fld textarea{resize:vertical;min-height:60px}
+.fld .hint{font-size:11px;color:#94a3b8;margin-top:3px}
 
 .btn-asignar{display:block;width:100%;background:#185FA5;color:#fff;border:none;padding:10px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .2s;margin-top:4px}
 .btn-asignar:hover{opacity:.88}
 .btn-asignar:disabled{opacity:.5;cursor:not-allowed}
+.btn-rec{background:#7c3aed}
 
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:giro .7s linear infinite;margin-right:6px;vertical-align:middle}
 @keyframes giro{to{transform:rotate(360deg)}}
 
 .msg-error{background:#fef2f2;border:0.5px solid #fca5a5;color:#dc2626;padding:9px 13px;border-radius:8px;font-size:12px;margin-top:6px;display:none}
+.msg-ok{background:#f0fdf4;border:0.5px solid #86efac;color:#166534;padding:9px 13px;border-radius:8px;font-size:12px;margin-top:6px;display:none}
 
 .right-col{display:flex;flex-direction:column;gap:12px}
 
@@ -60,6 +63,45 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#EBF2FA;color:#1e293
 .btn-copiar{background:#fff;border:0.5px solid #86efac;color:#15803d;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
 .btn-nuevo{background:#15803d;color:#fff;border:none;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
 
+/* ── Semáforo cards ── */
+.sem-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.sem-card{background:#fff;border-radius:10px;border:0.5px solid #e2e8f0;padding:14px 10px;text-align:center;cursor:default}
+.sem-card .sc-num{font-size:30px;font-weight:700;line-height:1.1;margin-bottom:4px}
+.sem-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.sem-card .sc-sub{font-size:9.5px;color:#94a3b8;margin-top:2px}
+.card-vencido{border-color:#fca5a5;background:#fef2f2}.card-vencido .sc-num,.card-vencido .sc-label{color:#dc2626}
+.card-urgente{border-color:#fdba74;background:#fff7ed}.card-urgente .sc-num,.card-urgente .sc-label{color:#c2410c}
+.card-proximo{border-color:#fde68a;background:#fffbeb}.card-proximo .sc-num,.card-proximo .sc-label{color:#b45309}
+.card-ok{border-color:#86efac;background:#f0fdf4}.card-ok .sc-num,.card-ok .sc-label{color:#166534}
+
+/* ── Semáforo pills ── */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;white-space:nowrap}
+.pill-vencido{background:#fef2f2;color:#dc2626;border:1px solid #fca5a5}
+.pill-urgente{background:#fff7ed;color:#c2410c;border:1px solid #fdba74}
+.pill-proximo{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+.pill-ok{background:#f0fdf4;color:#166534;border:1px solid #86efac}
+.pill-respondido{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0}
+
+/* ── Estado select inline ── */
+.est-select{border:0.5px solid #e2e8f0;border-radius:6px;padding:3px 6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .2s}
+.est-select:focus{outline:none}
+.est-Pendiente{background:#fef3c7;color:#92400e;border-color:#fde68a}
+.est-proceso{background:#dbeafe;color:#1e40af;border-color:#bfdbfe}
+.est-Respondido{background:#dcfce7;color:#166534;border-color:#86efac}
+
+/* ── Alerta pendientes ── */
+.alertas-box{background:#fff;border-radius:10px;border:0.5px solid #e2e8f0;overflow:hidden}
+.alertas-box .ah{padding:10px 14px;border-bottom:0.5px solid #f1f5f9;font-size:12px;font-weight:500;color:#64748b}
+.alerta-item{display:flex;align-items:flex-start;gap:8px;padding:9px 14px;border-bottom:0.5px solid #f8fafc;font-size:12px}
+.alerta-item:last-child{border-bottom:none}
+.alerta-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.dot-vencido{background:#dc2626}.dot-urgente{background:#ea580c}.dot-proximo{background:#d97706}
+.alerta-txt{flex:1;min-width:0}
+.alerta-asu{font-weight:500;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alerta-meta{color:#94a3b8;font-size:11px;margin-top:1px}
+.alerta-vacia{padding:14px;text-align:center;color:#94a3b8;font-size:12px}
+
+/* ── Quick search ── */
 .qs{background:#f8fafc;border:0.5px solid #e2e8f0;border-radius:12px;padding:14px}
 .qs-title{font-size:12px;font-weight:500;color:#64748b;margin:0 0 8px}
 .qs-input{width:100%;padding:7px 10px;border:0.5px solid #cbd5e1;border-radius:8px;font-size:12px;font-family:inherit;color:#1e293b;background:#fff;margin-bottom:8px}
@@ -72,6 +114,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#EBF2FA;color:#1e293
 .qs-asu{color:#64748b;grid-column:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .qs-vacio{font-size:12px;color:#94a3b8;text-align:center;padding:10px 0}
 
+/* ── Buscar / tablas ── */
 .search-row{display:flex;gap:10px;margin-bottom:16px}
 .search-row input{flex:1;padding:9px 13px;border:0.5px solid #cbd5e1;border-radius:8px;font-size:14px;font-family:inherit;color:#1e293b}
 .search-row input:focus{outline:none;border-color:#185FA5}
@@ -80,7 +123,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#EBF2FA;color:#1e293
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{background:#0C447C;color:#fff;padding:9px 11px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
-td{padding:9px 11px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+td{padding:9px 11px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
 tr:nth-child(even) td{background:#f8fafc}
 tr:hover td{background:#EBF2FA}
 .td-rad{font-weight:600;color:#0C447C;white-space:nowrap}
@@ -88,9 +131,15 @@ tr:hover td{background:#EBF2FA}
 .tbl-info{padding:10px 0;color:#94a3b8;font-size:12px}
 .cargando,.vacio{text-align:center;padding:32px;color:#94a3b8;font-size:13px}
 
-@media(max-width:620px){
+/* ── Toast ── */
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+@media(max-width:680px){
   .two-col{grid-template-columns:1fr}
+  .sem-cards{grid-template-columns:repeat(2,1fr)}
   .hdr h1{font-size:16px}
+  .nav-tabs button{padding:10px 12px;font-size:13px}
 }
 </style>
 </head>
@@ -102,7 +151,7 @@ tr:hover td{background:#EBF2FA}
     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     Portal Salud Pública · ESE HRNO
   </a>
-  <span class="eco-tag">OFICIOS ENVIADOS · ESP-116</span>
+  <span class="eco-tag">RADICADOR OFICIAL · ESP-116</span>
 </div>
 
 <div class="hdr">
@@ -112,21 +161,19 @@ tr:hover td{background:#EBF2FA}
 </div>
 
 <div class="nav-tabs">
-  <button class="activo" onclick="cambiarTab('nuevo',this)">📄 Nuevo radicado</button>
-  <button onclick="cambiarTab('buscar',this)">🔍 Buscar radicado</button>
+  <button class="activo" onclick="cambiarTab('enviado',this)">📤 Oficio enviado</button>
+  <button onclick="cambiarTab('recibido',this)">📥 Oficio recibido</button>
+  <button onclick="cambiarTab('buscar',this)">🔍 Buscar enviados</button>
 </div>
 
-<!-- ── TAB NUEVO ─── -->
-<div id="tab-nuevo" class="tab activo">
+<!-- ═══ TAB ENVIADO ═══ -->
+<div id="tab-enviado" class="tab activo">
   <div class="inner">
     <div class="two-col">
-
-      <!-- Izquierda: formulario -->
       <div class="card">
-        <div class="card-head"><p>Formulario de solicitud</p></div>
+        <div class="card-head"><p>Formulario de radicación — Oficio enviado</p></div>
         <div class="card-body">
           <form id="frmRad" onsubmit="return false">
-
             <div class="fld">
               <label>Tipo de documento <span class="req">*</span></label>
               <select id="tipo" required>
@@ -139,39 +186,31 @@ tr:hover td{background:#EBF2FA}
                 <option>Comunicación externa</option>
               </select>
             </div>
-
             <div class="fld">
               <label>Fecha <span class="req">*</span></label>
               <input type="date" id="fecha" required>
             </div>
-
             <div class="fld">
               <label>Asunto <span class="req">*</span></label>
               <textarea id="asunto" placeholder="Describa brevemente el asunto del documento…" required></textarea>
             </div>
-
             <div class="fld">
               <label>Dirigido a / Entidad <span class="req">*</span></label>
               <input type="text" id="dirigidoA" placeholder="Persona o institución destinataria" required>
             </div>
-
             <div class="fld">
               <label>Observaciones <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
               <textarea id="observaciones" placeholder="Información adicional si aplica…" style="min-height:44px"></textarea>
             </div>
-
             <button class="btn-asignar" id="btnEnviar" onclick="solicitarRadicado()">
               Asignar número de radicado
             </button>
-
             <div class="msg-error" id="msgError"></div>
           </form>
         </div>
       </div>
 
-      <!-- Derecha: resultado + búsqueda rápida -->
       <div class="right-col">
-
         <div class="result-box" id="resultBox">
           <span class="ri">✅</span>
           <p class="etiq">Radicado asignado</p>
@@ -182,7 +221,6 @@ tr:hover td{background:#EBF2FA}
             <button class="btn-nuevo" onclick="limpiar()">+ Nuevo</button>
           </div>
         </div>
-
         <div class="qs">
           <p class="qs-title">🔍 Búsqueda rápida</p>
           <input type="text" class="qs-input" id="qsTermino"
@@ -192,13 +230,107 @@ tr:hover td{background:#EBF2FA}
             <div class="qs-vacio">Cargando…</div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── TAB BUSCAR ─── -->
+<!-- ═══ TAB RECIBIDO ═══ -->
+<div id="tab-recibido" class="tab">
+  <div class="inner">
+
+    <!-- Semáforo resumen -->
+    <div class="sem-cards" id="semCards">
+      <div class="sem-card card-vencido"><div class="sc-num" id="semVencido">—</div><div class="sc-label">Vencidos</div><div class="sc-sub">sin respuesta</div></div>
+      <div class="sem-card card-urgente"><div class="sc-num" id="semUrgente">—</div><div class="sc-label">Urgentes</div><div class="sc-sub">≤ 3 días</div></div>
+      <div class="sem-card card-proximo"><div class="sc-num" id="semProximo">—</div><div class="sc-label">Próximos</div><div class="sc-sub">4–7 días</div></div>
+      <div class="sem-card card-ok"><div class="sc-num" id="semOk">—</div><div class="sc-label">En tiempo</div><div class="sc-sub">&gt; 8 días</div></div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:20px">
+      <!-- Formulario recibido -->
+      <div class="card">
+        <div class="card-head"><p>Registrar oficio recibido</p></div>
+        <div class="card-body">
+          <form id="frmRec" onsubmit="return false">
+            <div class="fld">
+              <label>Radicado / N.° del remitente <span class="req">*</span></label>
+              <input type="text" id="rRadicadoRem" placeholder="Ej: SDS-2026-0045, MSPS-2026-112…" required>
+              <p class="hint">Número que trae el oficio de quien lo envía</p>
+            </div>
+            <div class="fld">
+              <label>Remitente (entidad o persona) <span class="req">*</span></label>
+              <input type="text" id="rRemitente" placeholder="Ej: Secretaría Departamental de Salud…" required>
+            </div>
+            <div class="fld">
+              <label>Fecha de recepción <span class="req">*</span></label>
+              <input type="date" id="rFechaRecepcion" required onchange="calcLimite()">
+            </div>
+            <div class="fld">
+              <label>Tipo de documento <span class="req">*</span></label>
+              <select id="rTipo" required>
+                <option value="">— Seleccione —</option>
+                <option>Oficio</option>
+                <option>Circular</option>
+                <option>Resolución</option>
+                <option>Derecho de petición</option>
+                <option>Requerimiento</option>
+                <option>Memorando</option>
+                <option>Comunicación</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label>Asunto <span class="req">*</span></label>
+              <textarea id="rAsunto" placeholder="Describa el asunto del oficio recibido…" required></textarea>
+            </div>
+            <div class="fld">
+              <label>Fecha límite de respuesta <span class="req">*</span></label>
+              <input type="date" id="rFechaLimite" required>
+              <p class="hint">Auto: +15 días hábiles (Ley 1755/2015). Editable si el plazo es diferente.</p>
+            </div>
+            <div class="fld">
+              <label>Responsable de respuesta <span class="req">*</span></label>
+              <input type="text" id="rResponsable" placeholder="Nombre del responsable de dar respuesta" required>
+            </div>
+            <div class="fld">
+              <label>Observaciones <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+              <textarea id="rObservaciones" placeholder="Notas adicionales…" style="min-height:44px"></textarea>
+            </div>
+            <button class="btn-asignar btn-rec" id="btnRec" onclick="registrarRecibido()">
+              Registrar oficio recibido
+            </button>
+            <div class="msg-error" id="msgErrorRec"></div>
+            <div class="msg-ok" id="msgOkRec"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Panel alertas urgentes -->
+      <div class="right-col">
+        <div class="alertas-box">
+          <div class="ah">🚨 Pendientes críticos</div>
+          <div id="alertasList"><div class="alerta-vacia">Cargando…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla recibidos -->
+    <div class="card" style="padding:20px">
+      <div class="search-row">
+        <input type="text" id="terminoRec"
+               placeholder="Buscar por radicado, remitente, asunto, responsable…"
+               oninput="filtrarTablaRec()">
+        <button class="btn-refresh" onclick="cargarRecibidos()">↺ Actualizar</button>
+      </div>
+      <div class="tbl-wrap">
+        <div id="contenidoTablaRec"><div class="cargando">Cargando registros…</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ TAB BUSCAR ENVIADOS ═══ -->
 <div id="tab-buscar" class="tab">
   <div class="inner">
     <div class="card" style="padding:20px">
@@ -215,21 +347,31 @@ tr:hover td{background:#EBF2FA}
   </div>
 </div>
 
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmK-803QUbEO0Xy5BPEdj2OSFqK6pv_IcgYmE_qnc-fEjv548tI9aJvqZE1-WmATM/exec';
 
-let todos = [];
+var todosEnviados = [];
+var todosRecibidos = [];
 
+// ── Init ──────────────────────────────────────────────────────────
 document.getElementById('fecha').valueAsDate = new Date();
+document.getElementById('rFechaRecepcion').valueAsDate = new Date();
+calcLimite();
 cargarDatos();
+cargarRecibidos();
 
+// ── API ───────────────────────────────────────────────────────────
 function api(p) {
-  const url = new URL(SCRIPT_URL);
+  var url = new URL(SCRIPT_URL);
   Object.entries(p).forEach(function([k,v]){ url.searchParams.set(k,v); });
   url.searchParams.set('_ts', Date.now());
   return fetch(url.toString(), { method:'GET', redirect:'follow', cache:'no-store' }).then(function(r){ return r.json(); });
 }
 
+// ── Tabs ──────────────────────────────────────────────────────────
 function cambiarTab(tab, btn) {
   document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('activo'); });
   document.querySelectorAll('.nav-tabs button').forEach(function(b){ b.classList.remove('activo'); });
@@ -237,6 +379,36 @@ function cambiarTab(tab, btn) {
   btn.classList.add('activo');
 }
 
+// ── Fecha límite auto (+15 días) ──────────────────────────────────
+function calcLimite() {
+  var val = document.getElementById('rFechaRecepcion').value;
+  if (!val) return;
+  var d = new Date(val + 'T00:00:00');
+  d.setDate(d.getDate() + 15);
+  document.getElementById('rFechaLimite').value = d.toISOString().slice(0,10);
+}
+
+// ── Semáforo ──────────────────────────────────────────────────────
+function parseDMY(s) {
+  if (!s) return null;
+  var p = s.split('/');
+  if (p.length !== 3) return null;
+  return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+}
+
+function calcSem(rec) {
+  if (rec.estado === 'Respondido') return { cls:'pill-respondido', label:'Respondido', dias:null, tipo:'respondido' };
+  var limite = parseDMY(rec.fechaLimite);
+  if (!limite) return { cls:'pill-respondido', label:'Sin fecha', dias:null, tipo:'nd' };
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var diff = Math.floor((limite - hoy) / 86400000);
+  if (diff < 0)  return { cls:'pill-vencido',  label:'VENCIDO', dias:diff, tipo:'vencido' };
+  if (diff <= 3) return { cls:'pill-urgente',  label:diff + 'd restantes', dias:diff, tipo:'urgente' };
+  if (diff <= 7) return { cls:'pill-proximo',  label:diff + 'd restantes', dias:diff, tipo:'proximo' };
+               return { cls:'pill-ok',        label:diff + 'd restantes', dias:diff, tipo:'ok' };
+}
+
+// ── ENVIADOS ──────────────────────────────────────────────────────
 function solicitarRadicado() {
   var tipo          = document.getElementById('tipo').value;
   var fechaRaw      = document.getElementById('fecha').value;
@@ -245,10 +417,9 @@ function solicitarRadicado() {
   var observaciones = document.getElementById('observaciones').value.trim();
 
   if (!tipo || !fechaRaw || !asunto || !dirigidoA) {
-    mostrarError('Por favor complete todos los campos obligatorios.');
+    mostrarError('msgError', 'Por favor complete todos los campos obligatorios.');
     return;
   }
-
   var p = fechaRaw.split('-');
   var fecha = p[2] + '/' + p[1] + '/' + p[0];
 
@@ -265,23 +436,17 @@ function solicitarRadicado() {
         document.getElementById('resRadicado').textContent = r.radicado;
         document.getElementById('resNumero').textContent = 'Documento No. ' + r.numero + ' registrado en el radicador';
         document.getElementById('resultBox').style.display = 'block';
-        todos = [];
+        todosEnviados = [];
         cargarDatos();
       } else {
-        mostrarError('No se pudo asignar el radicado. Intente de nuevo.');
+        mostrarError('msgError', 'No se pudo asignar el radicado. Intente de nuevo.');
       }
     })
     .catch(function(e) {
       btn.disabled = false;
       btn.innerHTML = 'Asignar número de radicado';
-      mostrarError('Error de conexión: ' + e.message);
+      mostrarError('msgError', 'Error de conexión: ' + e.message);
     });
-}
-
-function mostrarError(msg) {
-  var el = document.getElementById('msgError');
-  el.textContent = msg;
-  el.style.display = 'block';
 }
 
 function copiar() {
@@ -303,9 +468,9 @@ function cargarDatos() {
   document.getElementById('contenidoTabla').innerHTML = '<div class="cargando">Cargando registros…</div>';
   api({ action:'listar' })
     .then(function(data) {
-      todos = data.entradas || [];
-      renderTabla(todos);
-      renderQS(todos);
+      todosEnviados = data.entradas || [];
+      renderTabla(todosEnviados);
+      renderQS(todosEnviados);
     })
     .catch(function(e) {
       document.getElementById('contenidoTabla').innerHTML = '<div class="vacio">⚠️ Error: ' + e.message + '</div>';
@@ -315,12 +480,12 @@ function cargarDatos() {
 
 function filtrarTabla() {
   var t = document.getElementById('termino').value.toLowerCase();
-  renderTabla(t ? todos.filter(function(r){ return (r.radicado+r.asunto+r.dirigidoA+r.tipo+r.fecha).toLowerCase().includes(t); }) : todos);
+  renderTabla(t ? todosEnviados.filter(function(r){ return (r.radicado+r.asunto+r.dirigidoA+r.tipo+r.fecha).toLowerCase().includes(t); }) : todosEnviados);
 }
 
 function filtrarQS() {
   var t = document.getElementById('qsTermino').value.toLowerCase();
-  renderQS(t ? todos.filter(function(r){ return (r.radicado+r.asunto+r.dirigidoA).toLowerCase().includes(t); }) : todos);
+  renderQS(t ? todosEnviados.filter(function(r){ return (r.radicado+r.asunto+r.dirigidoA).toLowerCase().includes(t); }) : todosEnviados);
 }
 
 function renderTabla(lista) {
@@ -348,6 +513,210 @@ function renderQS(lista) {
   });
   if (lista.length > 5) h += '<div class="qs-vacio" style="padding:6px 0 0">' + (lista.length-5) + ' más…</div>';
   document.getElementById('qsLista').innerHTML = h;
+}
+
+// ── RECIBIDOS ─────────────────────────────────────────────────────
+function registrarRecibido() {
+  var radicadoRem = document.getElementById('rRadicadoRem').value.trim();
+  var remitente   = document.getElementById('rRemitente').value.trim();
+  var fechaRecRaw = document.getElementById('rFechaRecepcion').value;
+  var tipo        = document.getElementById('rTipo').value;
+  var asunto      = document.getElementById('rAsunto').value.trim();
+  var fechaLimRaw = document.getElementById('rFechaLimite').value;
+  var responsable = document.getElementById('rResponsable').value.trim();
+  var obs         = document.getElementById('rObservaciones').value.trim();
+
+  if (!radicadoRem || !remitente || !fechaRecRaw || !tipo || !asunto || !fechaLimRaw || !responsable) {
+    mostrarError('msgErrorRec', 'Por favor complete todos los campos obligatorios.');
+    return;
+  }
+
+  function toFmt(raw) { var p=raw.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+
+  var btn = document.getElementById('btnRec');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Registrando…';
+  document.getElementById('msgErrorRec').style.display = 'none';
+  document.getElementById('msgOkRec').style.display = 'none';
+
+  api({
+    action:       'agregarRecibido',
+    radicadoRem:  radicadoRem,
+    remitente:    remitente,
+    fechaRecepcion: toFmt(fechaRecRaw),
+    tipo:         tipo,
+    asunto:       asunto,
+    fechaLimite:  toFmt(fechaLimRaw),
+    responsable:  responsable,
+    observaciones: obs
+  })
+  .then(function(r) {
+    btn.disabled = false;
+    btn.innerHTML = 'Registrar oficio recibido';
+    if (r.exito) {
+      var okEl = document.getElementById('msgOkRec');
+      okEl.textContent = '✅ Oficio recibido registrado correctamente.';
+      okEl.style.display = 'block';
+      document.getElementById('frmRec').reset();
+      document.getElementById('rFechaRecepcion').valueAsDate = new Date();
+      calcLimite();
+      todosRecibidos = [];
+      cargarRecibidos();
+    } else {
+      mostrarError('msgErrorRec', r.error || 'No se pudo registrar. Intente de nuevo.');
+    }
+  })
+  .catch(function(e) {
+    btn.disabled = false;
+    btn.innerHTML = 'Registrar oficio recibido';
+    mostrarError('msgErrorRec', 'Error de conexión: ' + e.message);
+  });
+}
+
+function cargarRecibidos() {
+  document.getElementById('contenidoTablaRec').innerHTML = '<div class="cargando">Cargando registros…</div>';
+  document.getElementById('alertasList').innerHTML = '<div class="alerta-vacia">Cargando…</div>';
+
+  api({ action:'listarRecibidos' })
+    .then(function(data) {
+      todosRecibidos = data.entradas || [];
+      renderTablaRec(todosRecibidos);
+      renderSemaforo(todosRecibidos);
+      renderAlertas(todosRecibidos);
+    })
+    .catch(function(e) {
+      document.getElementById('contenidoTablaRec').innerHTML = '<div class="vacio">⚠️ Error: ' + e.message + '</div>';
+      document.getElementById('alertasList').innerHTML = '<div class="alerta-vacia">Error al cargar</div>';
+    });
+}
+
+function filtrarTablaRec() {
+  var t = document.getElementById('terminoRec').value.toLowerCase();
+  renderTablaRec(t
+    ? todosRecibidos.filter(function(r){ return (r.radicadoRem+r.remitente+r.asunto+r.responsable+r.estado).toLowerCase().includes(t); })
+    : todosRecibidos);
+}
+
+function renderSemaforo(lista) {
+  var v=0, u=0, p=0, ok=0;
+  lista.forEach(function(r) {
+    var s = calcSem(r);
+    if (s.tipo==='vencido') v++;
+    else if (s.tipo==='urgente') u++;
+    else if (s.tipo==='proximo') p++;
+    else if (s.tipo==='ok') ok++;
+  });
+  document.getElementById('semVencido').textContent = v;
+  document.getElementById('semUrgente').textContent = u;
+  document.getElementById('semProximo').textContent = p;
+  document.getElementById('semOk').textContent = ok;
+}
+
+function renderAlertas(lista) {
+  var criticos = lista.filter(function(r){
+    var s = calcSem(r);
+    return s.tipo==='vencido' || s.tipo==='urgente';
+  });
+  if (!criticos.length) {
+    document.getElementById('alertasList').innerHTML = '<div class="alerta-vacia">✅ Sin alertas críticas</div>';
+    return;
+  }
+  var h = '';
+  criticos.forEach(function(r) {
+    var s = calcSem(r);
+    var dotCls = s.tipo==='vencido' ? 'dot-vencido' : 'dot-urgente';
+    var asu = r.asunto.length > 52 ? r.asunto.slice(0,52)+'…' : r.asunto;
+    h += '<div class="alerta-item">';
+    h += '<div class="alerta-dot ' + dotCls + '"></div>';
+    h += '<div class="alerta-txt">';
+    h += '<div class="alerta-asu">' + esc(r.radicadoRem) + ' · ' + esc(asu) + '</div>';
+    h += '<div class="alerta-meta">Límite: ' + esc(r.fechaLimite) + ' · ' + esc(r.responsable) + ' · <strong style="color:' + (s.tipo==='vencido'?'#dc2626':'#c2410c') + '">' + s.label + '</strong></div>';
+    h += '</div></div>';
+  });
+  document.getElementById('alertasList').innerHTML = h;
+}
+
+function renderTablaRec(lista) {
+  if (!lista || !lista.length) {
+    document.getElementById('contenidoTablaRec').innerHTML = '<div class="vacio">🔍 No se encontraron registros.</div>';
+    return;
+  }
+  var h = '<table><thead><tr>';
+  h += '<th>Alerta</th><th>Radicado remitente</th><th>Remitente</th><th>Fecha rec.</th>';
+  h += '<th>Asunto</th><th>Límite respuesta</th><th>Responsable</th><th>Estado</th>';
+  h += '</tr></thead><tbody>';
+
+  lista.forEach(function(r) {
+    var s = calcSem(r);
+    var estCls = r.estado==='Respondido' ? 'est-Respondido' : (r.estado==='En proceso' ? 'est-proceso' : 'est-Pendiente');
+    var idSafe = encodeId(r.id || r.no);
+    h += '<tr>';
+    h += '<td><span class="pill ' + s.cls + '">' + s.label + '</span></td>';
+    h += '<td class="td-rad">' + esc(r.radicadoRem) + '</td>';
+    h += '<td style="white-space:nowrap">' + esc(r.remitente) + '</td>';
+    h += '<td style="white-space:nowrap">' + esc(r.fechaRecepcion) + '</td>';
+    h += '<td>' + esc(r.asunto) + '</td>';
+    h += '<td style="white-space:nowrap">' + esc(r.fechaLimite) + '</td>';
+    h += '<td>' + esc(r.responsable) + '</td>';
+    h += '<td>';
+    h += '<select class="est-select ' + estCls + '" onchange="cambiarEstado(this,' + JSON.stringify(r.id || '') + ',' + JSON.stringify(r.no || '') + ')">';
+    ['Pendiente','En proceso','Respondido'].forEach(function(op) {
+      h += '<option' + (r.estado===op ? ' selected' : '') + '>' + op + '</option>';
+    });
+    h += '</select>';
+    h += '</td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table><div class="tbl-info">' + lista.length + ' registro(s)</div>';
+  document.getElementById('contenidoTablaRec').innerHTML = h;
+}
+
+function cambiarEstado(sel, id, no) {
+  var nuevoEstado = sel.value;
+  // Actualizar clase visual inmediatamente
+  sel.className = 'est-select ' + (nuevoEstado==='Respondido' ? 'est-Respondido' : (nuevoEstado==='En proceso' ? 'est-proceso' : 'est-Pendiente'));
+
+  api({ action:'actualizarEstadoRecibido', id:id, no:no, estado:nuevoEstado })
+    .then(function(r) {
+      if (r.exito) {
+        mostrarToast('Estado actualizado → ' + nuevoEstado);
+        // Actualizar localmente para refrescar semáforo y alertas sin recargar
+        todosRecibidos.forEach(function(rec) {
+          if ((id && rec.id === id) || (!id && String(rec.no) === String(no))) {
+            rec.estado = nuevoEstado;
+          }
+        });
+        renderSemaforo(todosRecibidos);
+        renderAlertas(todosRecibidos);
+      } else {
+        mostrarToast('⚠️ Error al actualizar. Recargue la página.');
+        sel.value = sel.getAttribute('data-prev') || 'Pendiente';
+      }
+    })
+    .catch(function() {
+      mostrarToast('⚠️ Sin conexión. El cambio no se guardó.');
+    });
+}
+
+// ── Utilidades ────────────────────────────────────────────────────
+function mostrarError(id, msg) {
+  var el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function encodeId(v) { return String(v).replace(/"/g,'&quot;'); }
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function mostrarToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
 }
 </script>
 </body>

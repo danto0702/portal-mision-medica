@@ -679,8 +679,13 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
 .ruleta-timer.warn{color:var(--yellow);animation:pulseRed .6s ease-in-out infinite}
 .ruleta-timer.done{color:var(--muted)}
 #ruleta-3d-container{width:260px;height:320px;flex-shrink:0;pointer-events:none;display:flex;align-items:flex-end;justify-content:center}
-.conejo-mascota{width:240px;height:auto;object-fit:contain;animation:conejoFloat 3s ease-in-out infinite;filter:drop-shadow(0 12px 24px rgba(0,0,0,.18))}
+.conejo-mascota{width:240px;height:auto;object-fit:contain;animation:conejoFloat 3s ease-in-out infinite;filter:drop-shadow(0 12px 24px rgba(0,0,0,.18));transition:opacity .25s ease}
 @keyframes conejoFloat{0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-14px) rotate(1deg)}}
+.conejo-mascota.feliz{animation:conejoFeliz .5s cubic-bezier(.36,.07,.19,.97) 1, conejoSaltar 1.1s ease-in-out infinite .5s}
+@keyframes conejoFeliz{0%,100%{transform:scale(1) rotate(0)} 20%{transform:scale(1.18) rotate(-5deg)} 40%{transform:scale(.95) rotate(5deg)} 60%{transform:scale(1.12) rotate(-3deg)} 80%{transform:scale(.98) rotate(2deg)}}
+@keyframes conejoSaltar{0%,100%{transform:translateY(0) rotate(-1deg) scale(1)} 50%{transform:translateY(-22px) rotate(3deg) scale(1.06)}}
+.overlay-celebracion{animation:overlayFlash .6s ease-out}
+@keyframes overlayFlash{0%{background:rgba(255,255,255,.96)} 30%{background:rgba(218,41,28,.12)} 60%{background:rgba(255,200,0,.08)} 100%{background:rgba(255,255,255,.96)}}
 
 /* ═══════════════════════════════
    FILTER BAR
@@ -2462,6 +2467,9 @@ function ruletaMostrarReveal(){
 function ruletaCerrarReveal(){
   document.getElementById('ruleta-overlay').classList.remove('active');
   ruletaStopTimer();
+  // Resetear conejo al normal para la próxima ronda
+  const img = document.querySelector('.conejo-mascota');
+  if(img){ img.src='conejo_mm.png'; img.classList.remove('feliz'); img.style.opacity='1'; }
 }
 
 /* ── Timer ── */
@@ -2481,13 +2489,29 @@ function ruletaTickTimer(){
   const s = R.timerSecs%60;
   el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
   el.className = 'ruleta-timer' + (R.timerSecs<=30&&R.timerSecs>0?' warn':R.timerSecs===0?' done':'');
-  if(R.timerSecs<=0) return;
+  if(R.timerSecs<=0){ ruletaCelebrar(); return; }
   R.timer = setTimeout(()=>{
     if(!R.timerPaused){ R.timerSecs--; ruletaTickTimer(); }
   },1000);
 }
 
 function ruletaStopTimer(){ clearTimeout(R.timer); }
+
+function ruletaCelebrar(){
+  const img = document.querySelector('.conejo-mascota');
+  const overlay = document.getElementById('ruleta-overlay');
+  if(!img) return;
+  // Fade out → swap imagen → fade in + animación feliz
+  img.style.opacity = '0';
+  setTimeout(()=>{
+    img.src = 'conejo_mm_feliz.png';
+    img.classList.add('feliz');
+    img.style.opacity = '1';
+    // Flash de color en el overlay
+    overlay.classList.add('overlay-celebracion');
+    setTimeout(()=> overlay.classList.remove('overlay-celebracion'), 650);
+  }, 250);
+}
 
 function ruletaPausarTimer(){
   R.timerPaused = !R.timerPaused;

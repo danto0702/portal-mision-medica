@@ -2090,6 +2090,26 @@ function renderCapacitacion(){
   </div>
 
   <!-- Modal gestión de casos -->
+  <!-- Modal modo libre participantes -->
+  <div id="ruleta-modal-libre" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;align-items:center;justify-content:center;padding:1rem">
+    <div style="background:#fff;border-radius:var(--r-xl);width:100%;max-width:480px;box-shadow:var(--shadow-lg);overflow:hidden">
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <h3 style="font-weight:700">Participantes (modo libre)</h3>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('ruleta-modal-libre').style.display='none'">✕</button>
+      </div>
+      <div style="padding:1.25rem 1.5rem">
+        <p style="font-size:.84rem;color:var(--muted);margin-bottom:.75rem">Escribe o pega los nombres, <strong>uno por línea</strong>.</p>
+        <textarea id="libre-textarea" rows="10"
+          style="width:100%;box-sizing:border-box;padding:.75rem;border:1px solid var(--border);border-radius:var(--r-md);font-size:.9rem;font-family:var(--font-body);resize:vertical;outline:none;background:var(--bg-soft)"
+          placeholder="Juan Pérez&#10;María García&#10;Carlos López&#10;Ana Rodríguez&#10;..."></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem">
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('ruleta-modal-libre').style.display='none'">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="ruletaConfirmarLibre()">Confirmar participantes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="ruleta-modal-casos" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;align-items:center;justify-content:center;padding:1rem">
     <div style="background:#fff;border-radius:var(--r-xl);width:100%;max-width:560px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg)">
       <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
@@ -2263,12 +2283,22 @@ function ruletaCargarPersonas(){
 }
 
 function ruletaModoLibre(){
-  const val = prompt('Pega o escribe los nombres de los participantes (uno por línea):');
-  if(!val) return;
-  R.personas = val.split('\n').map(s=>s.trim()).filter(Boolean);
+  // Pre-cargar con participantes actuales si ya había
+  const ta = document.getElementById('libre-textarea');
+  ta.value = R.personas.length ? R.personas.join('\n') : '';
+  document.getElementById('ruleta-modal-libre').style.display = 'flex';
+  setTimeout(()=> ta.focus(), 100);
+}
+
+function ruletaConfirmarLibre(){
+  const val = document.getElementById('libre-textarea').value;
+  const lista = val.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!lista.length){ alert('Ingresa al menos un nombre.'); return; }
+  R.personas = lista;
   R.usedPersonas = [];
   document.getElementById('ruleta-modo-txt').textContent =
     `Modo libre: ${R.personas.length} participantes ingresados manualmente.`;
+  document.getElementById('ruleta-modal-libre').style.display = 'none';
   ruletaDrawPersonas();
   ruletaActualizarStats();
 }

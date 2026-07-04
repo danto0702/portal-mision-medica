@@ -11,48 +11,50 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700;8..60,800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════
    DESIGN TOKENS — Misión Médica HRNO
-   Professional dark theme: healthcare government
+   Identidad Cruz Roja · fondo claro · institucional
 ═══════════════════════════════════════════════════ */
 :root {
   /* Core surfaces */
-  --bg:          #080c10;
-  --surface:     #0e1318;
-  --surface-2:   #131920;
-  --surface-3:   #1a2230;
-  --border:      #1e2d3d;
-  --border-soft: #16212e;
+  --bg:          #ffffff;
+  --bg-soft:     #f7f8f9;
+  --surface:     #ffffff;
+  --surface-2:   #f7f8f9;
+  --surface-3:   #eef0f2;
+  --border:      #e3e6ea;
+  --border-soft: #edeff2;
 
   /* Text */
-  --text:        #dde6f0;
-  --text-soft:   #a8bfd4;
-  --muted:       #5a7a96;
+  --text:        #1a1d21;
+  --text-soft:   #4b5563;
+  --muted:       #76808c;
 
-  /* Brand colors */
-  --red:         #e94560;
-  --red-dark:    #b8293e;
-  --red-glow:    rgba(233,69,96,.18);
-  --purple:      #9333ea;
-  --purple-dark: #6d1fd1;
-  --purple-glow: rgba(147,51,234,.15);
-  --blue:        #3b82f6;
-  --blue-glow:   rgba(59,130,246,.15);
-  --green:       #10d9a0;
-  --green-dark:  #0aaa7d;
-  --green-glow:  rgba(16,217,160,.15);
-  --yellow:      #f59e0b;
-  --yellow-glow: rgba(245,158,11,.15);
-  --cyan:        #06b6d4;
+  /* Brand colors — Rojo Cruz Roja (Pantone 485C) */
+  --red:         #da291c;
+  --red-dark:    #a81f15;
+  --red-glow:    rgba(218,41,28,.10);
+  --purple:      #7c3aed;
+  --purple-dark: #5b21b6;
+  --purple-glow: rgba(124,58,237,.08);
+  --blue:        #1f5fbf;
+  --blue-glow:   rgba(31,95,191,.08);
+  --green:       #0a8f63;
+  --green-dark:  #066b49;
+  --green-glow:  rgba(10,143,99,.08);
+  --yellow:      #b45309;
+  --yellow-glow: rgba(180,83,9,.08);
+  --cyan:        #0e7490;
 
   /* Elevation shadows */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
-  --shadow-md:  0 4px 12px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3);
-  --shadow-lg:  0 10px 30px rgba(0,0,0,.6),0 4px 12px rgba(0,0,0,.4);
-  --shadow-glow-red: 0 0 24px rgba(233,69,96,.2);
-  --shadow-glow-blue: 0 0 24px rgba(59,130,246,.15);
+  --shadow-sm:  0 1px 2px rgba(16,24,32,.05),0 1px 1px rgba(16,24,32,.04);
+  --shadow-md:  0 6px 16px rgba(16,24,32,.08),0 2px 6px rgba(16,24,32,.04);
+  --shadow-lg:  0 16px 40px rgba(16,24,32,.14),0 4px 14px rgba(16,24,32,.06);
+  --shadow-glow-red: 0 0 0 4px rgba(218,41,28,.08);
+  --shadow-glow-blue: 0 0 0 4px rgba(31,95,191,.08);
 
   /* Radius scale */
   --r-sm:  6px;
@@ -60,6 +62,10 @@
   --r-lg:  14px;
   --r-xl:  18px;
   --r-2xl: 24px;
+
+  /* Tipografía */
+  --font-display: 'Source Serif 4', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
 
   /* Transitions */
   --ease: cubic-bezier(.22,.68,0,1.2);
@@ -69,27 +75,44 @@
 
 /* ─── RESET ─── */
 *{box-sizing:border-box;margin:0;padding:0}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
+}
 body{
-  font-family:'Inter',system-ui,sans-serif;
+  font-family:var(--font-body);
   background:var(--bg);
   color:var(--text);
   min-height:100vh;
-  font-size:15px;
+  font-size:15.5px;
   line-height:1.6;
   -webkit-font-smoothing:antialiased;
 }
+h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display)}
+
+/* ─── ANIMACIONES BASE — para que el sitio se sienta vivo ─── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fadeScale{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 rgba(218,41,28,.35)}50%{box-shadow:0 0 0 6px rgba(218,41,28,0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.card,.stat-card,.carnet-card{animation:fadeUp .45s var(--ease) both}
+.card:nth-of-type(2){animation-delay:.04s}
+.card:nth-of-type(3){animation-delay:.08s}
+.card:nth-of-type(4){animation-delay:.12s}
+.stat-card:nth-of-type(2){animation-delay:.05s}
+.stat-card:nth-of-type(3){animation-delay:.1s}
+.stat-card:nth-of-type(4){animation-delay:.15s}
 
 /* ─── SCROLLBAR ─── */
-::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
-::-webkit-scrollbar-thumb:hover{background:#2a3f55}
+::-webkit-scrollbar-thumb{background:#cdd3da;border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:#a8b0ba}
 
 /* ═══════════════════════════════
    NAVIGATION — glass top bar
 ═══════════════════════════════ */
 .nav-bar{
-  background:rgba(8,12,16,.88);
+  background:rgba(255,255,255,.85);
   backdrop-filter:blur(20px);
   -webkit-backdrop-filter:blur(20px);
   border-bottom:1px solid var(--border);
@@ -97,8 +120,8 @@ body{
 }
 .nav-bar::after{
   content:'';display:block;
-  height:1px;
-  background:linear-gradient(90deg,transparent,rgba(233,69,96,.4),rgba(59,130,246,.3),transparent);
+  height:2px;
+  background:linear-gradient(90deg,transparent,rgba(218,41,28,.55),rgba(31,95,191,.3),transparent);
 }
 .nav-inner{
   max-width:1280px;margin:auto;
@@ -118,7 +141,9 @@ body{
 .nav-brand .cross{
   color:var(--red);
   font-size:1.25rem;
-  filter:drop-shadow(0 0 6px rgba(233,69,96,.5));
+  display:inline-block;
+  animation:pulseRed 2.6s ease-in-out infinite;
+  border-radius:4px;
 }
 .nav-brand .brand-sub{
   font-size:.7rem;font-weight:400;
@@ -144,17 +169,16 @@ body{
   letter-spacing:.01em;
 }
 .nav-tab svg{opacity:.7;transition:opacity var(--t-fast)}
-.nav-tab:hover{color:var(--text-soft);background:rgba(255,255,255,.04)}
+.nav-tab:hover{color:var(--text);background:var(--surface-3)}
 .nav-tab:hover svg{opacity:1}
 .nav-tab.active{
-  color:#fff;
-  background:linear-gradient(135deg,rgba(233,69,96,.2),rgba(233,69,96,.08));
-  border:1px solid rgba(233,69,96,.2);
-  box-shadow:0 0 12px rgba(233,69,96,.1);
+  color:var(--red);
+  background:var(--red-glow);
+  border:1px solid rgba(218,41,28,.25);
 }
 .nav-tab.active svg{opacity:1;color:var(--red)}
 .nav-tab.admin-btn{color:var(--yellow)}
-.nav-tab.admin-btn:hover{background:rgba(245,158,11,.08);color:var(--yellow)}
+.nav-tab.admin-btn:hover{background:var(--yellow-glow);color:var(--yellow)}
 
 /* ═══════════════════════════════
    PAGE LAYOUT
@@ -165,8 +189,8 @@ body{
   margin:0 auto;
   padding:2rem 1.25rem 5rem;
 }
-.page-view.active{display:block;animation:fadeIn .22s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.page-view.active{display:block;animation:fadeIn .35s var(--ease)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 /* ─── HERO ─── */
 .section-hero{
@@ -177,19 +201,20 @@ body{
 .section-hero::before{
   content:'';
   position:absolute;top:0;left:50%;transform:translateX(-50%);
-  width:600px;height:200px;
-  background:radial-gradient(ellipse at center,rgba(233,69,96,.07) 0%,transparent 70%);
+  width:680px;height:220px;
+  background:radial-gradient(ellipse at center,rgba(218,41,28,.08) 0%,transparent 70%);
   pointer-events:none;
 }
 .section-hero h1{
-  font-size:clamp(1.6rem,4vw,2.4rem);
-  font-weight:800;
-  letter-spacing:-.03em;
+  font-family:var(--font-display);
+  font-size:clamp(1.7rem,4vw,2.6rem);
+  font-weight:700;
+  letter-spacing:-.01em;
   margin-bottom:.625rem;
-  background:linear-gradient(135deg,#fff 40%,rgba(233,69,96,.9));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
+  color:var(--text);
+  animation:fadeUp .6s var(--ease) both;
 }
+.section-hero h1 .accent{color:var(--red)}
 .section-hero p{
   color:var(--text-soft);
   font-size:.95rem;
@@ -206,11 +231,11 @@ body{
   font-size:.68rem;font-weight:600;letter-spacing:.04em;
   text-transform:uppercase;
 }
-.badge-red{background:rgba(233,69,96,.12);color:var(--red);border:1px solid rgba(233,69,96,.2)}
-.badge-green{background:rgba(16,217,160,.1);color:var(--green);border:1px solid rgba(16,217,160,.2)}
-.badge-yellow{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
-.badge-blue{background:rgba(59,130,246,.1);color:#60a5fa;border:1px solid rgba(59,130,246,.2)}
-.badge-purple{background:rgba(147,51,234,.1);color:#c084fc;border:1px solid rgba(147,51,234,.2)}
+.badge-red{background:var(--red-glow);color:var(--red);border:1px solid rgba(218,41,28,.25)}
+.badge-green{background:var(--green-glow);color:var(--green);border:1px solid rgba(10,143,99,.25)}
+.badge-yellow{background:var(--yellow-glow);color:var(--yellow);border:1px solid rgba(180,83,9,.25)}
+.badge-blue{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(31,95,191,.25)}
+.badge-purple{background:var(--purple-glow);color:var(--purple);border:1px solid rgba(124,58,237,.25)}
 
 /* ═══════════════════════════════
    CARDS
@@ -221,18 +246,19 @@ body{
   border-radius:var(--r-lg);
   padding:1.375rem;
   box-shadow:var(--shadow-sm);
-  transition:border-color var(--t-base);
+  transition:border-color var(--t-base),box-shadow var(--t-base),transform var(--t-base);
   position:relative;
   overflow:hidden;
 }
 .card::before{
   content:'';
-  position:absolute;top:0;left:0;right:0;
-  height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);
+  position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--red),var(--blue));
+  opacity:0;transition:opacity var(--t-base);
   pointer-events:none;
 }
-.card:hover{border-color:#253547}
+.card:hover{border-color:#cdd3da;box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.card:hover::before{opacity:1}
 .card-header{
   font-size:.68rem;font-weight:700;
   letter-spacing:.1em;text-transform:uppercase;
@@ -247,7 +273,7 @@ body{
   box-shadow:var(--shadow-md);
 }
 .card-glass{
-  background:rgba(14,19,24,.8);
+  background:rgba(255,255,255,.85);
   backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);
 }
@@ -268,7 +294,7 @@ body{
 
 .form-input,.form-select,.form-textarea{
   width:100%;
-  background:rgba(6,10,14,.6);
+  background:var(--bg-soft);
   border:1px solid var(--border);
   border-radius:var(--r-md);
   padding:.65rem 1rem;
@@ -279,17 +305,17 @@ body{
   line-height:1.5;
 }
 .form-input:hover,.form-select:hover,.form-textarea:hover{
-  border-color:#2a3f55;
-  background:rgba(8,14,20,.8);
+  border-color:#c3cad2;
+  background:#fff;
 }
 .form-input:focus,.form-select:focus,.form-textarea:focus{
-  border-color:rgba(59,130,246,.6);
-  box-shadow:0 0 0 3px rgba(59,130,246,.12);
-  background:rgba(6,10,14,.9);
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px var(--blue-glow);
+  background:#fff;
 }
 .form-select{
   appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235a7a96' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2376808c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;
   background-position:right .875rem center;
   padding-right:2.25rem;cursor:pointer;
@@ -304,13 +330,14 @@ body{
   cursor:pointer;font-size:.84rem;
   transition:all var(--t-fast);
   color:var(--text-soft);
+  background:var(--surface);
 }
-.radio-item:hover{border-color:#2a3f55;color:var(--text)}
+.radio-item:hover{border-color:#c3cad2;color:var(--text);transform:translateY(-1px)}
 .radio-item:has(input:checked){
-  border-color:rgba(233,69,96,.5);
-  background:rgba(233,69,96,.08);
+  border-color:rgba(218,41,28,.45);
+  background:var(--red-glow);
   color:var(--red);
-  box-shadow:0 0 0 1px rgba(233,69,96,.1);
+  box-shadow:0 0 0 1px rgba(218,41,28,.12);
 }
 .radio-item input{accent-color:var(--red);cursor:pointer}
 
@@ -346,13 +373,13 @@ body{
 .btn:active:not(:disabled){transform:scale(.97)}
 
 .btn-primary{
-  background:linear-gradient(135deg,#e94560,#c73652);
+  background:linear-gradient(135deg,#e23b2c,var(--red));
   color:#fff;
-  box-shadow:0 2px 8px rgba(233,69,96,.3),0 1px 2px rgba(0,0,0,.3);
+  box-shadow:0 2px 8px rgba(218,41,28,.25),0 1px 2px rgba(16,24,32,.08);
 }
 .btn-primary:hover:not(:disabled){
-  background:linear-gradient(135deg,#f0526a,#d4435f);
-  box-shadow:0 4px 16px rgba(233,69,96,.4),0 1px 3px rgba(0,0,0,.3);
+  background:linear-gradient(135deg,#ea4a3a,#c8231a);
+  box-shadow:0 6px 18px rgba(218,41,28,.32),0 1px 3px rgba(16,24,32,.08);
   transform:translateY(-1px);
 }
 
@@ -364,36 +391,37 @@ body{
 .btn-secondary:hover:not(:disabled){
   background:var(--surface-3);
   color:var(--text);
-  border-color:#2a3f55;
+  border-color:#c3cad2;
+  transform:translateY(-1px);
 }
 
 .btn-green{
-  background:linear-gradient(135deg,#10d9a0,#0aaa7d);
-  color:#06201a;
-  box-shadow:0 2px 8px rgba(16,217,160,.25);
+  background:linear-gradient(135deg,#0fa876,var(--green));
+  color:#fff;
+  box-shadow:0 2px 8px rgba(10,143,99,.22);
 }
 .btn-green:hover:not(:disabled){
-  box-shadow:0 4px 16px rgba(16,217,160,.35);
+  box-shadow:0 6px 18px rgba(10,143,99,.3);
   transform:translateY(-1px);
 }
 
 .btn-yellow{
-  background:linear-gradient(135deg,#f59e0b,#d97706);
-  color:#1a0e00;
-  box-shadow:0 2px 8px rgba(245,158,11,.25);
+  background:linear-gradient(135deg,#c2630c,var(--yellow));
+  color:#fff;
+  box-shadow:0 2px 8px rgba(180,83,9,.22);
 }
 .btn-yellow:hover:not(:disabled){
-  box-shadow:0 4px 16px rgba(245,158,11,.35);
+  box-shadow:0 6px 18px rgba(180,83,9,.3);
   transform:translateY(-1px);
 }
 
 .btn-blue{
-  background:linear-gradient(135deg,#3b82f6,#2563eb);
+  background:linear-gradient(135deg,#2a6bd6,var(--blue));
   color:#fff;
-  box-shadow:0 2px 8px rgba(59,130,246,.25);
+  box-shadow:0 2px 8px rgba(31,95,191,.22);
 }
 .btn-blue:hover:not(:disabled){
-  box-shadow:0 4px 16px rgba(59,130,246,.35);
+  box-shadow:0 6px 18px rgba(31,95,191,.3);
   transform:translateY(-1px);
 }
 
@@ -403,7 +431,7 @@ body{
   border:1px solid transparent;
 }
 .btn-ghost:hover:not(:disabled){
-  background:rgba(255,255,255,.04);
+  background:var(--surface-3);
   color:var(--text-soft);
   border-color:var(--border);
 }
@@ -447,7 +475,7 @@ body{
 .data-table tr:last-child td{border-bottom:none}
 .data-table tbody tr{transition:background var(--t-fast)}
 .data-table tbody tr:hover td{
-  background:rgba(59,130,246,.04);
+  background:var(--bg-soft);
   color:var(--text);
 }
 .table-wrap{
@@ -477,10 +505,10 @@ body{
   box-shadow:var(--shadow-md);
   backdrop-filter:blur(12px);
 }
-.toast-success{background:rgba(16,217,160,.08);border:1px solid rgba(16,217,160,.25);color:var(--green)}
-.toast-error{background:rgba(233,69,96,.1);border:1px solid rgba(233,69,96,.3);color:#f87171}
-.toast-info{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);color:#93c5fd}
-.toast-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);color:var(--yellow)}
+.toast-success{background:#fff;border:1px solid rgba(10,143,99,.3);color:var(--green-dark);box-shadow:var(--shadow-md)}
+.toast-error{background:#fff;border:1px solid rgba(218,41,28,.3);color:var(--red-dark);box-shadow:var(--shadow-md)}
+.toast-info{background:#fff;border:1px solid rgba(31,95,191,.3);color:var(--blue);box-shadow:var(--shadow-md)}
+.toast-warn{background:#fff;border:1px solid rgba(180,83,9,.3);color:var(--yellow);box-shadow:var(--shadow-md)}
 @keyframes slideUp{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
 
 /* ═══════════════════════════════
@@ -506,8 +534,8 @@ body{
   position:relative;
 }
 .modal-box::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--red),var(--blue));
   border-radius:var(--r-xl) var(--r-xl) 0 0;
 }
 .modal-box h3{font-size:1.1rem;font-weight:700;margin-bottom:.375rem;letter-spacing:-.01em}
@@ -519,7 +547,7 @@ body{
 ═══════════════════════════════ */
 .spinner{
   width:20px;height:20px;
-  border:2px solid rgba(255,255,255,.15);
+  border:2px solid rgba(0,0,0,.1);
   border-top-color:currentColor;
   border-radius:50%;
   animation:spin .65s linear infinite;
@@ -602,15 +630,15 @@ body{
   background:linear-gradient(90deg,transparent,var(--stat-accent,var(--blue)),transparent);
 }
 .stat-card:hover{
-  border-color:#253547;
-  box-shadow:0 4px 20px rgba(0,0,0,.4);
+  border-color:#cdd3da;
+  box-shadow:var(--shadow-md);
+  transform:translateY(-2px);
 }
 .stat-card .stat-value{
   font-size:2.25rem;font-weight:800;
   line-height:1;letter-spacing:-.03em;
-  background:linear-gradient(135deg,#fff,rgba(255,255,255,.7));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
+  color:var(--text);
+  font-family:var(--font-display);
 }
 .stat-card .stat-label{
   font-size:.7rem;
@@ -630,6 +658,28 @@ body{
 .stat-card.green-accent{--stat-accent:var(--green)}
 .stat-card.yellow-accent{--stat-accent:var(--yellow)}
 .stat-card.blue-accent{--stat-accent:var(--blue)}
+
+/* ═══════════════════════════════
+   RULETA DIH
+═══════════════════════════════ */
+.ruleta-layout{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;align-items:start}
+@media(max-width:768px){.ruleta-layout{grid-template-columns:1fr}}
+.ruleta-wheel-wrap{position:relative;width:100%;max-width:360px;aspect-ratio:1;margin:0 auto;filter:drop-shadow(0 6px 16px rgba(16,24,32,.12))}
+.ruleta-wheel-wrap canvas{width:100%;height:100%;border-radius:50%}
+.ruleta-pointer{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:32px solid var(--red);filter:drop-shadow(0 2px 4px rgba(218,41,28,.4));z-index:10}
+.ruleta-spin-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:#fff;border-radius:50%;border:3px solid var(--border);box-shadow:var(--shadow-md);cursor:pointer;font-size:.72rem;font-weight:700;color:var(--text);transition:all var(--t-base);z-index:10;font-family:var(--font-body)}
+.ruleta-spin-btn:hover{border-color:var(--red);color:var(--red);transform:translate(-50%,-50%) scale(1.07)}
+.ruleta-spin-btn:disabled{opacity:.5;cursor:not-allowed}
+.ruleta-historial-item{display:flex;gap:.75rem;align-items:flex-start;padding:.75rem;border-radius:var(--r-md);background:var(--bg-soft);border:1px solid var(--border);margin-bottom:.5rem;font-size:.82rem}
+/* Reveal overlay ruleta */
+.ruleta-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;padding:2rem}
+.ruleta-overlay.active{display:flex;animation:fadeIn .3s var(--ease)}
+.ruleta-reveal-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-2xl);padding:2.5rem 2rem;max-width:520px;width:100%;box-shadow:var(--shadow-lg);text-align:center;animation:fadeUp .5s var(--ease) both;position:relative;overflow:hidden}
+.ruleta-reveal-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--red),var(--blue))}
+.ruleta-timer{font-size:3rem;font-weight:800;font-family:var(--font-display);letter-spacing:-.03em;color:var(--red);line-height:1}
+.ruleta-timer.warn{color:var(--yellow);animation:pulseRed .6s ease-in-out infinite}
+.ruleta-timer.done{color:var(--muted)}
+#ruleta-3d-container{width:320px;height:260px;flex-shrink:0;pointer-events:none}
 
 /* ═══════════════════════════════
    FILTER BAR
@@ -1871,6 +1921,14 @@ function renderCapacitacion(){
       <div style="font-weight:700;color:var(--blue);margin-bottom:.35rem">Pre / Postest</div>
       <div style="font-size:.82rem;color:var(--muted)">Evaluación de 20 preguntas sobre Misión Médica y comportamiento seguro.</div>
     </div>
+    <div class="card" style="cursor:pointer;text-align:center;border-color:rgba(218,41,28,.25);transition:all .15s"
+      onclick="mostrarCapModule('ruleta')"
+      onmouseover="this.style.borderColor='var(--red)';this.style.transform='translateY(-3px)'"
+      onmouseout="this.style.borderColor='rgba(218,41,28,.25)';this.style.transform=''">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">🎡</div>
+      <div style="font-weight:700;color:var(--red);margin-bottom:.35rem">Ruleta DIH</div>
+      <div style="font-size:.82rem;color:var(--muted)">Selección aleatoria de caso y participante para la dinámica de análisis.</div>
+    </div>
   </div>
 
   <!-- Asistencia -->
@@ -1929,6 +1987,119 @@ function renderCapacitacion(){
       <h2 style="font-size:1rem;font-weight:700">Evaluación Pre / Postest</h2>
     </div>
     <div id="test-container"><!-- renderizado por JS --></div>
+  </div>
+
+  <!-- Ruleta DIH -->
+  <div id="cap-ruleta" style="display:none">
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="mostrarCapModule(null)">← Volver</button>
+      <h2 style="font-size:1rem;font-weight:700">🎡 Ruleta DIH</h2>
+      <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+        <label style="font-size:.82rem;color:var(--muted);font-weight:500">Tiempo por caso:</label>
+        <select id="ruleta-tiempo" class="form-select" style="width:auto;padding:.35rem .75rem;font-size:.82rem">
+          <option value="1">1 min</option>
+          <option value="2">2 min</option>
+          <option value="3" selected>3 min</option>
+          <option value="5">5 min</option>
+          <option value="7">7 min</option>
+          <option value="10">10 min</option>
+        </select>
+        <button class="btn btn-sm" style="background:var(--bg-soft);border:1px solid var(--border);color:var(--muted)" onclick="ruletaResetSession()" title="Reiniciar sesión actual">↺ Reiniciar sesión</button>
+        <button class="btn btn-sm" style="background:var(--bg-soft);border:1px solid var(--border);color:var(--muted)" onclick="ruletaGestionCasos()" title="Gestionar casos">⚙ Casos</button>
+      </div>
+    </div>
+
+    <!-- Modo participantes -->
+    <div id="ruleta-modo-banner" class="card" style="margin-bottom:1rem;padding:.75rem 1rem;background:var(--blue-glow);border-color:rgba(31,95,191,.2);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span id="ruleta-modo-txt" style="font-size:.85rem;color:var(--blue);font-weight:500">Cargando participantes...</span>
+      <button class="btn btn-sm btn-blue" style="margin-left:auto;padding:.3rem .75rem;font-size:.78rem" onclick="ruletaModoLibre()">Modo libre (manual)</button>
+    </div>
+
+    <!-- Layout principal -->
+    <div class="ruleta-layout" id="ruleta-main-layout">
+      <!-- Ruleta de casos -->
+      <div class="card" style="text-align:center">
+        <div class="section-title" style="justify-content:center;margin-bottom:1rem">
+          <span style="color:var(--red)">Paso 1</span> — Caso DIH
+        </div>
+        <div style="position:relative;margin-bottom:1rem">
+          <div class="ruleta-wheel-wrap">
+            <div class="ruleta-pointer"></div>
+            <canvas id="canvas-casos" width="600" height="600"></canvas>
+            <button class="ruleta-spin-btn" id="btn-spin-casos" onclick="ruletaGirarCasos()">GIRAR</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;font-size:.78rem;color:var(--muted)">
+          <span id="ruleta-casos-stats">0 de 13 usados</span>
+        </div>
+      </div>
+
+      <!-- Ruleta de participantes -->
+      <div class="card" style="text-align:center">
+        <div class="section-title" style="justify-content:center;margin-bottom:1rem">
+          <span style="color:var(--blue)">Paso 2</span> — Participante
+        </div>
+        <div style="position:relative;margin-bottom:1rem">
+          <div class="ruleta-wheel-wrap">
+            <div class="ruleta-pointer" style="border-top-color:var(--blue)"></div>
+            <canvas id="canvas-personas" width="600" height="600"></canvas>
+            <button class="ruleta-spin-btn" id="btn-spin-personas" onclick="ruletaGirarPersonas()" disabled style="border-color:var(--border);color:var(--muted)">Espera<br>caso</button>
+          </div>
+        </div>
+        <div style="font-size:.78rem;color:var(--muted)" id="ruleta-personas-stats">0 participantes</div>
+      </div>
+    </div>
+
+    <!-- Historial de rondas -->
+    <div class="card" style="margin-top:1.25rem">
+      <div class="section-title">Historial de la sesión</div>
+      <div id="ruleta-historial">
+        <div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1.5rem">Aún no hay rondas en esta sesión.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay reveal -->
+  <div id="ruleta-overlay" class="ruleta-overlay">
+    <div class="ruleta-reveal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <span class="badge badge-red" style="font-size:.75rem" id="rev-caso-num">CASO #1</span>
+        <div class="ruleta-timer" id="ruleta-timer-display">3:00</div>
+      </div>
+      <p id="rev-caso-txt" style="font-size:.92rem;line-height:1.7;color:var(--text-soft);margin-bottom:1.25rem;text-align:left"></p>
+      <div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:.5rem">
+        <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">Responde</div>
+        <div id="rev-persona-nom" style="font-size:1.4rem;font-weight:800;color:var(--blue);font-family:var(--font-display)">—</div>
+        <div id="rev-persona-cargo" style="font-size:.82rem;color:var(--muted)"></div>
+      </div>
+      <div style="display:flex;gap:.5rem;margin-top:1.25rem;justify-content:center">
+        <button class="btn btn-secondary btn-sm" onclick="ruletaPausarTimer()" id="btn-timer-pausar">⏸ Pausar</button>
+        <button class="btn btn-primary btn-sm" onclick="ruletaCerrarReveal()">✓ Cerrar</button>
+      </div>
+    </div>
+    <div id="ruleta-3d-container"></div>
+  </div>
+
+  <!-- Modal gestión de casos -->
+  <div id="ruleta-modal-casos" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;align-items:center;justify-content:center;padding:1rem">
+    <div style="background:#fff;border-radius:var(--r-xl);width:100%;max-width:560px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg)">
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <h3 style="font-weight:700">Gestionar Casos DIH</h3>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn btn-sm" style="background:var(--bg-soft);border:1px solid var(--border);font-size:.78rem" onclick="ruletaRestaurarCasos()">Restaurar predeterminados</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('ruleta-modal-casos').style.display='none'">✕</button>
+        </div>
+      </div>
+      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--bg-soft)">
+        <label style="font-size:.78rem;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.5rem">Agregar caso</label>
+        <div style="display:flex;gap:.5rem">
+          <textarea id="nuevo-caso-input" rows="2" class="form-textarea" style="resize:none" placeholder="Describe el escenario DIH..."></textarea>
+          <button class="btn btn-primary btn-sm" style="white-space:nowrap;align-self:flex-end" onclick="ruletaAgregarCaso()">+ Agregar</button>
+        </div>
+      </div>
+      <div id="ruleta-lista-casos" style="overflow-y:auto;flex:1;padding:1rem 1.5rem"></div>
+    </div>
   </div>`;
 
   document.getElementById('cap-fecha').value = new Date().toISOString().split('T')[0];
@@ -1940,6 +2111,8 @@ function mostrarCapModule(m){
   document.getElementById('cap-selector').style.display = m ? 'none' : 'grid';
   document.getElementById('cap-asistencia').style.display = m==='asistencia' ? 'block' : 'none';
   document.getElementById('cap-prepostest').style.display = m==='prepostest' ? 'block' : 'none';
+  document.getElementById('cap-ruleta').style.display = m==='ruleta' ? 'block' : 'none';
+  if(m==='ruleta') ruletaInit();
 }
 
 /* ── ASISTENCIA ── */
@@ -2007,6 +2180,493 @@ async function guardarAsistenciaDB(){
   if(e2){ toast('Error al guardar asistentes: '+e2.message,'error'); return; }
   toast(`${window._asistentes.length} participantes guardados en la base de datos.`,'success');
 }
+
+/* ══════════════════════════════════════════════════════════
+   MÓDULO RULETA DIH
+══════════════════════════════════════════════════════════ */
+const RULETA_CASOS_DEFAULT = [
+  "El Dr. Camilo Díaz en la IPS Ábrego es presionado por un oficial del ejército para que revele información sobre un paciente que se sospecha que es un combatiente enemigo.",
+  "Un puesto de control militar impide el paso de una ambulancia que transporta a un paciente en estado crítico a un hospital.",
+  "En el marco de hostilidades entre grupos armados, un conductor de una ambulancia recibe la indicación por un grupo armado de recoger solamente los heridos que ellos indiquen.",
+  "La auxiliar de archivo y estadística de una IPS recibe a un actor del conflicto en su oficina y este le pide la historia clínica de un paciente.",
+  "Una abogada de la ESE HRNO recibe una llamada de un actor del conflicto indicando que una demanda de un usuario contra la ESE debe prosperar.",
+  "El almacenista de la ESE HRNO se dirige hacia la IPS San Pablo; en el camino la camioneta es detenida por un retén de una organización armada ilegal que le pide que les regale una caja de solución salina.",
+  "Una auxiliar de enfermería en el servicio de urgencias es insultada por un usuario porque lleva 2 horas esperando atención.",
+  "El Ingeniero de Sistemas de la ESE está en El Carmen haciendo mantenimiento a los equipos; son las 7 pm y al pasar por el sector de El Sul se encuentra con un retén de un grupo armado.",
+  "Familiares de un paciente en la IPS Ábrego acaban de recibir la noticia de que su familiar falleció; en el llanto y la desesperación insultan al personal y golpean las puertas de urgencias.",
+  "El hospital está tratando a combatientes heridos de ambos bandos del conflicto. Se recibe información de que uno de los bandos planea atacar el hospital para capturar a sus combatientes heridos.",
+  "El corregimiento de Guamalito está en hostigamientos; dos soldados que llevaban a su compañero herido a la IPS quedan en medio del enfrentamiento y uno de ellos decide salir de la IPS a disparar y volver a resguardarse.",
+  "Un Equipo Básico de Salud está en la vereda Hoyo Pilón de Ábrego; uno de ellos no tiene señal y decide subir a la montaña para lograr comunicarse.",
+  "Un auxiliar de enfermería de vacunación en Ábrego va en moto hacia su casa y se encuentra a un integrante de un grupo armado tirado en el piso sangrando por la pierna, quien le pide ayuda."
+];
+
+// Estado de la sesión (se reinicia al entrar al módulo)
+let R = {
+  casos: [],
+  usedCasos: [],     // índices usados en esta sesión
+  personas: [],
+  usedPersonas: [],  // índices usados en esta sesión
+  casoActual: null,
+  personaActual: null,
+  historial: [],
+  spinning: false,
+  fase: 'casos',     // 'casos' | 'personas'
+  timer: null,
+  timerSecs: 0,
+  timerPaused: false,
+  // Three.js
+  _scene: null, _camera: null, _renderer: null,
+  _rabbit: null, _head: null, _mx: 0, _my: 0, _push: false
+};
+
+function ruletaInit(){
+  if(document.getElementById('canvas-casos')._init) return;
+  document.getElementById('canvas-casos')._init = true;
+
+  // Cargar casos desde localStorage o predeterminados
+  R.casos = JSON.parse(localStorage.getItem('ruleta_casos')||'null') || [...RULETA_CASOS_DEFAULT];
+  R.usedCasos = [];
+  R.usedPersonas = [];
+  R.historial = [];
+  R.casoActual = null;
+  R.personaActual = null;
+  R.fase = 'casos';
+
+  ruletaCargarPersonas();
+  ruletaDrawCasos();
+  ruletaDrawPersonas();
+  ruletaActualizarStats();
+}
+
+function ruletaCargarPersonas(){
+  const asistentes = window._asistentes || [];
+  if(asistentes.length > 0){
+    R.personas = asistentes.map(a => `${a.nombres} ${a.apellidos}`);
+    document.getElementById('ruleta-modo-txt').textContent =
+      `${R.personas.length} participantes cargados de la lista de asistencia.`;
+  } else {
+    R.personas = [];
+    document.getElementById('ruleta-modo-txt').textContent =
+      'No hay lista de asistencia registrada. Usa el botón "Modo libre" para ingresar participantes.';
+  }
+  R.usedPersonas = [];
+  ruletaDrawPersonas();
+  ruletaActualizarStats();
+}
+
+function ruletaModoLibre(){
+  const val = prompt('Pega o escribe los nombres de los participantes (uno por línea):');
+  if(!val) return;
+  R.personas = val.split('\n').map(s=>s.trim()).filter(Boolean);
+  R.usedPersonas = [];
+  document.getElementById('ruleta-modo-txt').textContent =
+    `Modo libre: ${R.personas.length} participantes ingresados manualmente.`;
+  ruletaDrawPersonas();
+  ruletaActualizarStats();
+}
+
+/* ── Dibujado de ruedas ── */
+function ruletaDraw(canvasId, segments, usedIdx, primaryColor, labelFn){
+  const cv = document.getElementById(canvasId);
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, CX = W/2, CY = W/2, OR = W*0.46, IR = W*0.1;
+  const n = segments.length || 1;
+  const arc = Math.PI*2/n;
+  ctx.clearRect(0,0,W,W);
+
+  // Paleta: color primario, blanco, gris claro
+  const paleta = [primaryColor, '#ffffff', '#f0f4f8'];
+  const textPaleta = ['#ffffff', primaryColor, primaryColor];
+
+  for(let i=0;i<n;i++){
+    const angle = (cv._startAngle||0) + i*arc;
+    const isUsed = usedIdx.includes(i);
+    ctx.beginPath();
+    ctx.arc(CX,CY,OR,angle,angle+arc,false);
+    ctx.arc(CX,CY,IR,angle+arc,angle,true);
+    ctx.fillStyle = isUsed ? '#e3e6ea' : paleta[i%3];
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Texto
+    ctx.save();
+    ctx.translate(CX + Math.cos(angle+arc/2)*(OR*.65), CY + Math.sin(angle+arc/2)*(OR*.65));
+    ctx.rotate(angle+arc/2+Math.PI/2);
+    ctx.fillStyle = isUsed ? '#94a3b8' : textPaleta[i%3];
+    ctx.font = `bold ${Math.max(14, W*0.04)}px Inter,sans-serif`;
+    const lbl = labelFn(i);
+    const maxW = OR*0.55;
+    ctx.fillText(lbl, -Math.min(ctx.measureText(lbl).width,maxW)/2, 0);
+    ctx.restore();
+  }
+  // Borde exterior
+  ctx.beginPath();
+  ctx.arc(CX,CY,OR,0,Math.PI*2);
+  ctx.strokeStyle = primaryColor;
+  ctx.lineWidth = 8;
+  ctx.stroke();
+}
+
+function ruletaDrawCasos(){
+  const cv = document.getElementById('canvas-casos');
+  cv._startAngle = cv._startAngle||0;
+  const n = R.casos.length||1;
+  ruletaDraw('canvas-casos', R.casos, R.usedCasos, '#da291c', i => `#${i+1}`);
+}
+
+function ruletaDrawPersonas(){
+  const cv = document.getElementById('canvas-personas');
+  cv._startAngle = cv._startAngle||0;
+  const n = R.personas.length;
+  if(n===0){
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0,0,600,600);
+    ctx.fillStyle='#e3e6ea';
+    ctx.beginPath(); ctx.arc(300,300,276,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#76808c'; ctx.font='bold 28px Inter,sans-serif';
+    ctx.textAlign='center'; ctx.fillText('Sin participantes',300,310); ctx.textAlign='start';
+    return;
+  }
+  ruletaDraw('canvas-personas', R.personas, R.usedPersonas, '#1f5fbf',
+    i => R.personas[i].split(' ')[0]);
+}
+
+/* ── Spin animación genérica ── */
+function ruletaSpinAnimate(canvasId, onStop){
+  const cv = document.getElementById(canvasId);
+  let vel = Math.random()*12+18;
+  const total = Math.random()*3000+4000;
+  let elapsed = 0;
+  const redraw = canvasId==='canvas-casos' ? ruletaDrawCasos : ruletaDrawPersonas;
+
+  function easeOut(t,d){ const x=t/d; return 1-(1-x)*(1-x)*(1-x); }
+
+  function step(){
+    elapsed += 30;
+    if(elapsed >= total){ onStop(); return; }
+    const angle = vel*(1-easeOut(elapsed,total))*(Math.PI/180);
+    cv._startAngle = (cv._startAngle||0)+angle;
+    redraw();
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ── Calcular índice apuntado por el puntero ── */
+function ruletaGetIndex(canvasId, n){
+  const cv = document.getElementById(canvasId);
+  const arc = Math.PI*2/n;
+  // Puntero en la parte superior (270° = -PI/2)
+  const pointer = -Math.PI/2;
+  let angle = ((pointer - (cv._startAngle||0)) % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+  return Math.floor(angle/arc) % n;
+}
+
+/* ── Girar casos ── */
+function ruletaGirarCasos(){
+  if(R.spinning) return;
+  if(R.usedCasos.length >= R.casos.length){
+    if(confirm('¡Ya salieron todos los casos! ¿Reiniciar?')){ R.usedCasos=[]; ruletaDrawCasos(); ruletaActualizarStats(); }
+    return;
+  }
+  R.spinning = true;
+  document.getElementById('btn-spin-casos').disabled = true;
+  document.getElementById('btn-spin-personas').disabled = true;
+  document.getElementById('btn-spin-personas').textContent = 'Espera caso';
+
+  ruletaSpinAnimate('canvas-casos', ()=>{
+    let idx = ruletaGetIndex('canvas-casos', R.casos.length);
+    // Si cayó en un caso usado, buscar el siguiente libre
+    let attempts = 0;
+    while(R.usedCasos.includes(idx) && attempts < R.casos.length){
+      idx = (idx+1) % R.casos.length; attempts++;
+    }
+    R.casoActual = idx;
+    R.usedCasos.push(idx);
+    R.spinning = false;
+    ruletaDrawCasos();
+    ruletaActualizarStats();
+    // Activar ruleta de personas
+    document.getElementById('btn-spin-casos').disabled = false;
+    const btnP = document.getElementById('btn-spin-personas');
+    btnP.disabled = (R.personas.length===0);
+    btnP.style.cssText = 'border-color:var(--blue);color:var(--blue)';
+    btnP.innerHTML = 'GIRAR';
+  });
+}
+
+/* ── Girar personas ── */
+function ruletaGirarPersonas(){
+  if(R.spinning || R.casoActual===null || R.personas.length===0) return;
+  if(R.usedPersonas.length >= R.personas.length){
+    if(confirm('¡Ya participaron todos! ¿Reiniciar participantes?')){ R.usedPersonas=[]; ruletaDrawPersonas(); ruletaActualizarStats(); }
+    return;
+  }
+  R.spinning = true;
+  document.getElementById('btn-spin-personas').disabled = true;
+  document.getElementById('btn-spin-casos').disabled = true;
+
+  ruletaSpinAnimate('canvas-personas', ()=>{
+    let idx = ruletaGetIndex('canvas-personas', R.personas.length);
+    let attempts = 0;
+    while(R.usedPersonas.includes(idx) && attempts < R.personas.length){
+      idx = (idx+1) % R.personas.length; attempts++;
+    }
+    R.personaActual = idx;
+    R.usedPersonas.push(idx);
+    R.spinning = false;
+    ruletaDrawPersonas();
+    ruletaActualizarStats();
+    document.getElementById('btn-spin-casos').disabled = false;
+    document.getElementById('btn-spin-personas').disabled = false;
+
+    // Mostrar reveal
+    ruletaMostrarReveal();
+    // Reset para siguiente ronda
+    R.casoActual = null;
+    document.getElementById('btn-spin-personas').disabled = true;
+    document.getElementById('btn-spin-personas').innerHTML = 'Espera<br>caso';
+    document.getElementById('btn-spin-personas').style.cssText = '';
+  });
+}
+
+/* ── Reveal overlay ── */
+function ruletaMostrarReveal(){
+  const ci = R.casoActual!==null ? R.casoActual : R.usedCasos[R.usedCasos.length-1];
+  const pi = R.personaActual;
+  const caso = R.casos[ci];
+  const persona = R.personas[pi]||'—';
+
+  // Registrar en historial
+  R.historial.push({caso:ci+1,casoTxt:caso,persona});
+  ruletaRenderHistorial();
+
+  document.getElementById('rev-caso-num').textContent = `CASO #${ci+1}`;
+  document.getElementById('rev-caso-txt').textContent = caso;
+  document.getElementById('rev-persona-nom').textContent = persona;
+  // Cargo si viene de asistencia
+  const asis = (window._asistentes||[]).find(a=>`${a.nombres} ${a.apellidos}`===persona);
+  document.getElementById('rev-persona-cargo').textContent = asis ? `${asis.cargo} · ${asis.municipio}` : '';
+
+  document.getElementById('ruleta-overlay').classList.add('active');
+  ruletaIniciarTimer();
+  ruletaInit3D();
+}
+
+function ruletaCerrarReveal(){
+  document.getElementById('ruleta-overlay').classList.remove('active');
+  ruletaStopTimer();
+}
+
+/* ── Timer ── */
+function ruletaIniciarTimer(){
+  ruletaStopTimer();
+  const mins = parseInt(document.getElementById('ruleta-tiempo').value)||3;
+  R.timerSecs = mins*60;
+  R.timerPaused = false;
+  document.getElementById('btn-timer-pausar').textContent='⏸ Pausar';
+  ruletaTickTimer();
+}
+
+function ruletaTickTimer(){
+  const el = document.getElementById('ruleta-timer-display');
+  if(!el) return;
+  const m = Math.floor(R.timerSecs/60);
+  const s = R.timerSecs%60;
+  el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  el.className = 'ruleta-timer' + (R.timerSecs<=30&&R.timerSecs>0?' warn':R.timerSecs===0?' done':'');
+  if(R.timerSecs<=0) return;
+  R.timer = setTimeout(()=>{
+    if(!R.timerPaused){ R.timerSecs--; ruletaTickTimer(); }
+  },1000);
+}
+
+function ruletaStopTimer(){ clearTimeout(R.timer); }
+
+function ruletaPausarTimer(){
+  R.timerPaused = !R.timerPaused;
+  document.getElementById('btn-timer-pausar').textContent = R.timerPaused ? '▶ Reanudar':'⏸ Pausar';
+  if(!R.timerPaused) ruletaTickTimer();
+}
+
+/* ── Historial ── */
+function ruletaRenderHistorial(){
+  const el = document.getElementById('ruleta-historial');
+  if(!R.historial.length){ el.innerHTML='<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1.5rem">Aún no hay rondas en esta sesión.</div>'; return; }
+  el.innerHTML = R.historial.map((r,i)=>`
+    <div class="ruleta-historial-item">
+      <span class="badge badge-red" style="flex-shrink:0">#${r.caso}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.casoTxt.substring(0,80)}${r.casoTxt.length>80?'…':''}</div>
+        <div style="color:var(--blue);font-size:.78rem;margin-top:.2rem">→ ${r.persona}</div>
+      </div>
+      <span style="color:var(--muted);font-size:.75rem;flex-shrink:0">Ronda ${i+1}</span>
+    </div>`).join('');
+}
+
+/* ── Gestión de casos ── */
+function ruletaGestionCasos(){
+  document.getElementById('ruleta-modal-casos').style.display='flex';
+  ruletaRenderListaCasos();
+}
+
+function ruletaRenderListaCasos(){
+  const el = document.getElementById('ruleta-lista-casos');
+  el.innerHTML = R.casos.map((c,i)=>`
+    <div style="display:flex;gap:.75rem;align-items:flex-start;padding:.75rem;border-radius:var(--r-md);border:1px solid var(--border);margin-bottom:.5rem;background:${R.usedCasos.includes(i)?'var(--bg-soft)':'#fff'}">
+      <span class="badge badge-red" style="flex-shrink:0">#${i+1}</span>
+      <div style="flex:1;font-size:.82rem;color:var(--text-soft);line-height:1.5">${c}${R.usedCasos.includes(i)?'<span class="badge badge-green" style="margin-left:.5rem;font-size:.68rem">Usado</span>':''}</div>
+      <div style="display:flex;gap:.25rem;flex-shrink:0">
+        <button onclick="ruletaEditarCaso(${i})" style="padding:.3rem .5rem;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:.75rem" title="Editar">✏️</button>
+        <button onclick="ruletaBorrarCaso(${i})" style="padding:.3rem .5rem;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:.75rem" title="Borrar">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function ruletaAgregarCaso(){
+  const v = document.getElementById('nuevo-caso-input').value.trim();
+  if(!v) return;
+  R.casos.push(v);
+  localStorage.setItem('ruleta_casos', JSON.stringify(R.casos));
+  document.getElementById('nuevo-caso-input').value='';
+  ruletaRenderListaCasos();
+  ruletaDrawCasos();
+  ruletaActualizarStats();
+}
+
+function ruletaEditarCaso(i){
+  const v = prompt('Editar caso:', R.casos[i]);
+  if(v){ R.casos[i]=v.trim(); localStorage.setItem('ruleta_casos',JSON.stringify(R.casos)); ruletaRenderListaCasos(); ruletaDrawCasos(); }
+}
+
+function ruletaBorrarCaso(i){
+  if(!confirm('¿Borrar este caso?')) return;
+  R.casos.splice(i,1);
+  R.usedCasos = R.usedCasos.filter(x=>x!==i).map(x=>x>i?x-1:x);
+  localStorage.setItem('ruleta_casos', JSON.stringify(R.casos));
+  ruletaRenderListaCasos(); ruletaDrawCasos(); ruletaActualizarStats();
+}
+
+function ruletaRestaurarCasos(){
+  if(!confirm('¿Restaurar los 13 casos originales del PDF? Se perderán los casos personalizados.')) return;
+  R.casos = [...RULETA_CASOS_DEFAULT];
+  R.usedCasos = [];
+  localStorage.removeItem('ruleta_casos');
+  ruletaRenderListaCasos(); ruletaDrawCasos(); ruletaActualizarStats();
+  alert('Casos restaurados.');
+}
+
+function ruletaResetSession(){
+  if(!confirm('¿Reiniciar la sesión? Se limpian casos y participantes usados.')) return;
+  R.usedCasos=[]; R.usedPersonas=[]; R.historial=[]; R.casoActual=null; R.personaActual=null;
+  document.getElementById('canvas-casos')._init = false;
+  document.getElementById('canvas-casos')._startAngle = 0;
+  document.getElementById('canvas-personas')._startAngle = 0;
+  document.getElementById('btn-spin-personas').disabled=true;
+  document.getElementById('btn-spin-personas').innerHTML='Espera<br>caso';
+  document.getElementById('btn-spin-personas').style.cssText='';
+  ruletaDrawCasos(); ruletaDrawPersonas(); ruletaActualizarStats(); ruletaRenderHistorial();
+}
+
+function ruletaActualizarStats(){
+  const ec = document.getElementById('ruleta-casos-stats');
+  const ep = document.getElementById('ruleta-personas-stats');
+  if(ec) ec.textContent = `${R.usedCasos.length} de ${R.casos.length} usados`;
+  if(ep) ep.textContent = R.personas.length ? `${R.usedPersonas.length} de ${R.personas.length} participaron` : 'Sin participantes cargados';
+}
+
+/* ── Three.js — Conejo 3D (paleta Cruz Roja) ── */
+function ruletaInit3D(){
+  const container = document.getElementById('ruleta-3d-container');
+  if(!container || !window.THREE) return;
+  if(R._scene){ R._push=true; return; }
+
+  R._scene = new THREE.Scene();
+  R._camera = new THREE.PerspectiveCamera(40, container.clientWidth/container.clientHeight, 0.1,1000);
+  R._camera.position.set(0,1.5,7);
+  R._camera.lookAt(0,0.5,0);
+
+  R._renderer = new THREE.WebGLRenderer({alpha:true,antialias:true});
+  R._renderer.setSize(container.clientWidth, container.clientHeight);
+  R._renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  container.appendChild(R._renderer.domElement);
+
+  R._scene.add(new THREE.AmbientLight(0xffffff,0.7));
+  const dl = new THREE.DirectionalLight(0xffffff,0.9);
+  dl.position.set(2,5,5); R._scene.add(dl);
+
+  const fur  = new THREE.MeshStandardMaterial({color:0xfaf5f5,roughness:.5});
+  const pink = new THREE.MeshStandardMaterial({color:0xda291c,roughness:.4}); // rojo Cruz Roja
+  const dark = new THREE.MeshStandardMaterial({color:0x1a0d0d,roughness:.2});
+  const blue = new THREE.MeshStandardMaterial({color:0x1f5fbf,roughness:.4});
+
+  const rg = new THREE.Group();
+  const hg = new THREE.Group();
+  R._rabbit = rg; R._head = hg;
+
+  // Cuerpo
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1,32,32),fur);
+  body.scale.set(1.1,1.3,1); body.position.y=.6; rg.add(body);
+  // Panza azul
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(.65,24,24),blue);
+  belly.position.set(0,.5,.75); belly.scale.set(.9,.8,.4); rg.add(belly);
+  // Cabeza
+  hg.position.set(0,1.9,0); rg.add(hg);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(1,32,32),fur);
+  head.scale.set(1.1,.95,1.05); hg.add(head);
+  // Orejas
+  const earG = new THREE.CapsuleGeometry(.2,1.3,4,16);
+  const eL=new THREE.Mesh(earG,fur); eL.position.set(-.55,1.3,0); eL.rotation.z=.25; hg.add(eL);
+  const eR=new THREE.Mesh(earG,fur); eR.position.set(.55,1.3,0); eR.rotation.z=-.25; hg.add(eR);
+  // Interior orejas rojo
+  const iG = new THREE.CapsuleGeometry(.1,.9,4,8);
+  const iL=new THREE.Mesh(iG,pink); iL.position.set(-.55,1.3,0); iL.rotation.z=.25; hg.add(iL);
+  const iR=new THREE.Mesh(iG,pink); iR.position.set(.55,1.3,0); iR.rotation.z=-.25; hg.add(iR);
+  // Ojos
+  const eyeG=new THREE.SphereGeometry(.15,16,16);
+  const eyL=new THREE.Mesh(eyeG,dark); eyL.position.set(-.35,.1,.95); hg.add(eyL);
+  const eyR=new THREE.Mesh(eyeG,dark); eyR.position.set(.35,.1,.95); hg.add(eyR);
+  // Nariz roja
+  const nz=new THREE.Mesh(new THREE.SphereGeometry(.07),pink); nz.position.set(0,-.1,1.02); hg.add(nz);
+  // Brazos
+  const armG=new THREE.CapsuleGeometry(.18,.7,4,8);
+  const aL=new THREE.Mesh(armG,fur); aL.position.set(-.75,.6,.4); aL.rotation.set(.3,0,-.4); rg.add(aL);
+  const aR=new THREE.Mesh(armG,fur); aR.position.set(.75,.6,.4); aR.rotation.set(.3,0,.4); rg.add(aR);
+  // Cola
+  const tail=new THREE.Mesh(new THREE.SphereGeometry(.25,16,16),fur); tail.position.set(0,.4,-1); rg.add(tail);
+
+  R._scene.add(rg);
+  rg.position.y=-1;
+  R._push=true;
+
+  document.addEventListener('mousemove',(e)=>{ R._mx=e.clientX-innerWidth/2; R._my=e.clientY-innerHeight/2; });
+
+  (function animate(){
+    if(!document.getElementById('ruleta-overlay').classList.contains('active')) return;
+    requestAnimationFrame(animate);
+    const t=Date.now()*.001;
+    if(R._push){
+      rg.position.z=Math.sin(t*8)*.4;
+      rg.rotation.y=Math.sin(t*8)*.15;
+      hg.rotation.x=.25;
+    } else {
+      rg.position.z=0; rg.rotation.y=0;
+      const br=1+Math.sin(t*2.5)*.005;
+      rg.scale.set(br,br,br);
+      if(R._head){
+        const ty=R._mx*.0008, tx=R._my*.0008;
+        hg.rotation.y+=(Math.max(-.5,Math.min(.5,ty))-hg.rotation.y)*.1;
+        hg.rotation.x+=(Math.max(-.25,Math.min(.25,tx))-hg.rotation.x)*.1;
+      }
+    }
+    R._renderer.render(R._scene,R._camera);
+  })();
+}
+
+/* ═══════════════════════════════════════════════════════ */
 
 function exportAsistenciaPDF(){
   if(!window._asistentes?.length){ toast('No hay participantes para exportar','warn'); return; }
@@ -2148,7 +2808,7 @@ function mostrarResultadoTest(nombre,tipo,puntaje,total,porcentaje,respuestas){
       <div style="font-weight:600;font-size:.88rem;margin:.35rem 0">${p.q}</div>
       ${!r.correcto?`<div style="font-size:.82rem;color:var(--red);margin-bottom:.25rem">Tu respuesta: ${r.opcion}</div>`:''}
       <div style="font-size:.82rem;color:var(--green);margin-bottom:.35rem">Respuesta correcta: ${r.correcta}</div>
-      <div style="font-size:.8rem;color:var(--muted);background:rgba(255,255,255,.03);padding:.5rem .75rem;border-radius:6px;line-height:1.5">${r.rationale}</div>
+      <div style="font-size:.8rem;color:var(--muted);background:var(--bg-soft);padding:.5rem .75rem;border-radius:6px;line-height:1.5">${r.rationale}</div>
     </div>`;
   }).join('')}`;
 }
@@ -2318,33 +2978,33 @@ async function loadEstadisticas(){
   window._infraccionesData = data;
 
   // Draw charts
-  const chartOpts = { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}}, scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true}} };
+  const chartOpts = { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#76808c',font:{size:11}}}}, scales:{x:{ticks:{color:'#76808c'},grid:{color:'#e3e6ea'}},y:{ticks:{color:'#76808c'},grid:{color:'#e3e6ea'},beginAtZero:true}} };
 
   destroyChart('trend');
   S.chartRefs.trend = new Chart(document.getElementById('chart-trend'), {
     type:'line',
-    data:{labels:Object.keys(meses).map(k=>{const[y,m]=k.split('-');return`${m}/${y.slice(2)}`}),datasets:[{label:'Eventos',data:Object.values(meses),borderColor:'#e94560',backgroundColor:'rgba(233,69,96,.15)',tension:.35,fill:true,pointBackgroundColor:'#e94560'}]},
+    data:{labels:Object.keys(meses).map(k=>{const[y,m]=k.split('-');return`${m}/${y.slice(2)}`}),datasets:[{label:'Eventos',data:Object.values(meses),borderColor:'#da291c',backgroundColor:'rgba(218,41,28,.12)',tension:.35,fill:true,pointBackgroundColor:'#da291c'}]},
     options:{...chartOpts}
   });
 
   destroyChart('cat');
   S.chartRefs.cat = new Chart(document.getElementById('chart-cat'), {
     type:'bar',
-    data:{labels:Object.keys(catCounts).map(c=>c.length>22?c.slice(0,22)+'…':c),datasets:[{label:'Eventos',data:Object.values(catCounts),backgroundColor:['#e94560','#7c1d6f','#4a6fa5','#ffb432','#38c793','#8b949e']}]},
+    data:{labels:Object.keys(catCounts).map(c=>c.length>22?c.slice(0,22)+'…':c),datasets:[{label:'Eventos',data:Object.values(catCounts),backgroundColor:['#da291c','#7c3aed','#1f5fbf','#b45309','#0a8f63','#76808c']}]},
     options:{...chartOpts,indexAxis:'y',plugins:{legend:{display:false}}}
   });
 
   destroyChart('tipo');
   S.chartRefs.tipo = new Chart(document.getElementById('chart-tipo'), {
     type:'doughnut',
-    data:{labels:['Infracciones','Incidentes'],datasets:[{data:[infrac,incid],backgroundColor:['#e94560','#ffb432'],borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8b949e'}}}}
+    data:{labels:['Infracciones','Incidentes'],datasets:[{data:[infrac,incid],backgroundColor:['#da291c','#b45309'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#76808c'}}}}
   });
 
   destroyChart('mun');
   S.chartRefs.mun = new Chart(document.getElementById('chart-mun'), {
     type:'bar',
-    data:{labels:Object.keys(munCounts),datasets:[{label:'Eventos',data:Object.values(munCounts),backgroundColor:'#4a6fa5'}]},
+    data:{labels:Object.keys(munCounts),datasets:[{label:'Eventos',data:Object.values(munCounts),backgroundColor:'#1f5fbf'}]},
     options:{...chartOpts,plugins:{legend:{display:false}}}
   });
 }
@@ -3048,7 +3708,7 @@ function abrirPresentacion(){
   }, 300);
 
   // Charts
-  const baseOpts = {responsive:true,maintainAspectRatio:false,animation:{duration:1200,easing:'easeOutQuart'},plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}},scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true,max:100}}};
+  const baseOpts = {responsive:true,maintainAspectRatio:false,animation:{duration:1200,easing:'easeOutQuart'},plugins:{legend:{labels:{color:'#76808c',font:{size:11}}}},scales:{x:{ticks:{color:'#76808c'},grid:{color:'#e3e6ea'}},y:{ticks:{color:'#76808c'},grid:{color:'#e3e6ea'},beginAtZero:true,max:100}}};
 
   setTimeout(()=>{
     // Comparison chart (pre vs post per person)
@@ -3078,8 +3738,8 @@ function abrirPresentacion(){
     destroyChart('presPie');
     S.chartRefs.presPie = new Chart(document.getElementById('pres-chart-pie'),{
       type:'doughnut',
-      data:{labels:['Aprobados','Requieren refuerzo'],datasets:[{data:[aprobados,reprobados],backgroundColor:['#38c793','#e94560'],borderWidth:0}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:{duration:1200},plugins:{legend:{position:'bottom',labels:{color:'#8b949e',font:{size:11}}}}}
+      data:{labels:['Aprobados','Requieren refuerzo'],datasets:[{data:[aprobados,reprobados],backgroundColor:['#0a8f63','#da291c'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:1200},plugins:{legend:{position:'bottom',labels:{color:'#76808c',font:{size:11}}}}}
     });
 
     // Distribution
@@ -3089,9 +3749,9 @@ function abrirPresentacion(){
       type:'bar',
       data:{
         labels:bins.map(b=>b.l),
-        datasets:[{label:'Personas',data:bins.map(b=>post.filter(r=>Number(r.porcentaje)>=b.min&&Number(r.porcentaje)<b.max).length),backgroundColor:['#e94560','#ffb432','#4a6fa5','#38c793'],borderRadius:4}]
+        datasets:[{label:'Personas',data:bins.map(b=>post.filter(r=>Number(r.porcentaje)>=b.min&&Number(r.porcentaje)<b.max).length),backgroundColor:['#da291c','#b45309','#1f5fbf','#0a8f63'],borderRadius:4}]
       },
-      options:{responsive:true,maintainAspectRatio:false,animation:{duration:1200},plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e',stepSize:1},grid:{color:'#21262d'},beginAtZero:true}}}
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:1200},plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#76808c'},grid:{color:'#e3e6ea'}},y:{ticks:{color:'#76808c',stepSize:1},grid:{color:'#e3e6ea'},beginAtZero:true}}}
     });
   }, 400);
 }

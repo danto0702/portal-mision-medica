@@ -1016,10 +1016,23 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
     <div id="apane-stock" class="admin-pane"><!-- inyectado --></div>
     <div id="apane-resultados" class="admin-pane"><!-- inyectado --></div>
     <div id="apane-config-pdf" class="admin-pane">
-      <h3 style="font-weight:700;font-size:1rem;margin-bottom:1.25rem">Configurar banners para PDF de Gestión Técnica</h3>
-      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Estas imágenes aparecerán como encabezado al imprimir/exportar la Matriz de Riesgos o el Plan de Contingencia. Formato recomendado: JPG o PNG, ancho 1400px, alto 120–200px.</p>
+      <h3 style="font-weight:700;font-size:1rem;margin-bottom:1.25rem">Configurar banners</h3>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Personaliza las imágenes de encabezado del módulo y de los PDFs de Gestión Técnica. Formato recomendado: JPG o PNG, ancho mínimo 1200px.</p>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem">
+        <!-- Banner Principal -->
+        <div style="background:var(--bg-soft);border-radius:var(--r-xl);padding:1.25rem;border:1px solid var(--border)">
+          <p style="font-weight:700;font-size:.9rem;margin-bottom:.25rem">Banner Principal</p>
+          <p style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem">Aparece en la pantalla de inicio y en la activación de carnets. Reemplaza la imagen por defecto.</p>
+          <img id="admin-banner-principal-preview" src="" alt="Banner principal" style="display:none;width:100%;border-radius:var(--r-md);margin-bottom:.75rem;max-height:120px;object-fit:contain;background:#fff">
+          <div style="display:flex;flex-direction:column;gap:.5rem">
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer;text-align:center">
+              Cargar imagen
+              <input type="file" accept="image/*" style="display:none" onchange="adminCargarBannerPrincipal(this)">
+            </label>
+            <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="adminEliminarBannerPrincipal()">Restaurar imagen original</button>
+          </div>
+        </div>
         <!-- Banner Riesgos -->
         <div style="background:var(--bg-soft);border-radius:var(--r-xl);padding:1.25rem;border:1px solid var(--border)">
           <p style="font-weight:700;font-size:.9rem;margin-bottom:.75rem">Banner — Matriz de Riesgos</p>
@@ -1106,6 +1119,9 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
 /* ═══════════════════════════════════════════
    CONFIG
 ═══════════════════════════════════════════ */
+const BANNER_PRINCIPAL_KEY = 'mm_banner_principal';
+function getBanner(){ return localStorage.getItem(BANNER_PRINCIPAL_KEY) || CFG.BANNER; }
+
 const CFG = {
   SUPA_URL: 'https://kukauvbqosizlxrapmim.supabase.co',
   SUPA_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2F1dmJxb3Npemx4cmFwbWltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODMzNTUsImV4cCI6MjA5NzQ1OTM1NX0.1ajCazK2YEb_DU14R96dQI5qU-ClwR0t7WHMYKWqOIU',
@@ -1205,7 +1221,7 @@ function renderInicio(){
   document.getElementById('view-inicio').innerHTML = `
   <div style="padding-bottom:2rem">
     <div style="border-radius:14px;overflow:hidden;margin-bottom:1.75rem;box-shadow:0 4px 24px rgba(0,0,0,.4)">
-      <img src="${CFG.BANNER}" alt="Misión Médica HRNO" style="width:100%;display:block;object-fit:contain;background:#fff">
+      <img id="banner-principal-img" src="${getBanner()}" alt="Misión Médica HRNO" style="width:100%;display:block;object-fit:contain;background:#fff">
     </div>
     <div class="section-hero" style="padding:0 0 2rem">
       <span class="badge badge-red" style="margin-bottom:.75rem">ESE Hospital Regional Noroccidental</span>
@@ -3596,7 +3612,7 @@ async function openFotoOverlay(id){
   content.innerHTML = `
   <div style="max-width:520px;margin:auto">
     <div style="text-align:center;margin-bottom:2rem">
-      <img src="${CFG.BANNER}" style="width:100%;border-radius:10px;margin-bottom:1rem;max-height:120px;object-fit:cover">
+      <img src="${getBanner()}" style="width:100%;border-radius:10px;margin-bottom:1rem;max-height:120px;object-fit:contain;background:#fff">
       <h1 style="font-size:1.3rem;font-weight:800;margin-bottom:.35rem">Activación de Carnet de <span style="color:var(--purple)">Misión Médica</span></h1>
       <p style="color:var(--muted);font-size:.88rem">Hola <strong style="color:var(--text)">${data.nombres} ${data.apellidos}</strong> — Carnet N° ${data.numero_carnet}</p>
     </div>
@@ -4752,7 +4768,37 @@ function adminEliminarBannerContingencia(){
   el.src=''; el.style.display='none';
   toast('Banner eliminado.','info');
 }
+function adminCargarBannerPrincipal(input){
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 3*1024*1024){ toast('Imagen demasiado grande (máx. 3 MB).','warn'); return; }
+  const reader = new FileReader();
+  reader.onload = e=>{
+    localStorage.setItem(BANNER_PRINCIPAL_KEY, e.target.result);
+    const prev = document.getElementById('admin-banner-principal-preview');
+    if(prev){ prev.src=e.target.result; prev.style.display='block'; }
+    // actualizar banner visible en la página sin recargar
+    const img = document.getElementById('banner-principal-img');
+    if(img) img.src = e.target.result;
+    toast('Banner principal actualizado.','ok');
+  };
+  reader.readAsDataURL(file);
+}
+function adminEliminarBannerPrincipal(){
+  localStorage.removeItem(BANNER_PRINCIPAL_KEY);
+  const prev = document.getElementById('admin-banner-principal-preview');
+  if(prev){ prev.src=''; prev.style.display='none'; }
+  const img = document.getElementById('banner-principal-img');
+  if(img) img.src = CFG.BANNER;
+  toast('Banner principal restaurado al original.','info');
+}
+
 function adminCargarBannersGuardados(){
+  const bp = localStorage.getItem(BANNER_PRINCIPAL_KEY);
+  if(bp){
+    const el = document.getElementById('admin-banner-principal-preview');
+    if(el){ el.src=bp; el.style.display='block'; }
+  }
   const br = localStorage.getItem(BANNER_RIESGOS_KEY);
   if(br){
     const el = document.getElementById('admin-banner-riesgos-preview');

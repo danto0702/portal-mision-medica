@@ -2273,7 +2273,7 @@ function renderCapacitacion(){
       <span id="pres-viewer-title" style="color:#fff;font-weight:700;font-size:.95rem"></span>
       <button onclick="presCerrarViewer()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:1.2rem">✕ Cerrar</button>
     </div>
-    <iframe id="pres-iframe" style="flex:1;border:none;width:100%;background:#fff" allowfullscreen></iframe>
+    <iframe id="pres-iframe" style="flex:1;border:none;width:100%;background:#fff" allowfullscreen allow="fullscreen"></iframe>
   </div>
 
   <!-- Modal agregar video -->
@@ -4702,13 +4702,23 @@ function presEliminar(id){
     toast('Presentación eliminada.','info');
   }, 'Eliminar', 'btn-primary');
 }
+/* Convierte cualquier URL de Google Slides al formato embed correcto */
+function presNormalizarUrl(url){
+  // Ya es embed o pub → dejar como está
+  if(/\/embed|\/pub\?/.test(url)) return url;
+  // URL de edición o vista: .../presentation/d/ID/edit o /view o /present
+  const m = url.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return `https://docs.google.com/presentation/d/${m[1]}/embed?start=false&loop=false&delayms=3000`;
+  return url;
+}
+
 function presVer(id){
   const p = presLoad().find(x=>x.id===id);
   if(!p) return;
   document.getElementById('pres-viewer-title').textContent = p.titulo;
   const iframe = document.getElementById('pres-iframe');
   if(p.tipo==='url'){
-    iframe.src = p.url;
+    iframe.src = presNormalizarUrl(p.url);
   } else {
     const blob = dataURLtoBlob(p.data);
     const burl = URL.createObjectURL(blob);

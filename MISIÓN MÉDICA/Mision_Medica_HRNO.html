@@ -4725,67 +4725,94 @@ function dataURLtoBlob(dataurl){
 }
 
 /* ─────────────────────────────────────────────
-   ADMIN — Banners PDF para Gestión Técnica
+   BANNERS — Supabase (global) + localStorage (caché offline)
+   Tabla: mm_config (key TEXT PK, value TEXT, updated_at TIMESTAMPTZ)
 ───────────────────────────────────────────── */
-const BANNER_RIESGOS_KEY = 'mm_banner_riesgos';
+const BANNER_RIESGOS_KEY      = 'mm_banner_riesgos';
 const BANNER_CONTINGENCIA_KEY = 'mm_banner_contingencia';
 
-function adminCargarBannerRiesgos(input){
-  const file = input.files[0];
-  if(!file) return;
-  if(file.size > 2*1024*1024){ toast('Imagen demasiado grande (máx. 2 MB).','warn'); return; }
-  const reader = new FileReader();
-  reader.onload = e=>{
-    localStorage.setItem(BANNER_RIESGOS_KEY, e.target.result);
-    document.getElementById('admin-banner-riesgos-preview').src = e.target.result;
-    document.getElementById('admin-banner-riesgos-preview').style.display='block';
-    toast('Banner de riesgos guardado.','ok');
-  };
-  reader.readAsDataURL(file);
+/* Lee un banner: primero caché local, luego Supabase */
+function getBannerCached(key, fallback){
+  return localStorage.getItem(key) || fallback || null;
 }
-function adminCargarBannerContingencia(input){
-  const file = input.files[0];
-  if(!file) return;
-  if(file.size > 2*1024*1024){ toast('Imagen demasiado grande (máx. 2 MB).','warn'); return; }
-  const reader = new FileReader();
-  reader.onload = e=>{
-    localStorage.setItem(BANNER_CONTINGENCIA_KEY, e.target.result);
-    document.getElementById('admin-banner-contingencia-preview').src = e.target.result;
-    document.getElementById('admin-banner-contingencia-preview').style.display='block';
-    toast('Banner de contingencia guardado.','ok');
-  };
-  reader.readAsDataURL(file);
+
+/* Guarda en Supabase Y en caché local */
+async function bannerUpsert(key, base64){
+  localStorage.setItem(key, base64);
+  try {
+    const { error } = await supa
+      .from('mm_config')
+      .upsert({ key, value: base64, updated_at: new Date().toISOString() },
+               { onConflict: 'key' });
+    if(error) console.warn('Supabase banner upsert:', error.message);
+  } catch(e){ console.warn('Supabase banner upsert:', e); }
 }
-function adminEliminarBannerRiesgos(){
-  localStorage.removeItem(BANNER_RIESGOS_KEY);
-  const el = document.getElementById('admin-banner-riesgos-preview');
-  el.src=''; el.style.display='none';
-  toast('Banner eliminado.','info');
+
+/* Elimina de Supabase Y de caché local */
+async function bannerDelete(key){
+  localStorage.removeItem(key);
+  try {
+    await supa.from('mm_config').delete().eq('key', key);
+  } catch(e){ console.warn('Supabase banner delete:', e); }
 }
-function adminEliminarBannerContingencia(){
-  localStorage.removeItem(BANNER_CONTINGENCIA_KEY);
-  const el = document.getElementById('admin-banner-contingencia-preview');
-  el.src=''; el.style.display='none';
-  toast('Banner eliminado.','info');
+
+/* Al cargar la página: trae los 3 banners de Supabase, actualiza caché y DOM */
+async function bannersCargarDesdeSupabase(){
+  try {
+    const { data, error } = await supa
+      .from('mm_config')
+      .select('key, value')
+      .in('key', [BANNER_PRINCIPAL_KEY, BANNER_RIESGOS_KEY, BANNER_CONTINGENCIA_KEY]);
+    if(error || !data) return;
+
+    data.forEach(row => {
+      localStorage.setItem(row.key, row.value);
+      _aplicarBannerDOM(row.key, row.value);
+    });
+  } catch(e){ console.warn('bannersCargarDesdeSupabase:', e); }
 }
-function adminCargarBannerPrincipal(input){
-  const file = input.files[0];
-  if(!file) return;
-  if(file.size > 3*1024*1024){ toast('Imagen demasiado grande (máx. 3 MB).','warn'); return; }
-  const reader = new FileReader();
-  reader.onload = e=>{
-    localStorage.setItem(BANNER_PRINCIPAL_KEY, e.target.result);
-    const prev = document.getElementById('admin-banner-principal-preview');
-    if(prev){ prev.src=e.target.result; prev.style.display='block'; }
-    // actualizar banner visible en la página sin recargar
+
+function _aplicarBannerDOM(key, value){
+  if(key === BANNER_PRINCIPAL_KEY){
     const img = document.getElementById('banner-principal-img');
-    if(img) img.src = e.target.result;
-    toast('Banner principal actualizado.','ok');
+    if(img) img.src = value;
+    const prev = document.getElementById('admin-banner-principal-preview');
+    if(prev){ prev.src=value; prev.style.display='block'; }
+  }
+  if(key === BANNER_RIESGOS_KEY){
+    const prev = document.getElementById('admin-banner-riesgos-preview');
+    if(prev){ prev.src=value; prev.style.display='block'; }
+  }
+  if(key === BANNER_CONTINGENCIA_KEY){
+    const prev = document.getElementById('admin-banner-contingencia-preview');
+    if(prev){ prev.src=value; prev.style.display='block'; }
+  }
+}
+
+/* ── Funciones admin ── */
+function _adminSubirBanner(input, key, maxMB, labelOk, onSuccess){
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > maxMB*1024*1024){ toast(`Imagen demasiado grande (máx. ${maxMB} MB).`,'warn'); return; }
+  toast('Subiendo banner...','info');
+  const reader = new FileReader();
+  reader.onload = async e => {
+    await bannerUpsert(key, e.target.result);
+    _aplicarBannerDOM(key, e.target.result);
+    toast(labelOk,'ok');
+    onSuccess && onSuccess(e.target.result);
   };
   reader.readAsDataURL(file);
+}
+
+function adminCargarBannerPrincipal(input){
+  _adminSubirBanner(input, BANNER_PRINCIPAL_KEY, 3, 'Banner principal actualizado.', val => {
+    const img = document.getElementById('banner-principal-img');
+    if(img) img.src = val;
+  });
 }
 function adminEliminarBannerPrincipal(){
-  localStorage.removeItem(BANNER_PRINCIPAL_KEY);
+  bannerDelete(BANNER_PRINCIPAL_KEY);
   const prev = document.getElementById('admin-banner-principal-preview');
   if(prev){ prev.src=''; prev.style.display='none'; }
   const img = document.getElementById('banner-principal-img');
@@ -4793,22 +4820,34 @@ function adminEliminarBannerPrincipal(){
   toast('Banner principal restaurado al original.','info');
 }
 
+function adminCargarBannerRiesgos(input){
+  _adminSubirBanner(input, BANNER_RIESGOS_KEY, 2, 'Banner de riesgos guardado.');
+}
+function adminEliminarBannerRiesgos(){
+  bannerDelete(BANNER_RIESGOS_KEY);
+  const el = document.getElementById('admin-banner-riesgos-preview');
+  if(el){ el.src=''; el.style.display='none'; }
+  toast('Banner de riesgos eliminado.','info');
+}
+
+function adminCargarBannerContingencia(input){
+  _adminSubirBanner(input, BANNER_CONTINGENCIA_KEY, 2, 'Banner de contingencia guardado.');
+}
+function adminEliminarBannerContingencia(){
+  bannerDelete(BANNER_CONTINGENCIA_KEY);
+  const el = document.getElementById('admin-banner-contingencia-preview');
+  if(el){ el.src=''; el.style.display='none'; }
+  toast('Banner de contingencia eliminado.','info');
+}
+
+/* Aplica caché local inmediatamente (antes de que llegue Supabase) */
 function adminCargarBannersGuardados(){
-  const bp = localStorage.getItem(BANNER_PRINCIPAL_KEY);
-  if(bp){
-    const el = document.getElementById('admin-banner-principal-preview');
-    if(el){ el.src=bp; el.style.display='block'; }
-  }
-  const br = localStorage.getItem(BANNER_RIESGOS_KEY);
-  if(br){
-    const el = document.getElementById('admin-banner-riesgos-preview');
-    if(el){ el.src=br; el.style.display='block'; }
-  }
-  const bc = localStorage.getItem(BANNER_CONTINGENCIA_KEY);
-  if(bc){
-    const el = document.getElementById('admin-banner-contingencia-preview');
-    if(el){ el.src=bc; el.style.display='block'; }
-  }
+  [BANNER_PRINCIPAL_KEY, BANNER_RIESGOS_KEY, BANNER_CONTINGENCIA_KEY].forEach(key => {
+    const val = localStorage.getItem(key);
+    if(val) _aplicarBannerDOM(key, val);
+  });
+  // Luego sincroniza con Supabase (actualiza si hay versión más nueva en el servidor)
+  bannersCargarDesdeSupabase();
 }
 </script>
 </body>

@@ -4564,6 +4564,11 @@ function avRender(){
   }).join('');
 }
 
+/* Diálogo de confirmación reutilizable */
+function confirmarAccion(msg, cb){
+  if(window.confirm(msg)) cb();
+}
+
 function avAbrirModal(){
   if(!S.adminLoggedIn){ toast('Solo el administrador puede agregar videos.','warn'); return; }
   document.getElementById('av-url').value='';
@@ -4676,7 +4681,12 @@ function presGuardar(){
     const reader = new FileReader();
     reader.onload = e=>{
       const item = { id: Date.now(), titulo, tipo:'archivo', mimeType: file.type, nombre: file.name, data: e.target.result };
-      presSave([...presLoad(), item]);
+      try {
+        presSave([...presLoad(), item]);
+      } catch(err){
+        toast('Archivo demasiado grande para guardar. Usa una URL de Google Slides u OneDrive en su lugar.','warn');
+        return;
+      }
       presCerrarModal();
       presRender();
       toast('Presentación cargada.','ok');

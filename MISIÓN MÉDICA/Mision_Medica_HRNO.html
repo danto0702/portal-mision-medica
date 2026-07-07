@@ -688,6 +688,53 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
 @keyframes overlayFlash{0%{background:rgba(255,255,255,.96)} 30%{background:rgba(218,41,28,.12)} 60%{background:rgba(255,200,0,.08)} 100%{background:rgba(255,255,255,.96)}}
 
 /* ═══════════════════════════════
+   GESTIÓN TÉCNICA
+═══════════════════════════════ */
+.nivel-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .6rem;border-radius:99px;font-size:.75rem;font-weight:700;letter-spacing:.03em}
+.nivel-bajo{background:#d1fae5;color:#065f46}
+.nivel-moderado{background:#fef3c7;color:#92400e}
+.nivel-alto{background:#ffedd5;color:#9a3412}
+.nivel-critico{background:#fee2e2;color:#991b1b}
+.estado-badge{display:inline-flex;align-items:center;padding:.18rem .55rem;border-radius:99px;font-size:.73rem;font-weight:600}
+.estado-pendiente{background:#f1f5f9;color:#475569}
+.estado-proceso{background:#dbeafe;color:#1e40af}
+.estado-mitigado{background:#d1fae5;color:#065f46}
+.estado-aceptado{background:#f3e8ff;color:#6b21a8}
+.gt-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;margin-bottom:1.25rem}
+.gt-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:1rem 1.25rem;box-shadow:var(--shadow-sm)}
+.gt-kpi-val{font-size:2rem;font-weight:800;line-height:1}
+.gt-kpi-label{font-size:.75rem;color:var(--muted);margin-top:.3rem;font-weight:500}
+.gt-tabs{display:flex;gap:.5rem;border-bottom:2px solid var(--border);margin-bottom:1.25rem;overflow-x:auto}
+.gt-tab{padding:.55rem 1.1rem;font-size:.85rem;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:color .15s,border-color .15s}
+.gt-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.gt-tab:hover:not(.active){color:var(--text)}
+.gt-action-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+/* Modal gestión técnica */
+.gt-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:700;align-items:center;justify-content:center;padding:1rem}
+.gt-modal-overlay.active{display:flex}
+.gt-modal{background:#fff;border-radius:var(--r-xl);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:fadeScale .2s var(--ease)}
+.gt-modal-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.gt-modal-body{padding:1.25rem 1.5rem}
+.gt-modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:.5rem;position:sticky;bottom:0;background:#fff}
+/* Soportes adjuntos */
+.soporte-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .65rem;background:var(--bg-soft);border:1px solid var(--border);border-radius:99px;font-size:.75rem;color:var(--text-soft)}
+.soporte-chip button{background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center;padding:0;line-height:1}
+/* Print */
+@media print{
+  .nav-bar,.nav-tab,.btn,.gt-tabs,.gt-action-bar,.gt-modal-overlay,#toast-container,.page-view:not(#view-gestion){display:none!important}
+  #view-gestion{display:block!important;padding:0}
+  .gt-kpi{box-shadow:none;border:1px solid #ddd}
+  .nivel-bajo{background:#d1fae5!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .nivel-moderado{background:#fef3c7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .nivel-alto{background:#ffedd5!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .nivel-critico{background:#fee2e2!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .gt-print-hide{display:none!important}
+  .gt-print-section{display:block!important}
+  .data-table th,.data-table td{font-size:.75rem;padding:.4rem .5rem}
+  h1,h2{font-size:1.1rem}
+}
+
+/* ═══════════════════════════════
    FILTER BAR
 ═══════════════════════════════ */
 .filter-bar{
@@ -877,6 +924,10 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
         Capacitación
       </button>
+      <button class="nav-tab" onclick="showView('gestion')" id="tab-gestion">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Gestión
+      </button>
       <button class="nav-tab admin-btn" onclick="showView('admin')" id="tab-admin">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Admin
@@ -917,6 +968,13 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
      VISTA: CAPACITACIÓN
 ══════════════════════════════════════ -->
 <div id="view-capacitacion" class="page-view">
+  <!-- contenido inyectado por JS -->
+</div>
+
+<!-- ══════════════════════════════════════
+     VISTA: GESTIÓN TÉCNICA
+══════════════════════════════════════ -->
+<div id="view-gestion" class="page-view">
   <!-- contenido inyectado por JS -->
 </div>
 
@@ -1102,6 +1160,7 @@ function showView(id){
   if(id==='reportar') renderReportar();
   if(id==='emblemas') renderEmblemas();
   if(id==='capacitacion') renderCapacitacion();
+  if(id==='gestion') renderGestion();
   if(id==='admin') initAdmin();
   window.scrollTo(0,0);
 }
@@ -1158,31 +1217,25 @@ function renderInfo(){
     {
       title:'Manual de Misión Médica',
       desc:'Resolución 4481 de 2012 — Manual oficial que define la Misión Médica en Colombia, sus principios, el emblema protector y los deberes de las instituciones de salud en zonas de conflicto.',
-      url:'https://www.minsalud.gov.co/Normatividad_Nuevo/Resoluci%C3%B3n%204481%20de%202012.pdf',
+      url:'https://www.minsalud.gov.co/sites/rid/Lists/BibliotecaDigital/RIDE/DE/GT/RES-4481-12%20Manual%20de%20Mision%20Medica.pdf',
       badge:'Ministerio de Salud',badgeType:'badge-blue',icon:'📋'
-    },
-    {
-      title:'Resolución 4481 de 2012',
-      desc:'Por la cual se adopta el Manual de Misión Médica y se establecen normas relacionadas con la señalización y divulgación de su Emblema Protector.',
-      url:'https://www.minsalud.gov.co/Normatividad_Nuevo/Resoluci%C3%B3n%204481%20de%202012.pdf',
-      badge:'Normativa vigente',badgeType:'badge-green',icon:'⚖️'
     },
     {
       title:'Circular 004 de 2025',
       desc:'Circular del Ministerio de Salud sobre lineamientos actualizados para la protección de la Misión Médica en el contexto del conflicto armado colombiano.',
-      url:'https://www.minsalud.gov.co',
+      url:'https://drive.google.com/file/d/1GgTHT3hEUTRJmK5fNmQGNcnnovb3rT_q/view',
       badge:'2025',badgeType:'badge-red',icon:'📄'
     },
     {
       title:'Convenios de Ginebra y Protocolos Adicionales',
       desc:'Instrumentos internacionales del Derecho Internacional Humanitario que protegen a heridos, enfermos y al personal sanitario en conflictos armados.',
-      url:'https://www.icrc.org/es/doc/resources/documents/publication/p0173.htm',
-      badge:'DIH · CICR',badgeType:'badge-purple',icon:'🌐'
+      url:'https://news.un.org/es/story/2023/10/1525092',
+      badge:'DIH · ONU',badgeType:'badge-purple',icon:'🌐'
     },
     {
       title:'Ley 1444 de 2011',
       desc:'Por la cual se escinden unos Ministerios, se otorgan precisiones sobre la Misión Médica y se dictan otras disposiciones.',
-      url:'https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=42867',
+      url:'https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=42796',
       badge:'Ley',badgeType:'badge-yellow',icon:'📜'
     },
     {
@@ -1197,7 +1250,6 @@ function renderInfo(){
     {n:'Humanidad',c:'var(--red)',d:'Prestar atención médica a toda persona herida o enferma, sin distinción alguna.'},
     {n:'Imparcialidad',c:'var(--blue)',d:'Atender según la gravedad clínica (Triage), sin importar bando, raza, religión o ideología.'},
     {n:'Neutralidad',c:'var(--green)',d:'No tomar partido en controversias políticas, militares o ideológicas.'},
-    {n:'Confidencialidad',c:'var(--purple)',d:'Guardar secreto profesional sobre la información de pacientes bajo toda circunstancia.'},
   ];
 
   document.getElementById('view-info').innerHTML = `
@@ -1242,8 +1294,8 @@ function renderInfo(){
     <div class="grid-3">
       ${[
         {label:'Coordinador Misión Médica',val:'Danilo Torrado Blanco'},
-        {label:'Teléfono institucional',val:'(7) XXX-XXXX'},
-        {label:'Correo',val:'misionmedica@hrno.gov.co'},
+        {label:'Teléfono institucional',val:'310 785 5392'},
+        {label:'Correo',val:'danto0702@gmail.com'},
       ].map(c=>`
         <div>
           <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">${c.label}</div>
@@ -1935,6 +1987,14 @@ function renderCapacitacion(){
       <div style="font-weight:700;color:var(--red);margin-bottom:.35rem">Ruleta de Casos</div>
       <div style="font-size:.82rem;color:var(--muted)">Selección aleatoria de caso y participante para la dinámica de análisis.</div>
     </div>
+    <div class="card" style="cursor:pointer;text-align:center;border-color:rgba(10,143,99,.25);transition:all .15s"
+      onclick="mostrarCapModule('audiovisual')"
+      onmouseover="this.style.borderColor='var(--green)';this.style.transform='translateY(-3px)'"
+      onmouseout="this.style.borderColor='rgba(10,143,99,.25)';this.style.transform=''">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">🎬</div>
+      <div style="font-weight:700;color:var(--green);margin-bottom:.35rem">Apoyo Audiovisual</div>
+      <div style="font-size:.82rem;color:var(--muted)">Videos de referencia sobre Misión Médica y Derecho Internacional Humanitario.</div>
+    </div>
   </div>
 
   <!-- Asistencia -->
@@ -2090,6 +2150,51 @@ function renderCapacitacion(){
     </div>
   </div>
 
+  <!-- Apoyo Audiovisual -->
+  <div id="cap-audiovisual" style="display:none">
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="mostrarCapModule(null)">← Volver</button>
+      <h2 style="font-size:1rem;font-weight:700">Apoyo Audiovisual</h2>
+    </div>
+    <div style="margin-bottom:1rem">
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.25rem">Videos de referencia sobre Misión Médica y Derecho Internacional Humanitario. Haz clic en cualquier miniatura para ver el video en YouTube.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem">
+        ${[
+          {id:'AK5A1GqY4GM',title:'Misión Médica — Principios y Protección'},
+          {id:'Yn0b47rkSDY',title:'DIH — Derecho Internacional Humanitario'},
+          {id:'QJMEkz4gDuk',title:'Emblemas Protectores — Uso y Significado'},
+          {id:'QJMEkz4gDuk',title:'Emblemas Protectores — Uso y Significado (2)'},
+          {id:'yhDUrD2OmM0',title:'Comportamiento Seguro en Zonas de Conflicto'},
+          {id:'mHDYAuO4t5A',title:'Protección del Personal de Salud'},
+          {id:'Fx3jMq3VPE8',title:'Marco Normativo de la Misión Médica'},
+        ].map(v=>`
+          <a href="https://youtu.be/${v.id}" target="_blank" rel="noopener"
+            style="display:block;border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-md);background:#000;text-decoration:none;transition:transform .15s,box-shadow .15s"
+            onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-lg)'"
+            onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow-md)'">
+            <div style="position:relative">
+              <img src="https://img.youtube.com/vi/${v.id}/hqdefault.jpg"
+                alt="${v.title}" loading="lazy"
+                style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover">
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);transition:background .15s"
+                onmouseover="this.style.background='rgba(218,41,28,.45)'"
+                onmouseout="this.style.background='rgba(0,0,0,.25)'">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="white" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))"><circle cx="12" cy="12" r="12" fill="rgba(218,41,28,.85)"/><polygon points="10,8 16,12 10,16" fill="white"/></svg>
+              </div>
+            </div>
+            <div style="padding:.75rem 1rem;background:#fff;border-top:1px solid var(--border)">
+              <div style="font-size:.83rem;font-weight:600;color:var(--text);line-height:1.4">${v.title}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem;display:flex;align-items:center;gap:.3rem">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Ver en YouTube
+              </div>
+            </div>
+          </a>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+
   <!-- Modal gestión de casos -->
   <!-- Modal modo libre participantes -->
   <div id="ruleta-modal-libre" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;align-items:center;justify-content:center;padding:1rem">
@@ -2141,6 +2246,7 @@ function mostrarCapModule(m){
   document.getElementById('cap-asistencia').style.display = m==='asistencia' ? 'block' : 'none';
   document.getElementById('cap-prepostest').style.display = m==='prepostest' ? 'block' : 'none';
   document.getElementById('cap-ruleta').style.display = m==='ruleta' ? 'block' : 'none';
+  document.getElementById('cap-audiovisual').style.display = m==='audiovisual' ? 'block' : 'none';
   if(m==='ruleta') ruletaInit();
 }
 
@@ -3283,6 +3389,41 @@ async function loadResultados(){
   const avgPost = post.length ? (post.reduce((s,r)=>s+Number(r.porcentaje),0)/post.length).toFixed(1) : 0;
   const aprobados = post.filter(r=>r.porcentaje>=70).length;
 
+  window._testDataAll = data;
+
+  function renderTablaResultados(rows){
+    const pre2 = rows.filter(r=>r.tipo_evaluacion==='Pretest');
+    const post2 = rows.filter(r=>r.tipo_evaluacion==='Postest');
+    const avgPre2 = pre2.length ? (pre2.reduce((s,r)=>s+Number(r.porcentaje),0)/pre2.length).toFixed(1) : 0;
+    const avgPost2 = post2.length ? (post2.reduce((s,r)=>s+Number(r.porcentaje),0)/post2.length).toFixed(1) : 0;
+    const aprobados2 = post2.filter(r=>r.porcentaje>=70).length;
+    document.getElementById('stat-total').textContent = rows.length;
+    document.getElementById('stat-pre').textContent = avgPre2+'%';
+    document.getElementById('stat-post').textContent = avgPost2+'%';
+    document.getElementById('stat-aprobados').textContent = aprobados2;
+    document.getElementById('tbody-resultados').innerHTML = rows.length ? rows.map(r=>`<tr>
+      <td style="font-weight:600">${r.nombres}</td>
+      <td style="color:var(--muted);font-size:.8rem">${r.numero_documento}</td>
+      <td>${r.municipio}</td>
+      <td style="font-size:.8rem">${r.perfil}</td>
+      <td><span class="badge ${r.tipo_evaluacion==='Pretest'?'badge-yellow':'badge-green'}">${r.tipo_evaluacion}</span></td>
+      <td style="font-weight:700">${r.puntaje}/${r.total_preguntas}</td>
+      <td><span class="badge ${Number(r.porcentaje)>=70?'badge-green':'badge-red'}">${r.porcentaje}%</span></td>
+      <td style="color:var(--muted);font-size:.78rem">${fmtDT(r.fecha)}</td>
+    </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No hay evaluaciones para el período seleccionado.</td></tr>';
+  }
+
+  window.filtrarResultados = function(){
+    const desde = document.getElementById('filtro-desde').value;
+    const hasta = document.getElementById('filtro-hasta').value;
+    let rows = window._testDataAll;
+    if(desde) rows = rows.filter(r=>r.fecha && r.fecha >= desde);
+    if(hasta) rows = rows.filter(r=>r.fecha && r.fecha <= hasta+'T23:59:59');
+    renderTablaResultados(rows);
+  };
+
+  window._testData = data;
+
   el.innerHTML=`
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
     <div class="section-title" style="margin-bottom:0;flex:1">Resultados de Evaluaciones</div>
@@ -3291,16 +3432,29 @@ async function loadResultados(){
       Presentar resultados
     </button>
   </div>
+  <div class="card" style="margin-bottom:1rem;padding:.75rem 1rem;background:var(--bg-soft);border-color:var(--border-soft)">
+    <div style="display:flex;align-items:flex-end;gap:.75rem;flex-wrap:wrap">
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.25rem">Desde</label>
+        <input type="date" id="filtro-desde" class="form-input" style="width:160px" onchange="filtrarResultados()">
+      </div>
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.25rem">Hasta</label>
+        <input type="date" id="filtro-hasta" class="form-input" style="width:160px" onchange="filtrarResultados()">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('filtro-desde').value='';document.getElementById('filtro-hasta').value='';filtrarResultados()">Limpiar filtro</button>
+    </div>
+  </div>
   <div class="grid-4" style="margin-bottom:1.25rem">
-    <div class="stat-card"><div class="stat-value" style="color:var(--text)">${data.length}</div><div class="stat-label">Total evaluaciones</div></div>
-    <div class="stat-card"><div class="stat-value" style="color:var(--yellow)">${avgPre}%</div><div class="stat-label">Promedio Pretest</div></div>
-    <div class="stat-card"><div class="stat-value" style="color:var(--green)">${avgPost}%</div><div class="stat-label">Promedio Postest</div></div>
-    <div class="stat-card"><div class="stat-value" style="color:var(--blue)">${aprobados}</div><div class="stat-label">Aprobaron postest</div></div>
+    <div class="stat-card"><div class="stat-value" id="stat-total" style="color:var(--text)">${data.length}</div><div class="stat-label">Total evaluaciones</div></div>
+    <div class="stat-card"><div class="stat-value" id="stat-pre" style="color:var(--yellow)">${avgPre}%</div><div class="stat-label">Promedio Pretest</div></div>
+    <div class="stat-card"><div class="stat-value" id="stat-post" style="color:var(--green)">${avgPost}%</div><div class="stat-label">Promedio Postest</div></div>
+    <div class="stat-card"><div class="stat-value" id="stat-aprobados" style="color:var(--blue)">${aprobados}</div><div class="stat-label">Aprobaron postest</div></div>
   </div>
   <div class="table-wrap">
     <table class="data-table">
       <thead><tr><th>Nombre</th><th>Documento</th><th>Municipio</th><th>Perfil</th><th>Tipo</th><th>Puntaje</th><th>%</th><th>Fecha</th></tr></thead>
-      <tbody>
+      <tbody id="tbody-resultados">
         ${data.length ? data.map(r=>`<tr>
           <td style="font-weight:600">${r.nombres}</td>
           <td style="color:var(--muted);font-size:.8rem">${r.numero_documento}</td>
@@ -3762,6 +3916,8 @@ function handleRoute(){
   if(hash.startsWith('#foto')){
     const id = new URLSearchParams(hash.slice(5)).get('id');
     if(id) openFotoOverlay(id);
+  } else if(hash.startsWith('#gestion')){
+    showView('gestion');
   } else if(hash.startsWith('#tarjeta')){
     const id = new URLSearchParams(hash.slice(8)).get('id');
     if(id) openTarjetaOverlay(id);
@@ -3769,6 +3925,448 @@ function handleRoute(){
     document.getElementById('overlay-foto').classList.remove('active');
     document.getElementById('overlay-tarjeta').classList.remove('active');
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MÓDULO: GESTIÓN TÉCNICA — Matriz de Riesgos + Plan Contingencia
+═══════════════════════════════════════════════════════════════ */
+
+// ── Helpers de almacenamiento ──────────────────────────────────
+function gtLoad(key){ try{ return JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){ return []; } }
+function gtSave(key,data){ localStorage.setItem(key, JSON.stringify(data)); }
+
+// ── Nivel de riesgo (prob × impacto) ──────────────────────────
+function nivelRiesgo(p, i){
+  const v = Number(p) * Number(i);
+  if(v <= 4)  return {label:'Bajo',    cls:'nivel-bajo',    val:v};
+  if(v <= 9)  return {label:'Moderado',cls:'nivel-moderado',val:v};
+  if(v <= 14) return {label:'Alto',    cls:'nivel-alto',    val:v};
+  return              {label:'Crítico', cls:'nivel-critico', val:v};
+}
+
+function estadoBadge(e){
+  const m={'Pendiente':'estado-pendiente','En proceso':'estado-proceso','Mitigado':'estado-mitigado','Aceptado':'estado-aceptado'};
+  return `<span class="estado-badge ${m[e]||'estado-pendiente'}">${e}</span>`;
+}
+
+// ── renderGestion ──────────────────────────────────────────────
+function renderGestion(){
+  const el = document.getElementById('view-gestion');
+  el.innerHTML = `
+  <div class="section-hero">
+    <span class="badge badge-blue" style="margin-bottom:.5rem">Herramienta institucional</span>
+    <h1>Gestión <span style="color:var(--blue)">Técnica</span></h1>
+    <p>Matriz de riesgos y plan de contingencia para el programa de Misión Médica.</p>
+  </div>
+
+  <div class="gt-tabs">
+    <button class="gt-tab active" id="gt-tab-riesgos" onclick="gtShowTab('riesgos')">Matriz de Riesgos</button>
+    <button class="gt-tab" id="gt-tab-contingencia" onclick="gtShowTab('contingencia')">Plan de Contingencia</button>
+  </div>
+
+  <!-- ═══ MATRIZ DE RIESGOS ═══ -->
+  <div id="gt-pane-riesgos">
+    <div id="gt-riesgos-kpi" class="gt-kpi-grid"></div>
+    <div class="gt-action-bar">
+      <div style="font-size:.85rem;color:var(--muted)">Haz clic en una fila para editar.</div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-secondary btn-sm gt-print-hide" onclick="gtImprimirRiesgos()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir / PDF
+        </button>
+        ${S.adminLoggedIn ? `<button class="btn btn-primary btn-sm gt-print-hide" onclick="gtAbrirModalRiesgo()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo Riesgo
+        </button>` : ''}
+      </div>
+    </div>
+    <div id="gt-riesgos-table" class="table-wrap"></div>
+  </div>
+
+  <!-- ═══ PLAN DE CONTINGENCIA ═══ -->
+  <div id="gt-pane-contingencia" style="display:none">
+    <div id="gt-contingencia-kpi" class="gt-kpi-grid"></div>
+    <div class="gt-action-bar">
+      <div style="font-size:.85rem;color:var(--muted)">Registro de actividades, responsables y soportes.</div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-secondary btn-sm gt-print-hide" onclick="gtImprimirContingencia()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir / PDF
+        </button>
+        ${S.adminLoggedIn ? `<button class="btn btn-primary btn-sm gt-print-hide" onclick="gtAbrirModalContingencia()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nueva Actividad
+        </button>` : ''}
+      </div>
+    </div>
+    <div id="gt-contingencia-table" class="table-wrap"></div>
+  </div>
+
+  <!-- ═══ MODAL RIESGO ═══ -->
+  <div id="gt-modal-riesgo" class="gt-modal-overlay" onclick="if(event.target===this)gtCerrarModalRiesgo()">
+    <div class="gt-modal">
+      <div class="gt-modal-header">
+        <h3 id="gt-modal-riesgo-title" style="font-weight:700;font-size:1rem">Nuevo Riesgo</h3>
+        <button onclick="gtCerrarModalRiesgo()" style="background:none;border:none;cursor:pointer;color:var(--muted)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="gt-modal-body">
+        <input type="hidden" id="gt-r-id">
+        <div class="form-group"><label class="form-label">Riesgo identificado <span class="req">*</span></label>
+          <textarea id="gt-r-riesgo" class="form-input" rows="2" placeholder="Describe el riesgo..." required style="resize:vertical"></textarea></div>
+        <div class="grid-2">
+          <div class="form-group"><label class="form-label">Probabilidad (1–5) <span class="req">*</span></label>
+            <select id="gt-r-prob" class="form-select" onchange="gtActualizarNivelPreview()">
+              <option value="">Seleccionar</option>
+              <option value="1">1 — Rara vez</option><option value="2">2 — Poco probable</option>
+              <option value="3">3 — Posible</option><option value="4">4 — Probable</option>
+              <option value="5">5 — Casi seguro</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Impacto (1–5) <span class="req">*</span></label>
+            <select id="gt-r-impacto" class="form-select" onchange="gtActualizarNivelPreview()">
+              <option value="">Seleccionar</option>
+              <option value="1">1 — Insignificante</option><option value="2">2 — Menor</option>
+              <option value="3">3 — Moderado</option><option value="4">4 — Mayor</option>
+              <option value="5">5 — Catastrófico</option>
+            </select></div>
+        </div>
+        <div id="gt-nivel-preview" style="margin-bottom:.75rem;min-height:24px"></div>
+        <div class="form-group"><label class="form-label">Medida de control <span class="req">*</span></label>
+          <textarea id="gt-r-medida" class="form-input" rows="2" placeholder="Acción preventiva o correctiva..." required style="resize:vertical"></textarea></div>
+        <div class="grid-2">
+          <div class="form-group"><label class="form-label">Responsable <span class="req">*</span></label>
+            <input id="gt-r-responsable" class="form-input" placeholder="Nombre o cargo" required></div>
+          <div class="form-group"><label class="form-label">Estado</label>
+            <select id="gt-r-estado" class="form-select">
+              <option>Pendiente</option><option>En proceso</option><option>Mitigado</option><option>Aceptado</option>
+            </select></div>
+        </div>
+      </div>
+      <div class="gt-modal-footer">
+        <button class="btn btn-secondary" onclick="gtCerrarModalRiesgo()">Cancelar</button>
+        <button class="btn btn-primary" onclick="gtGuardarRiesgo()">Guardar riesgo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL CONTINGENCIA ═══ -->
+  <div id="gt-modal-contingencia" class="gt-modal-overlay" onclick="if(event.target===this)gtCerrarModalContingencia()">
+    <div class="gt-modal">
+      <div class="gt-modal-header">
+        <h3 id="gt-modal-cont-title" style="font-weight:700;font-size:1rem">Nueva Actividad</h3>
+        <button onclick="gtCerrarModalContingencia()" style="background:none;border:none;cursor:pointer;color:var(--muted)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="gt-modal-body">
+        <input type="hidden" id="gt-c-id">
+        <div class="form-group"><label class="form-label">Actividad <span class="req">*</span></label>
+          <textarea id="gt-c-actividad" class="form-input" rows="2" placeholder="Describe la actividad del plan..." required style="resize:vertical"></textarea></div>
+        <div class="grid-2">
+          <div class="form-group"><label class="form-label">Responsable <span class="req">*</span></label>
+            <input id="gt-c-responsable" class="form-input" placeholder="Nombre o cargo" required></div>
+          <div class="form-group"><label class="form-label">Plazo límite <span class="req">*</span></label>
+            <input id="gt-c-plazo" type="date" class="form-input" required></div>
+        </div>
+        <div class="form-group"><label class="form-label">Estado</label>
+          <select id="gt-c-estado" class="form-select">
+            <option>Pendiente</option><option>En proceso</option><option>Completado</option>
+          </select></div>
+        <div class="form-group">
+          <label class="form-label">Documentos soporte</label>
+          <input type="file" id="gt-c-file" class="form-input" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            style="padding:.45rem" onchange="gtAgregarSoportes()">
+          <div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">PDF, Word o imágenes. Máx. 2 MB por archivo.</div>
+          <div id="gt-c-soportes-preview" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Observaciones</label>
+          <textarea id="gt-c-obs" class="form-input" rows="2" style="resize:vertical" placeholder="Notas adicionales..."></textarea></div>
+      </div>
+      <div class="gt-modal-footer">
+        <button class="btn btn-secondary" onclick="gtCerrarModalContingencia()">Cancelar</button>
+        <button class="btn btn-primary" onclick="gtGuardarContingencia()">Guardar actividad</button>
+      </div>
+    </div>
+  </div>`;
+
+  gtRenderRiesgos();
+  gtRenderContingencia();
+}
+
+// ── Cambio de tabs ─────────────────────────────────────────────
+function gtShowTab(t){
+  document.getElementById('gt-pane-riesgos').style.display      = t==='riesgos'      ? 'block' : 'none';
+  document.getElementById('gt-pane-contingencia').style.display = t==='contingencia'  ? 'block' : 'none';
+  document.getElementById('gt-tab-riesgos').classList.toggle('active',      t==='riesgos');
+  document.getElementById('gt-tab-contingencia').classList.toggle('active', t==='contingencia');
+}
+
+// ── MATRIZ DE RIESGOS ──────────────────────────────────────────
+function gtRenderRiesgos(){
+  const data = gtLoad('mm_riesgos');
+  const total    = data.length;
+  const criticos = data.filter(r=>nivelRiesgo(r.probabilidad,r.impacto).label==='Crítico').length;
+  const altos    = data.filter(r=>nivelRiesgo(r.probabilidad,r.impacto).label==='Alto').length;
+  const mitigados= data.filter(r=>r.estado==='Mitigado').length;
+
+  const kpiEl = document.getElementById('gt-riesgos-kpi');
+  if(kpiEl) kpiEl.innerHTML = `
+    <div class="gt-kpi"><div class="gt-kpi-val" style="color:var(--blue)">${total}</div><div class="gt-kpi-label">Total riesgos</div></div>
+    <div class="gt-kpi"><div class="gt-kpi-val" style="color:#991b1b">${criticos}</div><div class="gt-kpi-label">Críticos</div></div>
+    <div class="gt-kpi"><div class="gt-kpi-val" style="color:#9a3412">${altos}</div><div class="gt-kpi-label">Altos</div></div>
+    <div class="gt-kpi"><div class="gt-kpi-val" style="color:var(--green)">${mitigados}</div><div class="gt-kpi-label">Mitigados</div></div>`;
+
+  const tEl = document.getElementById('gt-riesgos-table');
+  if(!tEl) return;
+  if(!data.length){
+    tEl.innerHTML = `<div style="text-align:center;padding:2.5rem;color:var(--muted);font-size:.9rem">
+      No hay riesgos registrados.${S.adminLoggedIn ? ' Haz clic en "Nuevo Riesgo" para comenzar.' : ''}</div>`;
+    return;
+  }
+  tEl.innerHTML = `<table class="data-table">
+    <thead><tr><th>#</th><th>Riesgo</th><th>Prob.</th><th>Impacto</th><th>Nivel</th><th>Medida de control</th><th>Responsable</th><th>Estado</th><th>Fecha</th>${S.adminLoggedIn?'<th></th>':''}</tr></thead>
+    <tbody>
+    ${data.map((r,i)=>{
+      const nv = nivelRiesgo(r.probabilidad, r.impacto);
+      return `<tr style="cursor:${S.adminLoggedIn?'pointer':'default'}" ${S.adminLoggedIn?`onclick="gtAbrirModalRiesgo('${r.id}')"`:''}">
+        <td style="color:var(--muted);font-size:.78rem">${i+1}</td>
+        <td style="font-weight:600;max-width:200px">${r.riesgo}</td>
+        <td style="text-align:center;font-weight:700">${r.probabilidad}</td>
+        <td style="text-align:center;font-weight:700">${r.impacto}</td>
+        <td><span class="nivel-badge ${nv.cls}">${nv.label} (${nv.val})</span></td>
+        <td style="font-size:.82rem;max-width:180px">${r.medida_control}</td>
+        <td style="font-size:.82rem">${r.responsable}</td>
+        <td>${estadoBadge(r.estado)}</td>
+        <td style="color:var(--muted);font-size:.75rem;white-space:nowrap">${r.fecha ? fmtDate(r.fecha.split('T')[0]) : '—'}</td>
+        ${S.adminLoggedIn?`<td onclick="event.stopPropagation();gtEliminarRiesgo('${r.id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" style="cursor:pointer"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </td>`:''}
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+function gtActualizarNivelPreview(){
+  const p = document.getElementById('gt-r-prob').value;
+  const i = document.getElementById('gt-r-impacto').value;
+  const el = document.getElementById('gt-nivel-preview');
+  if(p && i){
+    const nv = nivelRiesgo(p, i);
+    el.innerHTML = `<span class="nivel-badge ${nv.cls}">Nivel calculado: ${nv.label} (${p}×${i}=${nv.val})</span>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+function gtAbrirModalRiesgo(id){
+  const modal = document.getElementById('gt-modal-riesgo');
+  if(!S.adminLoggedIn){ toast('Solo el administrador puede editar.','warn'); return; }
+  document.getElementById('gt-nivel-preview').innerHTML = '';
+  if(id){
+    const r = gtLoad('mm_riesgos').find(x=>x.id===id);
+    if(!r) return;
+    document.getElementById('gt-modal-riesgo-title').textContent = 'Editar Riesgo';
+    document.getElementById('gt-r-id').value          = r.id;
+    document.getElementById('gt-r-riesgo').value      = r.riesgo;
+    document.getElementById('gt-r-prob').value        = r.probabilidad;
+    document.getElementById('gt-r-impacto').value     = r.impacto;
+    document.getElementById('gt-r-medida').value      = r.medida_control;
+    document.getElementById('gt-r-responsable').value = r.responsable;
+    document.getElementById('gt-r-estado').value      = r.estado;
+    gtActualizarNivelPreview();
+  } else {
+    document.getElementById('gt-modal-riesgo-title').textContent = 'Nuevo Riesgo';
+    ['gt-r-id','gt-r-riesgo','gt-r-prob','gt-r-impacto','gt-r-medida','gt-r-responsable'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('gt-r-estado').value = 'Pendiente';
+  }
+  modal.classList.add('active');
+}
+
+function gtCerrarModalRiesgo(){ document.getElementById('gt-modal-riesgo').classList.remove('active'); }
+
+function gtGuardarRiesgo(){
+  const riesgo     = document.getElementById('gt-r-riesgo').value.trim();
+  const prob       = document.getElementById('gt-r-prob').value;
+  const impacto    = document.getElementById('gt-r-impacto').value;
+  const medida     = document.getElementById('gt-r-medida').value.trim();
+  const responsable= document.getElementById('gt-r-responsable').value.trim();
+  const estado     = document.getElementById('gt-r-estado').value;
+  if(!riesgo||!prob||!impacto||!medida||!responsable){ toast('Completa todos los campos requeridos.','warn'); return; }
+  const id = document.getElementById('gt-r-id').value;
+  let data = gtLoad('mm_riesgos');
+  const now = new Date().toISOString();
+  if(id){
+    data = data.map(r=>r.id===id ? {...r, riesgo, probabilidad:Number(prob), impacto:Number(impacto), medida_control:medida, responsable, estado, fecha_actualizacion:now} : r);
+    toast('Riesgo actualizado.','success');
+  } else {
+    data.push({id:'r_'+Date.now(), riesgo, probabilidad:Number(prob), impacto:Number(impacto), medida_control:medida, responsable, estado, fecha:now, fecha_actualizacion:now});
+    toast('Riesgo registrado.','success');
+  }
+  gtSave('mm_riesgos', data);
+  gtCerrarModalRiesgo();
+  gtRenderRiesgos();
+}
+
+function gtEliminarRiesgo(id){
+  showConfirm('Eliminar riesgo','¿Seguro que deseas eliminar este riesgo? Esta acción no se puede deshacer.',()=>{
+    gtSave('mm_riesgos', gtLoad('mm_riesgos').filter(r=>r.id!==id));
+    toast('Riesgo eliminado.','info');
+    gtRenderRiesgos();
+  },'Eliminar','btn-primary');
+}
+
+function gtImprimirRiesgos(){
+  document.getElementById('gt-pane-contingencia').style.display = 'none';
+  document.getElementById('gt-pane-riesgos').style.display = 'block';
+  window.print();
+}
+
+// ── PLAN DE CONTINGENCIA ───────────────────────────────────────
+let _gtSoportesTemp = [];
+
+function gtRenderContingencia(){
+  const data = gtLoad('mm_contingencia');
+  const hoy  = new Date().toISOString().split('T')[0];
+  const total     = data.length;
+  const completadas = data.filter(r=>r.estado==='Completado').length;
+  const pendientes  = data.filter(r=>r.estado==='Pendiente').length;
+  const vencidas    = data.filter(r=>r.estado!=='Completado' && r.plazo && r.plazo < hoy).length;
+
+  const kpiEl = document.getElementById('gt-contingencia-kpi');
+  if(kpiEl) kpiEl.innerHTML = `
+    <div class="gt-kpi"><div class="gt-kpi-val" style="color:var(--blue)">${total}</div><div class="gt-kpi-label">Total actividades</div></div>
+    <div class="gt-kpi"><div class="gt-kpi-val" style="color:var(--green)">${completadas}</div><div class="gt-kpi-label">Completadas</div></div>
+    <div class="gt-kpi"><div class="gt-kpi-val" style="color:var(--yellow)">${pendientes}</div><div class="gt-kpi-label">Pendientes</div></div>
+    <div class="gt-kpi"><div class="gt-kpi-val" style="color:var(--red)">${vencidas}</div><div class="gt-kpi-label">Vencidas</div></div>`;
+
+  const tEl = document.getElementById('gt-contingencia-table');
+  if(!tEl) return;
+  if(!data.length){
+    tEl.innerHTML = `<div style="text-align:center;padding:2.5rem;color:var(--muted);font-size:.9rem">
+      No hay actividades registradas.${S.adminLoggedIn ? ' Haz clic en "Nueva Actividad" para comenzar.' : ''}</div>`;
+    return;
+  }
+  tEl.innerHTML = `<table class="data-table">
+    <thead><tr><th>#</th><th>Actividad</th><th>Responsable</th><th>Plazo</th><th>Estado</th><th>Soportes</th><th>Observaciones</th>${S.adminLoggedIn?'<th></th>':''}</tr></thead>
+    <tbody>
+    ${data.map((r,i)=>{
+      const vencida = r.estado!=='Completado' && r.plazo && r.plazo < hoy;
+      const soportes = (r.soportes||[]).map(s=>`<span class="soporte-chip">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        ${s.name}
+      </span>`).join('');
+      const estadoLabel = r.estado==='Completado'?'estado-mitigado':r.estado==='En proceso'?'estado-proceso':'estado-pendiente';
+      return `<tr style="cursor:${S.adminLoggedIn?'pointer':'default'};${vencida?'background:rgba(218,41,28,.04)':''}" ${S.adminLoggedIn?`onclick="gtAbrirModalContingencia('${r.id}')"`:''}">
+        <td style="color:var(--muted);font-size:.78rem">${i+1}</td>
+        <td style="font-weight:600;max-width:200px">${r.actividad}</td>
+        <td style="font-size:.82rem">${r.responsable}</td>
+        <td style="white-space:nowrap;font-size:.82rem;color:${vencida?'var(--red)':'var(--text)'}">
+          ${r.plazo ? fmtDate(r.plazo) : '—'}${vencida?' <span style="color:var(--red);font-size:.7rem">⚠ Vencida</span>':''}
+        </td>
+        <td><span class="estado-badge ${estadoLabel}">${r.estado}</span></td>
+        <td style="font-size:.78rem">${soportes||'<span style="color:var(--muted)">—</span>'}</td>
+        <td style="font-size:.78rem;color:var(--muted);max-width:150px">${r.observaciones||'—'}</td>
+        ${S.adminLoggedIn?`<td onclick="event.stopPropagation();gtEliminarContingencia('${r.id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" style="cursor:pointer"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </td>`:''}
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+function gtAgregarSoportes(){
+  const files = document.getElementById('gt-c-file').files;
+  const preview = document.getElementById('gt-c-soportes-preview');
+  Array.from(files).forEach(file=>{
+    if(file.size > 2*1024*1024){ toast(`${file.name} supera 2 MB y no se adjuntará.`,'warn'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const soporte = {name: file.name, type: file.type, data: e.target.result};
+      _gtSoportesTemp.push(soporte);
+      gtRenderSoportesPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('gt-c-file').value = '';
+}
+
+function gtRenderSoportesPreview(){
+  const preview = document.getElementById('gt-c-soportes-preview');
+  if(!preview) return;
+  preview.innerHTML = _gtSoportesTemp.map((s,i)=>`
+    <span class="soporte-chip">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      ${s.name}
+      <button onclick="_gtSoportesTemp.splice(${i},1);gtRenderSoportesPreview()" title="Quitar">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </span>`).join('');
+}
+
+function gtAbrirModalContingencia(id){
+  if(!S.adminLoggedIn){ toast('Solo el administrador puede editar.','warn'); return; }
+  _gtSoportesTemp = [];
+  gtRenderSoportesPreview();
+  if(id){
+    const r = gtLoad('mm_contingencia').find(x=>x.id===id);
+    if(!r) return;
+    document.getElementById('gt-modal-cont-title').textContent = 'Editar Actividad';
+    document.getElementById('gt-c-id').value          = r.id;
+    document.getElementById('gt-c-actividad').value   = r.actividad;
+    document.getElementById('gt-c-responsable').value = r.responsable;
+    document.getElementById('gt-c-plazo').value       = r.plazo||'';
+    document.getElementById('gt-c-estado').value      = r.estado;
+    document.getElementById('gt-c-obs').value         = r.observaciones||'';
+    _gtSoportesTemp = r.soportes ? [...r.soportes] : [];
+    gtRenderSoportesPreview();
+  } else {
+    document.getElementById('gt-modal-cont-title').textContent = 'Nueva Actividad';
+    ['gt-c-id','gt-c-actividad','gt-c-responsable','gt-c-plazo','gt-c-obs'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('gt-c-estado').value = 'Pendiente';
+  }
+  document.getElementById('gt-modal-contingencia').classList.add('active');
+}
+
+function gtCerrarModalContingencia(){ document.getElementById('gt-modal-contingencia').classList.remove('active'); }
+
+function gtGuardarContingencia(){
+  const actividad   = document.getElementById('gt-c-actividad').value.trim();
+  const responsable = document.getElementById('gt-c-responsable').value.trim();
+  const plazo       = document.getElementById('gt-c-plazo').value;
+  const estado      = document.getElementById('gt-c-estado').value;
+  const observaciones = document.getElementById('gt-c-obs').value.trim();
+  if(!actividad||!responsable||!plazo){ toast('Completa actividad, responsable y plazo.','warn'); return; }
+  const id = document.getElementById('gt-c-id').value;
+  let data = gtLoad('mm_contingencia');
+  const now = new Date().toISOString();
+  if(id){
+    data = data.map(r=>r.id===id ? {...r, actividad, responsable, plazo, estado, observaciones, soportes:[..._gtSoportesTemp], fecha_actualizacion:now} : r);
+    toast('Actividad actualizada.','success');
+  } else {
+    data.push({id:'c_'+Date.now(), actividad, responsable, plazo, estado, observaciones, soportes:[..._gtSoportesTemp], fecha:now, fecha_actualizacion:now});
+    toast('Actividad registrada.','success');
+  }
+  gtSave('mm_contingencia', data);
+  gtCerrarModalContingencia();
+  gtRenderContingencia();
+}
+
+function gtEliminarContingencia(id){
+  showConfirm('Eliminar actividad','¿Seguro que deseas eliminar esta actividad?',()=>{
+    gtSave('mm_contingencia', gtLoad('mm_contingencia').filter(r=>r.id!==id));
+    toast('Actividad eliminada.','info');
+    gtRenderContingencia();
+  },'Eliminar','btn-primary');
+}
+
+function gtImprimirContingencia(){
+  document.getElementById('gt-pane-riesgos').style.display = 'none';
+  document.getElementById('gt-pane-contingencia').style.display = 'block';
+  window.print();
+  setTimeout(()=>{
+    document.getElementById('gt-pane-riesgos').style.display = 'block';
+  }, 500);
 }
 </script>
 </body>

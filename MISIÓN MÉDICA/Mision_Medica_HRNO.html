@@ -723,6 +723,8 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
 @media print{
   .nav-bar,.nav-tab,.btn,.gt-tabs,.gt-action-bar,.gt-modal-overlay,#toast-container,.page-view:not(#view-gestion){display:none!important}
   #view-gestion{display:block!important;padding:0}
+  #gt-print-banner{display:block!important;width:100%;margin:0 0 1rem 0;padding:0}
+  #gt-print-banner-img{width:100%;height:auto;display:block}
   .gt-kpi{box-shadow:none;border:1px solid #ddd}
   .nivel-bajo{background:#d1fae5!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .nivel-moderado{background:#fef3c7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -4348,9 +4350,9 @@ function gtSetPrintBanner(key){
   if(!el){
     el = document.createElement('div');
     el.id = 'gt-print-banner';
-    el.style.cssText = 'display:none;margin-bottom:1.5rem';
+    el.style.cssText = 'display:none';
     const img = document.createElement('img');
-    img.style.cssText = 'width:100%;max-height:160px;object-fit:contain';
+    img.id = 'gt-print-banner-img';
     el.appendChild(img);
     document.getElementById('view-gestion').prepend(el);
   }

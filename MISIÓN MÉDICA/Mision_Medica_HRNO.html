@@ -1112,6 +1112,19 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
+<!-- Modal de confirmación genérico -->
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:1.5rem">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:340px;box-shadow:0 8px 40px rgba(0,0,0,.25);overflow:hidden">
+    <div style="padding:1.4rem 1.5rem 0">
+      <p id="confirm-msg" style="font-size:.95rem;font-weight:600;color:#111;line-height:1.4;margin:0"></p>
+    </div>
+    <div style="display:flex;gap:.75rem;padding:1.25rem 1.5rem;justify-content:flex-end">
+      <button id="confirm-cancel" class="btn btn-secondary btn-sm" onclick="confirmarCerrar(false)">Cancelar</button>
+      <button id="confirm-ok" class="btn btn-primary btn-sm" onclick="confirmarCerrar(true)">Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <!-- PDF hidden container -->
 <div id="pdf-hidden" style="position:absolute;left:-9999px;top:-9999px;width:210mm;background:#fff;color:#000;font-family:Arial,sans-serif;font-size:10pt;padding:15mm"></div>
 
@@ -4522,9 +4535,13 @@ const AV_DEFAULTS = [
 
 function avLoad(){
   try{
-    const d = JSON.parse(localStorage.getItem(AV_KEY));
-    if(d && d.length) return d;
+    const raw = localStorage.getItem(AV_KEY);
+    if(raw !== null){
+      const d = JSON.parse(raw);
+      if(Array.isArray(d)) return d;
+    }
   }catch(e){}
+  // Solo inicializa con defaults si nunca se ha guardado nada
   localStorage.setItem(AV_KEY, JSON.stringify(AV_DEFAULTS));
   return AV_DEFAULTS;
 }
@@ -4564,9 +4581,19 @@ function avRender(){
   }).join('');
 }
 
-/* Diálogo de confirmación reutilizable */
-function confirmarAccion(msg, cb){
-  if(window.confirm(msg)) cb();
+/* Diálogo de confirmación reutilizable (sin window.confirm) */
+let _confirmCb = null;
+function confirmarAccion(msg, cb, btnLabel){
+  _confirmCb = cb;
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-ok').textContent = btnLabel || 'Eliminar';
+  const el = document.getElementById('confirm-modal');
+  el.style.display = 'flex';
+}
+function confirmarCerrar(ok){
+  document.getElementById('confirm-modal').style.display = 'none';
+  if(ok && _confirmCb) _confirmCb();
+  _confirmCb = null;
 }
 
 function avAbrirModal(){

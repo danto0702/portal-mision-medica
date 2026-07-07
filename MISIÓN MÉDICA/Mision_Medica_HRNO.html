@@ -4573,7 +4573,7 @@ function avAbrirModal(){
   if(!S.adminLoggedIn){ toast('Solo el administrador puede agregar videos.','warn'); return; }
   document.getElementById('av-url').value='';
   document.getElementById('av-titulo').value='';
-  document.getElementById('av-preview').innerHTML='';
+  document.getElementById('av-preview-thumb').style.display='none';
   document.getElementById('av-modal').style.display='flex';
 }
 function avCerrarModal(){
@@ -4582,11 +4582,13 @@ function avCerrarModal(){
 function avPreviewar(){
   const url = document.getElementById('av-url').value.trim();
   const vid = avExtractId(url);
-  const el = document.getElementById('av-preview');
+  const thumb = document.getElementById('av-preview-thumb');
+  const img   = document.getElementById('av-thumb-img');
   if(vid){
-    el.innerHTML=`<img src="https://img.youtube.com/vi/${vid}/hqdefault.jpg" style="width:100%;border-radius:var(--r-md);aspect-ratio:16/9;object-fit:cover">`;
+    img.src = `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
+    thumb.style.display = 'block';
   } else {
-    el.innerHTML='';
+    thumb.style.display = 'none';
   }
 }
 function avGuardar(){

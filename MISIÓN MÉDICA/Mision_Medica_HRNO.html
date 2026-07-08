@@ -5253,45 +5253,25 @@ function gtImprimirContingencia(){
 /* ─────────────────────────────────────────────
    APOYO AUDIOVISUAL — CRUD dinámico
 ───────────────────────────────────────────── */
-const AV_KEY = 'mm_audiovisual';
-const AV_DEFAULTS = [
-  {id:1, titulo:'¿Qué es Misión Médica?', url:'https://www.youtube.com/watch?v=vGkPFBVqDGo'},
-  {id:2, titulo:'DIH en el conflicto armado', url:'https://www.youtube.com/watch?v=3JkFkBbXcU4'},
-  {id:3, titulo:'Principios humanitarios', url:'https://www.youtube.com/watch?v=Vv8DJFkBjN0'},
-  {id:4, titulo:'Protección del personal de salud', url:'https://www.youtube.com/watch?v=KExEsdhTSt8'},
-  {id:5, titulo:'Emblemas protectores', url:'https://www.youtube.com/watch?v=8oZKn5zyriI'},
-  {id:6, titulo:'Convenios de Ginebra', url:'https://www.youtube.com/watch?v=H1tVqB2a_AM'},
-  {id:7, titulo:'Ética médica en zonas de conflicto', url:'https://www.youtube.com/watch?v=pR0BFbZeEb8'}
-];
-
-function avLoad(){
-  try{
-    const raw = localStorage.getItem(AV_KEY);
-    if(raw !== null){
-      const d = JSON.parse(raw);
-      if(Array.isArray(d)) return d;
-    }
-  }catch(e){}
-  // Solo inicializa con defaults si nunca se ha guardado nada
-  localStorage.setItem(AV_KEY, JSON.stringify(AV_DEFAULTS));
-  return AV_DEFAULTS;
-}
-function avSave(data){ localStorage.setItem(AV_KEY, JSON.stringify(data)); }
+let avCache = [];
 
 function avExtractId(url){
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^?&\s]{11})/);
   return m ? m[1] : null;
 }
 
-function avRender(){
-  const videos = avLoad();
+async function avRender(){
   const grid = document.getElementById('av-grid');
   if(!grid) return;
-  if(!videos.length){
+  grid.innerHTML = '<p style="color:var(--muted);text-align:center;padding:2rem">Cargando...</p>';
+  const {data, error} = await supa.from('mm_cap_audiovisual').select('*').order('created_at',{ascending:true});
+  if(error){ grid.innerHTML = `<p style="color:var(--red);padding:1rem">Error: ${error.message}</p>`; return; }
+  avCache = data || [];
+  if(!avCache.length){
     grid.innerHTML = '<p style="color:var(--muted);text-align:center;padding:2rem">No hay videos. Agrega uno con el botón de arriba.</p>';
     return;
   }
-  grid.innerHTML = videos.map(v=>{
+  grid.innerHTML = avCache.map(v=>{
     const vid = avExtractId(v.url);
     const thumb = vid ? `https://img.youtube.com/vi/${vid}/hqdefault.jpg` : '';
     return `<div style="background:var(--card-bg);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column">
@@ -5305,7 +5285,7 @@ function avRender(){
         <p style="font-weight:600;font-size:.88rem;line-height:1.3">${v.titulo}</p>
         <div style="display:flex;gap:.5rem;margin-top:auto">
           <a href="${v.url}" target="_blank" class="btn btn-secondary btn-sm" style="flex:1;text-align:center;font-size:.75rem">Ver video</a>
-          ${S.adminLoggedIn ? `<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;font-size:.75rem" onclick="avEliminar(${v.id})">Eliminar</button>` : ''}
+          ${S.adminLoggedIn ? `<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;font-size:.75rem" onclick="avEliminar('${v.id}')">Eliminar</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -5340,56 +5320,55 @@ function avPreviewar(){
     thumb.style.display = 'none';
   }
 }
-function avGuardar(){
+async function avGuardar(){
   const url = document.getElementById('av-url').value.trim();
   const titulo = document.getElementById('av-titulo').value.trim();
   if(!url){ toast('Ingresa la URL del video.','warn'); return; }
   if(!titulo){ toast('Ingresa un título para el video.','warn'); return; }
   if(!avExtractId(url)){ toast('URL de YouTube no válida.','warn'); return; }
-  const videos = avLoad();
-  videos.push({ id: Date.now(), titulo, url });
-  avSave(videos);
+  const {error} = await supa.from('mm_cap_audiovisual').insert({titulo, url});
+  if(error){ toast('Error: '+error.message,'error'); return; }
   avCerrarModal();
   avRender();
   toast('Video agregado.','ok');
 }
-function avEliminar(id){
+async function avEliminar(id){
   if(!S.adminLoggedIn){ toast('Solo el administrador puede eliminar videos.','warn'); return; }
-  confirmarAccion('¿Eliminar este video?', ()=>{
-    avSave(avLoad().filter(v=>v.id!==id));
+  confirmarAccion('¿Eliminar este video?', async ()=>{
+    await supa.from('mm_cap_audiovisual').delete().eq('id', id);
     avRender();
     toast('Video eliminado.','info');
-  }, 'Eliminar', 'btn-primary');
+  }, 'Eliminar');
 }
 
 /* ─────────────────────────────────────────────
    PRESENTACIONES — CRUD dinámico
 ───────────────────────────────────────────── */
-const PRES_KEY = 'mm_presentaciones';
+let presCache = [];
 
-function presLoad(){ try{ return JSON.parse(localStorage.getItem(PRES_KEY)||'[]'); }catch(e){ return []; } }
-function presSave(d){ localStorage.setItem(PRES_KEY, JSON.stringify(d)); }
-
-function presRender(){
+async function presRender(){
   const lista = document.getElementById('pres-lista');
   if(!lista) return;
-  const items = presLoad();
-  if(!items.length){
+  lista.innerHTML = '<p style="color:var(--muted);text-align:center;padding:2rem">Cargando...</p>';
+  const {data, error} = await supa.from('mm_cap_presentaciones').select('*').order('created_at',{ascending:true});
+  if(error){ lista.innerHTML = `<p style="color:var(--red);padding:1rem">Error: ${error.message}</p>`; return; }
+  presCache = data || [];
+  if(!presCache.length){
     lista.innerHTML = '<p style="color:var(--muted);text-align:center;padding:2rem">No hay presentaciones. Agrega una con el botón de arriba.</p>';
     return;
   }
-  lista.innerHTML = items.map(p=>`
+  lista.innerHTML = presCache.map(p=>`
     <div style="background:var(--card-bg);border-radius:var(--r-xl);padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;margin-bottom:.75rem;box-shadow:var(--shadow-sm)">
       <div style="width:44px;height:44px;background:#f0f4ff;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;flex-shrink:0">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a6fa5" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
       </div>
       <div style="flex:1;min-width:0">
         <p style="font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.titulo}</p>
-        <p style="font-size:.75rem;color:var(--muted)">${p.tipo==='archivo' ? 'Archivo subido' : 'Enlace embed'}</p>
+        <p style="font-size:.75rem;color:var(--muted)">${p.tipo==='archivo' ? p.nombre_archivo||'Archivo subido' : 'Enlace embed'}</p>
       </div>
       <div style="display:flex;gap:.5rem;flex-shrink:0">
-        <button class="btn btn-primary btn-sm" onclick="presVer(${p.id})">Ver</button>
-        ${S.adminLoggedIn ? `<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="presEliminar(${p.id})">Eliminar</button>` : ''}
+        <button class="btn btn-primary btn-sm" onclick="presVer('${p.id}')">Ver</button>
+        ${S.adminLoggedIn ? `<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="presEliminar('${p.id}')">Eliminar</button>` : ''}
       </div>
     </div>
   `).join('');
@@ -5410,11 +5389,11 @@ function presPreviewFile(){
   const file = document.getElementById('pres-file').files[0];
   const info = document.getElementById('pres-file-info');
   if(!file){ info.style.display='none'; return; }
-  if(file.size > 10*1024*1024){ toast('El archivo supera 10 MB.','warn'); document.getElementById('pres-file').value=''; info.style.display='none'; return; }
+  if(file.size > 50*1024*1024){ toast('El archivo supera 50 MB.','warn'); document.getElementById('pres-file').value=''; info.style.display='none'; return; }
   info.textContent = `✓ ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
   info.style.display='block';
 }
-function presGuardar(){
+async function presGuardar(){
   const titulo = document.getElementById('pres-titulo').value.trim();
   const url = document.getElementById('pres-url').value.trim();
   const fileInput = document.getElementById('pres-file');
@@ -5422,36 +5401,37 @@ function presGuardar(){
   if(!url && !fileInput.files.length){ toast('Sube un archivo o ingresa una URL de embed.','warn'); return; }
 
   if(url){
-    const item = { id: Date.now(), titulo, tipo:'url', url };
-    presSave([...presLoad(), item]);
+    const {error} = await supa.from('mm_cap_presentaciones').insert({titulo, tipo:'url', url: presNormalizarUrl(url), nombre_archivo: null});
+    if(error){ toast('Error: '+error.message,'error'); return; }
     presCerrarModal();
     presRender();
     toast('Presentación agregada.','ok');
   } else {
     const file = fileInput.files[0];
-    const reader = new FileReader();
-    reader.onload = e=>{
-      const item = { id: Date.now(), titulo, tipo:'archivo', mimeType: file.type, nombre: file.name, data: e.target.result };
-      try {
-        presSave([...presLoad(), item]);
-      } catch(err){
-        toast('Archivo demasiado grande para guardar. Usa una URL de Google Slides u OneDrive en su lugar.','warn');
-        return;
-      }
-      presCerrarModal();
-      presRender();
-      toast('Presentación cargada.','ok');
-    };
-    reader.readAsDataURL(file);
+    toast('Subiendo archivo...','info');
+    const path = Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const {error: upErr} = await supa.storage.from('mm-presentaciones').upload(path, file, {contentType: file.type, upsert: false});
+    if(upErr){ toast('Error al subir: '+upErr.message,'error'); return; }
+    const {data:{publicUrl}} = supa.storage.from('mm-presentaciones').getPublicUrl(path);
+    const {error} = await supa.from('mm_cap_presentaciones').insert({titulo, tipo:'archivo', url: publicUrl, nombre_archivo: file.name});
+    if(error){ toast('Error: '+error.message,'error'); return; }
+    presCerrarModal();
+    presRender();
+    toast('Presentación cargada.','ok');
   }
 }
-function presEliminar(id){
+async function presEliminar(id){
   if(!S.adminLoggedIn){ return; }
-  confirmarAccion('¿Eliminar esta presentación?', ()=>{
-    presSave(presLoad().filter(p=>p.id!==id));
+  confirmarAccion('¿Eliminar esta presentación?', async ()=>{
+    const item = presCache.find(x=>x.id===id);
+    if(item?.tipo==='archivo'){
+      const match = item.url.match(/\/mm-presentaciones\/(.+)$/);
+      if(match) await supa.storage.from('mm-presentaciones').remove([decodeURIComponent(match[1])]);
+    }
+    await supa.from('mm_cap_presentaciones').delete().eq('id', id);
     presRender();
     toast('Presentación eliminada.','info');
-  }, 'Eliminar', 'btn-primary');
+  }, 'Eliminar');
 }
 /* Convierte cualquier URL de Google Slides al formato embed correcto */
 function presNormalizarUrl(url){
@@ -5464,20 +5444,18 @@ function presNormalizarUrl(url){
 }
 
 function presVer(id){
-  const p = presLoad().find(x=>x.id===id);
+  const p = presCache.find(x=>x.id===id);
   if(!p) return;
   document.getElementById('pres-viewer-title').textContent = p.titulo;
   const iframe = document.getElementById('pres-iframe');
   if(p.tipo==='url'){
     iframe.src = presNormalizarUrl(p.url);
   } else {
-    const blob = dataURLtoBlob(p.data);
-    const burl = URL.createObjectURL(blob);
-    if(p.mimeType==='application/pdf'){
-      iframe.src = burl;
+    const isPdf = p.nombre_archivo && p.nombre_archivo.toLowerCase().endsWith('.pdf');
+    if(isPdf){
+      iframe.src = p.url;
     } else {
-      // Office files: embed via Office Online Viewer
-      iframe.src = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(burl)}`;
+      iframe.src = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(p.url)}`;
     }
   }
   const viewer = document.getElementById('pres-viewer');

@@ -2934,21 +2934,23 @@ function renderConfigCap(){
   const cur = capGetNumPreguntas();
   const el = document.getElementById('apane-config-cap');
   if(!el) return;
-  el.innerHTML = `
-    <h3 style="font-weight:700;font-size:1rem;margin-bottom:.5rem">Configuración del Pre/Postest</h3>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Selecciona cuántas preguntas tendrá la evaluación para la próxima sesión de capacitación. El banco actual tiene <strong>${PREGUNTAS.length} preguntas</strong>.</p>
-    <div style="display:flex;flex-direction:column;gap:.75rem;max-width:340px">
-      ${[5,10,20].map(n=>`
-      <label style="display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border:2px solid ${n===cur?'var(--red)':'var(--border)'};border-radius:var(--r-lg);cursor:pointer;transition:border-color .15s" onclick="capSetNumPreguntas(${n})">
-        <input type="radio" name="cap-num-q" value="${n}" ${n===cur?'checked':''} style="accent-color:var(--red);width:17px;height:17px">
-        <div>
-          <div style="font-weight:700">${n} preguntas</div>
-          <div style="font-size:.78rem;color:var(--muted)">${n===5?'Evaluación rápida (~5 min)':n===10?'Evaluación estándar (~10 min)':'Evaluación completa (~20 min)'}</div>
-        </div>
-      </label>`).join('')}
-      <div id="cap-cfg-alert" style="display:none;padding:.75rem 1rem;border-radius:var(--r-md);background:#fff3cd;border:1px solid #ffc107;font-size:.83rem;color:#664d03;margin-top:.25rem"></div>
-      <div id="cap-cfg-status" style="font-size:.82rem;color:var(--green);font-weight:600;margin-top:.25rem">Configuración actual: ${Math.min(cur,PREGUNTAS.length)} preguntas</div>
-    </div>`;
+  const opciones = [5,10,20].map(function(n){
+    const borde  = n===cur ? 'var(--red)' : 'var(--border)';
+    const chk    = n===cur ? 'checked' : '';
+    const desc   = n===5 ? 'Evaluación rápida (~5 min)' : n===10 ? 'Evaluación estándar (~10 min)' : 'Evaluación completa (~20 min)';
+    return '<label style="display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border:2px solid '+borde+';border-radius:var(--r-lg);cursor:pointer;transition:border-color .15s" onclick="capSetNumPreguntas('+n+')">'
+      + '<input type="radio" name="cap-num-q" value="'+n+'" '+chk+' style="accent-color:var(--red);width:17px;height:17px">'
+      + '<div><div style="font-weight:700">'+n+' preguntas</div>'
+      + '<div style="font-size:.78rem;color:var(--muted)">'+desc+'</div></div>'
+      + '</label>';
+  }).join('');
+  el.innerHTML = '<h3 style="font-weight:700;font-size:1rem;margin-bottom:.5rem">Configuración del Pre/Postest</h3>'
+    + '<p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Selecciona cuántas preguntas tendrá la evaluación para la próxima sesión de capacitación. El banco actual tiene <strong>'+PREGUNTAS.length+' preguntas</strong>.</p>'
+    + '<div style="display:flex;flex-direction:column;gap:.75rem;max-width:340px">'
+    + opciones
+    + '<div id="cap-cfg-alert" style="display:none;padding:.75rem 1rem;border-radius:var(--r-md);background:#fff3cd;border:1px solid #ffc107;font-size:.83rem;color:#664d03;margin-top:.25rem"></div>'
+    + '<div id="cap-cfg-status" style="font-size:.82rem;color:var(--green);font-weight:600;margin-top:.25rem">Configuración actual: '+Math.min(cur,PREGUNTAS.length)+' preguntas</div>'
+    + '</div>';
 }
 
 function capSetNumPreguntas(n){

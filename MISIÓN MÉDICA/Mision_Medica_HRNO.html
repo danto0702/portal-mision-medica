@@ -3658,16 +3658,42 @@ async function loadEmblemasAdmin(){
 async function autorizarEmblema(id, correo, nombre, tipo){
   const {error} = await supa.from('mm_solicitudes_emblemas').update({estado:'autorizado',fecha_autorizacion:new Date().toISOString()}).eq('id',id);
   if(error){ toast('Error: '+error.message,'error'); return; }
-  // Actualizar stock
-  await supa.from('mm_stock_emblemas').update({stock_entregado: supa.rpc('increment',{count:1})}).eq('tipo_emblema',tipo).catch(()=>{});
   // Email
   await callAppsScript({action:'sendEmail',to:correo,subject:`Tu solicitud de ${tipo} Misión Médica fue aprobada — ESE HRNO`,body:`Estimado(a) ${nombre},\n\nTu solicitud de ${tipo} de Misión Médica ha sido APROBADA.\n\nPor favor acércate a la Coordinación de Salud Pública para recibir tu emblema.\n\nRECUERDA:\n• El emblema es de uso exclusivo para actividades de Misión Médica\n• Debes portarlo correctamente durante tus actividades en campo\n• Tienes la OBLIGACIÓN de devolverlo a la institución en cualquier circunstancia, independientemente de su estado de conservación.\n\nAtentamente,\nMisión Médica — ESE HRNO`});
   toast(`${tipo} autorizado. Correo enviado a ${correo}`,'success');
   loadEmblemasAdmin();
 }
 async function rechazarEmblema(id){ const {error}=await supa.from('mm_solicitudes_emblemas').update({estado:'rechazado'}).eq('id',id); if(!error){toast('Rechazado','warn');loadEmblemasAdmin();} }
-async function marcarEntregado(id){ const {error}=await supa.from('mm_solicitudes_emblemas').update({estado:'entregado'}).eq('id',id); if(!error){toast('Marcado como entregado','success');loadEmblemasAdmin();} }
-async function marcarDevuelto(id){ const {error}=await supa.from('mm_solicitudes_emblemas').update({estado:'pendiente',fecha_devolucion:new Date().toISOString()}).eq('id',id); if(!error){toast('Emblema devuelto registrado','info');loadEmblemasAdmin();} }
+async function marcarEntregado(id){
+  const {data:sol} = await supa.from('mm_solicitudes_emblemas').select('tipo_emblema').eq('id',id).single();
+  const {error} = await supa.from('mm_solicitudes_emblemas').update({estado:'entregado',fecha_entrega:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('Error: '+error.message,'error'); return; }
+  if(sol?.tipo_emblema){
+    const {data:st} = await supa.from('mm_stock_emblemas').select('stock_disponible,stock_entregado').eq('tipo_emblema',sol.tipo_emblema).single();
+    if(st) await supa.from('mm_stock_emblemas').update({
+      stock_disponible: Math.max(0, st.stock_disponible - 1),
+      stock_entregado: st.stock_entregado + 1,
+      updated_at: new Date().toISOString()
+    }).eq('tipo_emblema', sol.tipo_emblema);
+  }
+  toast('Marcado como entregado','success');
+  loadEmblemasAdmin();
+}
+async function marcarDevuelto(id){
+  const {data:sol} = await supa.from('mm_solicitudes_emblemas').select('tipo_emblema').eq('id',id).single();
+  const {error} = await supa.from('mm_solicitudes_emblemas').update({estado:'pendiente',fecha_devolucion:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('Error: '+error.message,'error'); return; }
+  if(sol?.tipo_emblema){
+    const {data:st} = await supa.from('mm_stock_emblemas').select('stock_disponible,stock_entregado').eq('tipo_emblema',sol.tipo_emblema).single();
+    if(st) await supa.from('mm_stock_emblemas').update({
+      stock_disponible: st.stock_disponible + 1,
+      stock_entregado: Math.max(0, st.stock_entregado - 1),
+      updated_at: new Date().toISOString()
+    }).eq('tipo_emblema', sol.tipo_emblema);
+  }
+  toast('Emblema devuelto registrado','info');
+  loadEmblemasAdmin();
+}
 
 /* ═══════════════════════════════════════════
    ADMIN: STOCK

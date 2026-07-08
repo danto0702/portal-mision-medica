@@ -1468,6 +1468,14 @@ function renderReportar(){
           <input name="institucion_afectada" class="form-input" required placeholder="Nombre de la institución">
         </div>
         <div class="form-group">
+          <label class="form-label">Nombre de la persona afectada</label>
+          <input name="nombre_afectado" class="form-input" placeholder="Nombre completo del afectado">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono de la persona afectada</label>
+          <input name="telefono_afectado" class="form-input" placeholder="Ej: 310 123 4567">
+        </div>
+        <div class="form-group">
           <label class="form-label">Tipo de institución <span class="req">*</span></label>
           <div class="radio-group">
             <label class="radio-item"><input type="radio" name="tipo_institucion" value="Publica" required> Pública</label>
@@ -3866,7 +3874,7 @@ async function loadSeguimientoNominal(){
   const el = document.getElementById('apane-seguimiento');
   el.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner" style="display:inline-block"></span> Cargando casos...</div>`;
   const [{data:infracciones,error:e1},{data:seguimientos,error:e2}] = await Promise.all([
-    supa.from('mm_infracciones').select('id,radicado,tipo_evento,categoria_evento,municipio_ocurrencia,fecha_ocurrencia').order('fecha_ocurrencia',{ascending:false}),
+    supa.from('mm_infracciones').select('id,radicado,tipo_evento,categoria_evento,municipio_ocurrencia,fecha_ocurrencia,nombre_afectado,telefono_afectado').order('fecha_ocurrencia',{ascending:false}),
     supa.from('mm_seguimiento_infracciones').select('*')
   ]);
   if(e1){ el.innerHTML=`<div style="color:var(--red);padding:1rem">Error al cargar infracciones: ${e1.message}</div>`; return; }
@@ -3897,6 +3905,7 @@ async function loadSeguimientoNominal(){
           <span class="badge ${inf.tipo_evento==='Infracción'?'badge-red':'badge-yellow'}" style="margin-left:.4rem;font-size:.72rem">${inf.tipo_evento}</span>
           <div style="font-size:.8rem;color:var(--muted);margin-top:.2rem">${inf.municipio_ocurrencia} · ${fmtDate(inf.fecha_ocurrencia)}</div>
           <div style="font-size:.78rem;color:var(--muted)">${inf.categoria_evento}</div>
+          ${inf.nombre_afectado?`<div style="font-size:.78rem;margin-top:.25rem"><span style="color:var(--muted)">Afectado:</span> <strong>${inf.nombre_afectado}</strong>${inf.telefono_afectado?' · <a href="tel:'+inf.telefono_afectado+'" style="color:var(--blue)">'+inf.telefono_afectado+'</a>':''}</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:.6rem">
           <span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;font-weight:700;color:${color}">

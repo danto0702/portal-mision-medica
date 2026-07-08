@@ -769,55 +769,55 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
    CARNET VIRTUAL
 ═══════════════════════════════ */
 .carnet-card{
-  background:linear-gradient(135deg,#0d0820 0%,#170826 50%,#1e0b16 100%);
-  border:1px solid rgba(147,51,234,.35);
+  background:#ffffff;
+  border:2px solid var(--red);
   border-radius:var(--r-xl);
   padding:1.625rem;
   max-width:380px;
   position:relative;overflow:hidden;
-  box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 40px rgba(147,51,234,.1);
+  box-shadow:0 4px 20px rgba(218,41,28,.12),0 1px 4px rgba(0,0,0,.06);
 }
 .carnet-card::before{
   content:'';position:absolute;
   top:-60px;right:-60px;
   width:160px;height:160px;
-  background:radial-gradient(circle,rgba(233,69,96,.2),transparent 70%);
+  background:radial-gradient(circle,rgba(218,41,28,.06),transparent 70%);
   border-radius:50%;pointer-events:none;
 }
 .carnet-card::after{
   content:'';position:absolute;
   bottom:-40px;left:-40px;
   width:120px;height:120px;
-  background:radial-gradient(circle,rgba(147,51,234,.15),transparent 70%);
+  background:radial-gradient(circle,rgba(218,41,28,.04),transparent 70%);
   border-radius:50%;pointer-events:none;
 }
 .carnet-header{
   display:flex;align-items:center;gap:.875rem;
   margin-bottom:1.125rem;padding-bottom:1rem;
-  border-bottom:1px solid rgba(147,51,234,.25);
+  border-bottom:1px solid var(--border);
 }
 .carnet-photo{
   width:76px;height:76px;
   border-radius:var(--r-md);
   object-fit:cover;
-  border:2px solid rgba(147,51,234,.5);
+  border:2px solid var(--red);
   flex-shrink:0;
 }
 .carnet-photo-placeholder{
   width:76px;height:76px;
   border-radius:var(--r-md);
-  background:rgba(147,51,234,.1);
-  border:2px dashed rgba(147,51,234,.4);
+  background:rgba(218,41,28,.06);
+  border:2px dashed rgba(218,41,28,.35);
   display:flex;align-items:center;justify-content:center;
-  color:rgba(147,51,234,.7);flex-shrink:0;
+  color:rgba(218,41,28,.6);flex-shrink:0;
 }
 .carnet-body .field{margin-bottom:.5rem}
 .carnet-body .field-label{
   font-size:.62rem;
-  color:rgba(255,255,255,.4);
+  color:var(--muted);
   text-transform:uppercase;letter-spacing:.07em;font-weight:500;
 }
-.carnet-body .field-value{font-size:.9rem;font-weight:600;color:rgba(255,255,255,.9)}
+.carnet-body .field-value{font-size:.9rem;font-weight:600;color:var(--text)}
 
 /* ═══════════════════════════════
    OVERLAYS
@@ -1011,12 +1011,30 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
       <button class="admin-tab" onclick="showAdminPane('stock')" id="atab-stock">Stock</button>
       <button class="admin-tab" onclick="showAdminPane('resultados')" id="atab-resultados">Pre/Postest</button>
       <button class="admin-tab" onclick="showAdminPane('config-pdf')" id="atab-config-pdf">Banners PDF</button>
+      <button class="admin-tab" onclick="showAdminPane('config-cap')" id="atab-config-cap">Config Capacitación</button>
+      <button class="admin-tab" onclick="showAdminPane('seguimiento')" id="atab-seguimiento">Seguimiento Casos</button>
     </div>
     <div id="apane-estadisticas" class="admin-pane active"><!-- inyectado --></div>
     <div id="apane-carnets" class="admin-pane"><!-- inyectado --></div>
     <div id="apane-emblemas-admin" class="admin-pane"><!-- inyectado --></div>
     <div id="apane-stock" class="admin-pane"><!-- inyectado --></div>
     <div id="apane-resultados" class="admin-pane"><!-- inyectado --></div>
+    <div id="apane-config-cap" class="admin-pane">
+      <h3 style="font-weight:700;font-size:1rem;margin-bottom:.5rem">Configuración del Pre/Postest</h3>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Selecciona cuántas preguntas tendrá la evaluación para la próxima sesión de capacitación. El banco actual tiene <strong>${PREGUNTAS.length} preguntas</strong>.</p>
+      <div style="display:flex;flex-direction:column;gap:.75rem;max-width:340px">
+        ${[5,10,20].map(n=>`
+        <label style="display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border:2px solid var(--border);border-radius:var(--r-lg);cursor:pointer;transition:border-color .15s" id="cap-cfg-label-${n}" onclick="capSetNumPreguntas(${n})">
+          <input type="radio" name="cap-num-q" value="${n}" ${n===20?'checked':''} style="accent-color:var(--red);width:17px;height:17px">
+          <div>
+            <div style="font-weight:700">${n} preguntas</div>
+            <div style="font-size:.78rem;color:var(--muted)">${n===5?'Evaluación rápida (~5 min)':n===10?'Evaluación estándar (~10 min)':'Evaluación completa (~20 min)'}</div>
+          </div>
+        </label>`).join('')}
+        <div id="cap-cfg-alert" style="display:none;padding:.75rem 1rem;border-radius:var(--r-md);background:#fff3cd;border:1px solid #ffc107;font-size:.83rem;color:#664d03;margin-top:.25rem"></div>
+        <div id="cap-cfg-status" style="font-size:.82rem;color:var(--green);font-weight:600;margin-top:.25rem"></div>
+      </div>
+    </div>
     <div id="apane-config-pdf" class="admin-pane">
       <h3 style="font-weight:700;font-size:1rem;margin-bottom:1.25rem">Configurar banners</h3>
       <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Personaliza las imágenes de encabezado del módulo y de los PDFs de Gestión Técnica. Formato recomendado: JPG o PNG, ancho mínimo 1200px.</p>
@@ -1061,6 +1079,7 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
           </div>
         </div>
       </div>
+    <div id="apane-seguimiento" class="admin-pane"><!-- inyectado --></div>
     </div>
   </div>
 </div>
@@ -1114,18 +1133,7 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
-<!-- Modal de confirmación genérico -->
-<div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:1.5rem">
-  <div style="background:#fff;border-radius:16px;width:100%;max-width:340px;box-shadow:0 8px 40px rgba(0,0,0,.25);overflow:hidden">
-    <div style="padding:1.4rem 1.5rem 0">
-      <p id="confirm-msg" style="font-size:.95rem;font-weight:600;color:#111;line-height:1.4;margin:0"></p>
-    </div>
-    <div style="display:flex;gap:.75rem;padding:1.25rem 1.5rem;justify-content:flex-end">
-      <button id="confirm-cancel" class="btn btn-secondary btn-sm" onclick="confirmarCerrar(false)">Cancelar</button>
-      <button id="confirm-ok" class="btn btn-primary btn-sm" onclick="confirmarCerrar(true)">Eliminar</button>
-    </div>
-  </div>
-</div>
+<!-- confirm-modal unificado: se usa showConfirm() / closeConfirm() -->
 
 <!-- PDF hidden container -->
 <div id="pdf-hidden" style="position:absolute;left:-9999px;top:-9999px;width:210mm;background:#fff;color:#000;font-family:Arial,sans-serif;font-size:10pt;padding:15mm"></div>
@@ -1354,16 +1362,33 @@ function renderInfo(){
   </div>
 
   <div class="card" style="margin-top:1.5rem;background:rgba(74,111,165,.07);border-color:rgba(74,111,165,.3)">
-    <div class="card-header">Contacto de emergencia — Misión Médica HRNO</div>
-    <div class="grid-3">
+    <div class="card-header">Contactos de emergencia — Misión Médica HRNO</div>
+    <div style="display:flex;flex-direction:column;gap:1rem">
       ${[
-        {label:'Coordinador Misión Médica',val:'Danilo Torrado Blanco'},
-        {label:'Teléfono institucional',val:'310 785 5392'},
-        {label:'Correo',val:'danto0702@gmail.com'},
+        {
+          rol:'Coordinador Misión Médica',
+          nombre:'Danilo Torrado Blanco',
+          tel:'310 785 5392',
+          correo:'danto0702@gmail.com'
+        },
+        {
+          rol:'Subgerente ESE HRNO',
+          nombre:'Carlos Eduardo Bonilla Díaz',
+          tel:'321 336 4594',
+          correo:'subgerencia@esehrno.gov.co'
+        },
+        {
+          rol:'CRUE — Centro Regulador de Urgencias y Emergencias',
+          nombre:'Línea directa Misión Médica',
+          tel:'350 494 6847',
+          correo:'misionmedicaids@gmail.com'
+        },
       ].map(c=>`
-        <div>
-          <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">${c.label}</div>
-          <div style="font-size:.9rem;font-weight:600;margin-top:.2rem">${c.val}</div>
+        <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:.5rem 1.25rem;align-items:center;padding-bottom:.75rem;border-bottom:1px solid var(--border-soft)">
+          <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;grid-column:1/-1">${c.rol}</div>
+          <div style="font-size:.9rem;font-weight:700">${c.nombre}</div>
+          <div style="font-size:.85rem;color:var(--blue)">📞 ${c.tel}</div>
+          <div style="font-size:.82rem;color:var(--muted)">✉ ${c.correo}</div>
         </div>
       `).join('')}
     </div>
@@ -1764,7 +1789,7 @@ function renderEmblemas(){
   <div id="form-carnet-wrap" style="display:none">
     <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
       <button class="btn btn-secondary btn-sm" onclick="mostrarFormEmblema(null)">← Volver</button>
-      <h2 style="font-size:1rem;font-weight:700">Solicitud de Tarjeta de Identificación Misión Médica</h2>
+      <h2 style="font-size:1rem;font-weight:700">Solicitud — Sistema de verificación de integrante de la Misión Médica</h2>
     </div>
     <form id="form-carnet" onsubmit="submitCarnet(event)">
 
@@ -1854,6 +1879,7 @@ function renderEmblemas(){
           <div class="form-group"><label class="form-label">Municipio <span class="req">*</span></label><select name="municipio" class="form-select" required>${selOpts(CFG.MUNICIPIOS,'Seleccione...')}</select></div>
           <div class="form-group"><label class="form-label">Correo electrónico <span class="req">*</span></label><input name="correo" type="email" class="form-input" required></div>
           <div class="form-group"><label class="form-label">Teléfono</label><input name="telefono" type="tel" class="form-input"></div>
+          <div class="form-group"><label class="form-label">Fecha fin de contrato <span class="req">*</span></label><input name="fecha_fin_contrato" type="date" class="form-input" required></div>
         </div>
       </div>
       <div class="card" style="margin-bottom:1rem">
@@ -2437,7 +2463,7 @@ async function guardarAsistenciaDB(){
   const {data:cap, error:e1} = await supa.from('mm_capacitaciones').insert([{titulo,fecha,municipio,lugar,facilitador}]).select().single();
   if(e1){ toast('Error al crear sesión: '+e1.message,'error'); return; }
 
-  const registros = window._asistentes.map(a=>({...a, capacitacion_id:cap.id, _id:undefined}));
+  const registros = window._asistentes.map(({_id,...rest})=>({...rest, capacitacion_id:cap.id}));
   const {error:e2} = await supa.from('mm_asistencia').insert(registros);
   if(e2){ toast('Error al guardar asistentes: '+e2.message,'error'); return; }
   toast(`${window._asistentes.length} participantes guardados en la base de datos.`,'success');
@@ -2906,9 +2932,36 @@ function exportAsistenciaPDF(){
 }
 
 /* ── PRE/POSTEST ── */
+function capGetNumPreguntas(){ return parseInt(localStorage.getItem('mm_pretest_num')||'20'); }
+function capGetActivePreguntas(){
+  const n = capGetNumPreguntas();
+  if(n >= PREGUNTAS.length) return PREGUNTAS;
+  // Selección aleatoria sin repetir
+  const shuffled = [...PREGUNTAS].sort(()=>Math.random()-.5);
+  return shuffled.slice(0, n);
+}
+let _activaPreguntas = null; // fijada al abrir el form, constante durante la sesión
+
+function capSetNumPreguntas(n){
+  const num = parseInt(n);
+  if(PREGUNTAS.length < num){
+    const alertEl = document.getElementById('cap-cfg-alert');
+    if(alertEl){ alertEl.style.display='block'; alertEl.textContent=`El banco solo tiene ${PREGUNTAS.length} preguntas. Se usarán todas las disponibles.`; }
+  } else {
+    const alertEl = document.getElementById('cap-cfg-alert');
+    if(alertEl) alertEl.style.display='none';
+  }
+  localStorage.setItem('mm_pretest_num', num);
+  const statusEl = document.getElementById('cap-cfg-status');
+  if(statusEl) statusEl.textContent = `✓ Guardado: ${Math.min(num,PREGUNTAS.length)} preguntas para la próxima sesión`;
+  document.querySelectorAll('[name="cap-num-q"]').forEach(r=>r.checked=parseInt(r.value)===num);
+}
+
 function renderTestForm(){
+  _activaPreguntas = capGetActivePreguntas();
   const el = document.getElementById('test-container');
   if(!el) return;
+  const pqs = _activaPreguntas;
   el.innerHTML = `
   <form id="form-prepostest" onsubmit="submitPrepostest(event)">
     <div class="card" style="margin-bottom:1rem">
@@ -2927,10 +2980,10 @@ function renderTestForm(){
         <div class="form-group"><label class="form-label">Perfil profesional <span class="req">*</span></label><select name="perfil" class="form-select" required>${selOpts(CFG.PERFILES,'Seleccione...')}</select></div>
       </div>
     </div>
-    <div class="section-title">Preguntas (${PREGUNTAS.length})</div>
-    ${PREGUNTAS.map((p,i)=>`
+    <div class="section-title">Preguntas (${pqs.length})</div>
+    ${pqs.map((p,i)=>`
       <div class="card" style="margin-bottom:.75rem">
-        <div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">Pregunta ${i+1} de ${PREGUNTAS.length}</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">Pregunta ${i+1} de ${pqs.length}</div>
         <div style="font-weight:600;font-size:.92rem;line-height:1.5;margin-bottom:.85rem">${p.q}</div>
         <div style="display:flex;flex-direction:column;gap:.4rem">
           ${p.opts.map((o,j)=>`
@@ -2973,22 +3026,23 @@ async function submitPrepostest(e){
   const perfil = fd.get('perfil');
   const tipo_evaluacion = fd.get('tipo_evaluacion');
 
-  // evaluate
+  // evaluate usando el set activo fijado al abrir el form
+  const pqs = _activaPreguntas || PREGUNTAS;
   let puntaje=0;
   const respuestas={};
-  PREGUNTAS.forEach((p,i)=>{
+  pqs.forEach((p,i)=>{
     const sel=parseInt(fd.get('q'+i));
     const correcto = p.opts[sel]===p.c;
     if(correcto) puntaje++;
     respuestas[i]={seleccionado:sel,opcion:p.opts[sel],correcto,correcta:p.c,rationale:p.r};
   });
-  const porcentaje = ((puntaje/PREGUNTAS.length)*100).toFixed(1);
+  const porcentaje = ((puntaje/pqs.length)*100).toFixed(1);
 
-  const {error} = await supa.from('mm_prepostest').insert([{nombres,numero_documento,municipio,perfil,tipo_evaluacion,respuestas,puntaje,total_preguntas:PREGUNTAS.length,porcentaje}]);
+  const {error} = await supa.from('mm_prepostest').insert([{nombres,numero_documento,municipio,perfil,tipo_evaluacion,respuestas,puntaje,total_preguntas:pqs.length,porcentaje}]);
   if(error){ toast('Error al guardar: '+error.message,'error'); btn.disabled=false; btn.textContent='Enviar Evaluación'; return; }
 
   // Show result
-  mostrarResultadoTest(nombres,tipo_evaluacion,puntaje,PREGUNTAS.length,porcentaje,respuestas);
+  mostrarResultadoTest(nombres,tipo_evaluacion,puntaje,pqs.length,porcentaje,respuestas);
   btn.disabled=false;
   btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Enviar Evaluación';
 }
@@ -3007,7 +3061,7 @@ function mostrarResultadoTest(nombre,tipo,puntaje,total,porcentaje,respuestas){
     </div>
   </div>
   <div class="section-title">Revisión de respuestas</div>
-  ${PREGUNTAS.map((p,i)=>{
+  ${(_activaPreguntas||PREGUNTAS).map((p,i)=>{
     const r=respuestas[i];
     return `<div class="card" style="margin-bottom:.6rem;border-left:3px solid ${r.correcto?'var(--green)':'var(--red)'}">
       <div style="font-size:.78rem;color:var(--muted)">Pregunta ${i+1} · ${r.correcto?'<span style=color:var(--green)>CORRECTO</span>':'<span style=color:var(--red)>INCORRECTO</span>'}</div>
@@ -3084,6 +3138,13 @@ function showAdminPane(id){
   if(id==='emblemas-admin') loadEmblemasAdmin();
   if(id==='stock') loadStock();
   if(id==='resultados') loadResultados();
+  if(id==='seguimiento') loadSeguimientoNominal();
+  if(id==='config-cap'){
+    const cur = capGetNumPreguntas();
+    document.querySelectorAll('[name="cap-num-q"]').forEach(r=>r.checked=parseInt(r.value)===cur);
+    const statusEl = document.getElementById('cap-cfg-status');
+    if(statusEl) statusEl.textContent = `Configuración actual: ${Math.min(cur,PREGUNTAS.length)} preguntas`;
+  }
 }
 function initAdminPanel(){ showAdminPane('estadisticas'); }
 
@@ -3124,7 +3185,8 @@ async function loadEstadisticas(){
   el.innerHTML = `
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
     <div class="section-title" style="margin-bottom:0;flex:1">Estadísticas de Infracciones e Incidentes</div>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-secondary btn-sm" onclick="generarInformeEstadistico()" style="white-space:nowrap">⬇ Informe PDF</button>
       <select id="filt-tipo" class="form-select" style="min-width:140px;padding:.35rem .6rem;font-size:.8rem" onchange="filtrarTabla()">
         <option value="">Todos los tipos</option>
         <option value="Infracción">Solo Infracciones</option>
@@ -3254,6 +3316,179 @@ function filtrarTabla(){
   document.getElementById('tabla-infracciones').innerHTML = renderTablaInfracciones(data);
 }
 
+function generarInformeEstadistico(){
+  const rawData = window._infraccionesData||[];
+  const tipo = document.getElementById('filt-tipo')?.value||'';
+  const cat  = document.getElementById('filt-cat')?.value||'';
+  const mun  = document.getElementById('filt-mun')?.value||'';
+  const anio = document.getElementById('filt-anio')?.value||'';
+  let data = [...rawData];
+  if(tipo) data=data.filter(r=>r.tipo_evento===tipo);
+  if(cat)  data=data.filter(r=>r.categoria_evento===cat);
+  if(mun)  data=data.filter(r=>r.municipio_ocurrencia===mun);
+  if(anio) data=data.filter(r=>r.fecha_ocurrencia?.startsWith(anio));
+  if(!data.length){ toast('No hay datos para el período seleccionado','warn'); return; }
+
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const PW=210, PM=15, cw=PW-PM*2;
+
+  // ── Encabezado rojo ──────────────────────────────────────────────
+  doc.setFillColor(218,41,28); doc.rect(0,0,PW,40,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(255,255,255);
+  doc.text('INFORME ESTADÍSTICO',PW/2,15,{align:'center'});
+  doc.setFontSize(10);
+  doc.text('Infracciones e Incidentes a la Misión Médica',PW/2,23,{align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  doc.text('ESE Hospital Regional Noroccidental — Norte de Santander',PW/2,31,{align:'center'});
+
+  let y = 48;
+  // ── Filtros y fecha de generación ────────────────────────────────
+  const partes = [tipo,cat,mun,anio].filter(Boolean);
+  const filtroTxt = partes.length ? partes.join(' · ') : 'Todos los registros';
+  doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(80,80,80);
+  doc.text('Filtros: '+filtroTxt, PM, y);
+  doc.text('Generado: '+new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'}), PW-PM, y, {align:'right'});
+  y += 8;
+
+  // ── KPIs ─────────────────────────────────────────────────────────
+  const total  = data.length;
+  const infrac = data.filter(r=>r.tipo_evento==='Infracción').length;
+  const incid  = data.filter(r=>r.tipo_evento==='Incidente').length;
+  const nmuns  = new Set(data.map(r=>r.municipio_ocurrencia)).size;
+  const kpis = [{l:'Total eventos',v:total,c:[218,41,28]},{l:'Infracciones',v:infrac,c:[180,83,9]},{l:'Incidentes',v:incid,c:[31,95,191]},{l:'Municipios',v:nmuns,c:[10,143,99]}];
+  const kw=cw/4;
+  kpis.forEach((k,i)=>{
+    const kx=PM+i*kw;
+    doc.setFillColor(245,245,245); doc.rect(kx,y,kw-2,22,'F');
+    doc.setFillColor(...k.c); doc.rect(kx,y,kw-2,2.5,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(17); doc.setTextColor(...k.c);
+    doc.text(String(k.v),kx+(kw-2)/2,y+14,{align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(80,80,80);
+    doc.text(k.l,kx+(kw-2)/2,y+20,{align:'center'});
+  });
+  y += 30;
+
+  // ── Tendencia mensual ────────────────────────────────────────────
+  doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(30,30,30);
+  doc.text('Casos por mes (últimos 12 meses)',PM,y); y+=5;
+  const meses={};
+  for(let i=11;i>=0;i--){const d2=new Date();d2.setMonth(d2.getMonth()-i);const key=`${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}`;meses[key]=0;}
+  data.forEach(r=>{const k=r.fecha_ocurrencia?.slice(0,7);if(meses[k]!==undefined)meses[k]++;});
+  const vals=Object.values(meses); const labels=Object.keys(meses).map(k=>{const[yr,m]=k.split('-');return`${m}/${yr.slice(2)}`;});
+  const maxV=Math.max(...vals,1); const chartH=38, chartW=cw, barW=chartW/labels.length;
+  doc.setDrawColor(220,220,220); doc.setLineWidth(0.15);
+  [0,Math.round(maxV/2),maxV].forEach(v=>{
+    const ly=y+chartH-(v/maxV)*chartH;
+    doc.line(PM,ly,PM+chartW,ly);
+    doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(150,150,150);
+    doc.text(String(v),PM-1,ly+1,{align:'right'});
+  });
+  vals.forEach((v,i)=>{
+    const bx=PM+i*barW+barW*0.12, bw=barW*0.76, bh=maxV>0?(v/maxV)*chartH:0, by=y+chartH-bh;
+    doc.setFillColor(218,41,28); doc.rect(bx,by,bw,bh,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(5);doc.setTextColor(80,80,80);
+    doc.text(labels[i],bx+bw/2,y+chartH+4.5,{align:'center'});
+    if(v>0){doc.setFontSize(6);doc.setTextColor(30,30,30);doc.text(String(v),bx+bw/2,by-1,{align:'center'});}
+  });
+  y+=chartH+14;
+
+  // ── Por tipo ─────────────────────────────────────────────────────
+  if(y>240){doc.addPage();y=PM;}
+  doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(30,30,30);
+  doc.text('Distribución por tipo de evento',PM,y);y+=5;
+  [['Infracción',infrac,[218,41,28]],['Incidente',incid,[180,83,9]]].forEach(([t,cnt,c])=>{
+    const bh=6, bw=total>0?(cnt/total)*(cw*0.65):0;
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(40,40,40);
+    doc.text(t,PM,y+4.3);
+    doc.setFillColor(235,235,235);doc.rect(PM+48,y,cw*0.65,bh,'F');
+    doc.setFillColor(...c);doc.rect(PM+48,y,bw,bh,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(40,40,40);
+    doc.text(`${cnt} (${total>0?Math.round(cnt/total*100):0}%)`,PM+48+cw*0.65+2,y+4.3);
+    y+=bh+3;
+  });
+  y+=5;
+
+  // ── Por categoría ─────────────────────────────────────────────────
+  const catCnts={}; data.forEach(r=>{catCnts[r.categoria_evento]=(catCnts[r.categoria_evento]||0)+1;});
+  const catSort=Object.entries(catCnts).sort((a,b)=>b[1]-a[1]);
+  if(catSort.length){
+    if(y>230){doc.addPage();y=PM;}
+    doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(30,30,30);
+    doc.text('Por categoría de evento',PM,y);y+=5;
+    const maxC=catSort[0][1];
+    const cols=[[218,41,28],[124,58,237],[31,95,191],[180,83,9],[10,143,99],[118,128,140]];
+    catSort.forEach(([c,cnt],i)=>{
+      if(y>270){doc.addPage();y=PM;}
+      const bh=5.5,bw=maxC>0?(cnt/maxC)*(cw*0.58):0;
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(40,40,40);
+      doc.text(c.length>32?c.slice(0,32)+'…':c,PM,y+3.8);
+      doc.setFillColor(235,235,235);doc.rect(PM+62,y,cw*0.58,bh,'F');
+      doc.setFillColor(...cols[i%cols.length]);doc.rect(PM+62,y,bw,bh,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(40,40,40);
+      doc.text(String(cnt),PM+62+cw*0.58+2,y+3.8);
+      y+=bh+2.5;
+    });
+    y+=5;
+  }
+
+  // ── Por municipio ─────────────────────────────────────────────────
+  const munCnts={}; data.forEach(r=>{munCnts[r.municipio_ocurrencia]=(munCnts[r.municipio_ocurrencia]||0)+1;});
+  const munSort=Object.entries(munCnts).sort((a,b)=>b[1]-a[1]);
+  if(munSort.length){
+    if(y>240){doc.addPage();y=PM;}
+    doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(30,30,30);
+    doc.text('Por municipio',PM,y);y+=5;
+    const maxM=munSort[0][1];
+    munSort.forEach(([m,cnt])=>{
+      const bh=6,bw=maxM>0?(cnt/maxM)*(cw*0.68):0;
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(40,40,40);
+      doc.text(m,PM,y+4.3);
+      doc.setFillColor(235,235,235);doc.rect(PM+40,y,cw*0.68,bh,'F');
+      doc.setFillColor(31,95,191);doc.rect(PM+40,y,bw,bh,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(40,40,40);
+      doc.text(String(cnt),PM+40+cw*0.68+2,y+4.3);
+      y+=bh+3;
+    });
+    y+=5;
+  }
+
+  // ── Listado de casos ──────────────────────────────────────────────
+  if(y>210){doc.addPage();y=PM;}
+  doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(30,30,30);
+  doc.text('Listado de eventos registrados',PM,y);y+=5;
+  const headers=['Radicado','Tipo','Municipio','Categoría','Fecha'];
+  const colW=[38,22,28,72,22];
+  const RH=6.5;
+  doc.setFillColor(218,41,28);doc.rect(PM,y,cw,RH,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(255,255,255);
+  let cx=PM;
+  headers.forEach((h,i)=>{doc.text(h,cx+1.5,y+4.3);cx+=colW[i];});
+  y+=RH;
+  data.forEach((r,idx)=>{
+    if(y>275){doc.addPage();y=PM;}
+    if(idx%2===0){doc.setFillColor(249,249,249);doc.rect(PM,y,cw,RH,'F');}
+    doc.setDrawColor(220,220,220);doc.setLineWidth(0.1);doc.rect(PM,y,cw,RH);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(30,30,30);
+    const row=[r.radicado,r.tipo_evento,r.municipio_ocurrencia,(r.categoria_evento||'').slice(0,38),fmtDate(r.fecha_ocurrencia)];
+    cx=PM; row.forEach((v,i)=>{doc.text(String(v||''),cx+1.5,y+4.3,{maxWidth:colW[i]-3});cx+=colW[i];});
+    y+=RH;
+  });
+
+  // ── Footer en todas las páginas ────────────────────────────────────
+  const np=doc.getNumberOfPages();
+  for(let p=1;p<=np;p++){
+    doc.setPage(p);
+    doc.setDrawColor(218,41,28);doc.setLineWidth(0.4);doc.line(PM,285,PW-PM,285);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(150,150,150);
+    doc.text('Sistema de Gestión Misión Médica · ESE HRNO',PM,290);
+    doc.text(`Página ${p} de ${np}`,PW-PM,290,{align:'right'});
+  }
+
+  const now=new Date();
+  doc.save(`Informe_MM_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.pdf`);
+}
+
 /* ═══════════════════════════════════════════
    ADMIN: CARNETS
 ═══════════════════════════════════════════ */
@@ -3365,11 +3600,22 @@ async function loadEmblemasAdmin(){
   const estadoBadge={pendiente:'badge-yellow',autorizado:'badge-blue',entregado:'badge-green',rechazado:'badge-red'};
   const estadoLabel={pendiente:'Pendiente',autorizado:'Autorizado',entregado:'Entregado',rechazado:'Rechazado'};
 
+  function semContrato(fecha){
+    if(!fecha) return '<span style="color:var(--muted);font-size:.75rem">—</span>';
+    const dias = Math.ceil((new Date(fecha+'T00:00:00') - new Date()) / 86400000);
+    const color = dias > 30 ? '#0a8f63' : dias >= 15 ? '#b45309' : '#da291c';
+    const label = dias < 0 ? `Vencido (${Math.abs(dias)}d)` : `${dias}d restantes`;
+    return `<span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.75rem;font-weight:600;color:${color}">
+      <span style="width:9px;height:9px;border-radius:50%;background:${color};flex-shrink:0"></span>
+      ${label}<br><span style="font-size:.68rem;color:var(--muted);font-weight:400">${fmtDate(fecha)}</span>
+    </span>`;
+  }
+
   el.innerHTML = `
   <div class="section-title">Solicitudes de Emblemas de Protección</div>
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Nombre</th><th>Emblema</th><th>Cargo</th><th>Municipio</th><th>Correo</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Nombre</th><th>Emblema</th><th>Cargo</th><th>Municipio</th><th>Correo</th><th>Venc. Contrato</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
       <tbody>
         ${data.length ? data.map(r=>`
           <tr id="emblema-row-${r.id}">
@@ -3378,6 +3624,7 @@ async function loadEmblemasAdmin(){
             <td style="font-size:.82rem">${r.cargo}</td>
             <td>${r.municipio}</td>
             <td style="font-size:.78rem">${r.correo}</td>
+            <td>${semContrato(r.fecha_fin_contrato)}</td>
             <td><span class="badge ${estadoBadge[r.estado]||'badge-yellow'}">${estadoLabel[r.estado]||r.estado}</span></td>
             <td style="color:var(--muted);font-size:.78rem">${fmtDT(r.fecha_solicitud)}</td>
             <td>
@@ -3390,7 +3637,7 @@ async function loadEmblemasAdmin(){
                 ${r.estado==='entregado'?`<button class="btn btn-secondary btn-sm" onclick="marcarDevuelto('${r.id}')">Devuelto</button>`:''}
               </div>
             </td>
-          </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No hay solicitudes.</td></tr>'}
+          </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">No hay solicitudes.</td></tr>'}
       </tbody>
     </table>
   </div>`;
@@ -3598,6 +3845,97 @@ async function loadResultados(){
 }
 
 /* ═══════════════════════════════════════════
+   ADMIN: SEGUIMIENTO NOMINAL INFRACCIONES
+═══════════════════════════════════════════ */
+const SEG_PASOS = [
+  'Fuera de Zona de Riesgo',
+  'Notificación a Central',
+  'Valoración Psicosocial',
+  'Abordaje Familiar',
+  'Reporte a ARL',
+  'Seguimiento',
+  'Retorno a actividades',
+  'Cierre'
+];
+
+async function loadSeguimientoNominal(){
+  const el = document.getElementById('apane-seguimiento');
+  el.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner" style="display:inline-block"></span> Cargando casos...</div>`;
+  const [{data:infracciones,error:e1},{data:seguimientos,error:e2}] = await Promise.all([
+    supa.from('mm_infracciones').select('id,radicado,tipo_evento,categoria_evento,municipio_ocurrencia,fecha_ocurrencia').order('fecha_ocurrencia',{ascending:false}),
+    supa.from('mm_seguimiento_infracciones').select('*')
+  ]);
+  if(e1){ el.innerHTML=`<div style="color:var(--red)">Error: ${e1.message}</div>`; return; }
+  const segMap={};
+  (seguimientos||[]).forEach(s=>{ segMap[s.infraccion_id]=s; });
+
+  const semColor=c=>c<=2?'#da291c':c<=5?'#b45309':'#0a8f63';
+  const semLabel=c=>c<=2?'Inicio':c<=5?'En proceso':'Completado';
+
+  el.innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+    <div class="section-title" style="margin-bottom:0">Seguimiento Nominal de Infracciones e Incidentes</div>
+    <div style="font-size:.82rem;color:var(--muted)">${infracciones?.length||0} casos · Semaforización: rojo 0–2 acciones, amarillo 3–5, verde 6–8</div>
+  </div>
+  <div id="seg-table-wrap">
+  ${(infracciones||[]).map(inf=>{
+    const seg=segMap[inf.id]||{};
+    const pasos=seg.pasos||{};
+    const completados=SEG_PASOS.filter((_,i)=>pasos[i]).length;
+    const color=semColor(completados);
+    return`
+    <div class="card" style="margin-bottom:.85rem;border-left:4px solid ${color}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem">
+        <div>
+          <span style="font-family:monospace;font-size:.82rem;color:var(--blue);font-weight:700">${inf.radicado}</span>
+          <span class="badge ${inf.tipo_evento==='Infracción'?'badge-red':'badge-yellow'}" style="margin-left:.4rem;font-size:.72rem">${inf.tipo_evento}</span>
+          <div style="font-size:.8rem;color:var(--muted);margin-top:.2rem">${inf.municipio_ocurrencia} · ${fmtDate(inf.fecha_ocurrencia)}</div>
+          <div style="font-size:.78rem;color:var(--muted)">${inf.categoria_evento}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.6rem">
+          <span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;font-weight:700;color:${color}">
+            <span style="width:10px;height:10px;border-radius:50%;background:${color}"></span>
+            ${completados}/8 — ${semLabel(completados)}
+          </span>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${SEG_PASOS.map((paso,i)=>{
+          const done=!!pasos[i];
+          return`<label style="display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;cursor:pointer;padding:.3rem .6rem;border-radius:6px;border:1px solid ${done?'#0a8f63':'var(--border)'};background:${done?'rgba(10,143,99,.1)':'transparent'};color:${done?'#0a8f63':'var(--muted)'}">
+            <input type="checkbox" ${done?'checked':''} style="accent-color:#0a8f63;cursor:pointer" onchange="toggleSegPaso('${inf.id}','${seg.id||''}',${i},this.checked)">
+            ${paso}
+          </label>`;
+        }).join('')}
+      </div>
+      ${seg.notas!==undefined?`<div style="margin-top:.6rem;font-size:.78rem;color:var(--muted)">Nota: ${seg.notas}</div>`:''}
+    </div>`;
+  }).join('')}
+  </div>`;
+}
+
+async function toggleSegPaso(infraccionId, segId, pasoIdx, checked){
+  let seg=null, isNew=false;
+  if(segId){
+    const {data}=await supa.from('mm_seguimiento_infracciones').select('*').eq('id',segId).single();
+    seg=data;
+  }
+  if(!seg){
+    const {data}=await supa.from('mm_seguimiento_infracciones').select('*').eq('infraccion_id',infraccionId).single();
+    seg=data;
+  }
+  const pasos=seg?.pasos||{};
+  pasos[pasoIdx]=checked;
+  if(seg?.id){
+    await supa.from('mm_seguimiento_infracciones').update({pasos,updated_at:new Date().toISOString()}).eq('id',seg.id);
+  } else {
+    isNew=true;
+    await supa.from('mm_seguimiento_infracciones').insert({infraccion_id:infraccionId,pasos,updated_at:new Date().toISOString()});
+  }
+  loadSeguimientoNominal();
+}
+
+/* ═══════════════════════════════════════════
    OVERLAY: FOTO CARNET
 ═══════════════════════════════════════════ */
 async function openFotoOverlay(id){
@@ -3777,38 +4115,38 @@ async function openTarjetaOverlay(id){
   content.innerHTML = `
   <div style="max-width:440px;margin:auto">
     <div style="text-align:center;margin-bottom:1.5rem">
-      <h1 style="font-size:1.2rem;font-weight:800">Tarjeta de <span style="color:var(--purple)">Misión Médica</span></h1>
+      <h1 style="font-size:1.05rem;font-weight:800">Sistema de verificación de <span style="color:var(--red)">integrante de la Misión Médica</span></h1>
       <p style="color:var(--muted);font-size:.83rem">ESE Hospital Regional Noroccidental</p>
     </div>
 
     <!-- CARNET CARD -->
     <div id="carnet-render" class="carnet-card" style="margin:auto auto 1.5rem">
       <!-- Header -->
-      <div style="text-align:center;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid rgba(124,29,111,.4)">
+      <div style="text-align:center;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:2px solid var(--red)">
         <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:.25rem">
           <svg style="color:var(--red)" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9 2h6v7h7v6h-7v7H9v-7H2v-6h7z"/></svg>
-          <span style="font-size:.65rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.7)">Misión Médica · ESE HRNO</span>
+          <span style="font-size:.65rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text)">Misión Médica · ESE HRNO</span>
         </div>
-        <div style="font-size:.6rem;color:rgba(255,255,255,.5);letter-spacing:.05em">Norte de Santander · Colombia</div>
+        <div style="font-size:.6rem;color:var(--muted);letter-spacing:.05em">Norte de Santander · Colombia</div>
       </div>
       <!-- Body -->
       <div style="display:flex;gap:1rem;align-items:flex-start;margin-bottom:1rem">
-        <img src="${data.foto_url}" alt="Foto" style="width:80px;height:80px;border-radius:8px;object-fit:cover;border:2px solid var(--purple);flex-shrink:0">
+        <img src="${data.foto_url}" alt="Foto" style="width:80px;height:80px;border-radius:8px;object-fit:cover;border:2px solid var(--red);flex-shrink:0">
         <div style="flex:1">
-          <div style="font-size:1rem;font-weight:800;line-height:1.2;margin-bottom:.4rem">${data.nombres}<br>${data.apellidos}</div>
-          <div style="font-size:.72rem;color:rgba(255,255,255,.6);margin-bottom:.2rem">${data.cargo}</div>
-          <div style="font-size:.72rem;color:rgba(255,255,255,.5)">${data.tipo_documento}: <span style="color:rgba(255,255,255,.8)">${data.numero_documento}</span></div>
-          <div style="font-size:.72rem;color:rgba(255,255,255,.5)">Municipio: <span style="color:rgba(255,255,255,.8)">${data.municipio}</span></div>
+          <div style="font-size:1rem;font-weight:800;line-height:1.2;margin-bottom:.4rem;color:var(--text)">${data.nombres}<br>${data.apellidos}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:.2rem">${data.cargo}</div>
+          <div style="font-size:.72rem;color:var(--muted)">${data.tipo_documento}: <span style="color:var(--text);font-weight:600">${data.numero_documento}</span></div>
+          <div style="font-size:.72rem;color:var(--muted)">Municipio: <span style="color:var(--text);font-weight:600">${data.municipio}</span></div>
         </div>
       </div>
       <!-- Footer -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:.75rem;border-top:1px solid rgba(124,29,111,.4)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:.75rem;border-top:1px solid var(--border)">
         <div>
-          <div style="font-size:.6rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em">N° Carnet</div>
-          <div style="font-size:.82rem;font-weight:700;font-family:monospace;color:var(--purple)">${data.numero_carnet}</div>
-          <div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-top:.2rem">Válido institucional</div>
+          <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Número de Validación</div>
+          <div style="font-size:.82rem;font-weight:700;font-family:monospace;color:var(--red)">${data.numero_carnet}</div>
+          <div style="font-size:.62rem;color:var(--muted);margin-top:.2rem">Válido institucional</div>
         </div>
-        <div id="qr-code-container" style="background:#fff;padding:6px;border-radius:8px;width:120px;height:120px;flex-shrink:0"></div>
+        <div id="qr-code-container" style="background:#fff;padding:6px;border-radius:8px;border:1px solid var(--border);width:120px;height:120px;flex-shrink:0"></div>
       </div>
     </div>
 
@@ -4090,6 +4428,7 @@ function renderGestion(){
   <div class="gt-tabs">
     <button class="gt-tab active" id="gt-tab-riesgos" onclick="gtShowTab('riesgos')">Matriz de Riesgos</button>
     <button class="gt-tab" id="gt-tab-contingencia" onclick="gtShowTab('contingencia')">Plan de Contingencia</button>
+    <button class="gt-tab" id="gt-tab-emblemas-seg" onclick="gtShowTab('emblemas-seg')">Seguimiento Emblemas</button>
   </div>
 
   <!-- ═══ MATRIZ DE RIESGOS ═══ -->
@@ -4128,6 +4467,66 @@ function renderGestion(){
       </div>
     </div>
     <div id="gt-contingencia-table" class="table-wrap"></div>
+  </div>
+
+  <!-- ═══ SEGUIMIENTO EMBLEMAS ═══ -->
+  <div id="gt-pane-emblemas-seg" style="display:none">
+    <div id="seg-emb-kpi" class="gt-kpi-grid"></div>
+    <div class="gt-action-bar">
+      <div style="font-size:.85rem;color:var(--muted)">Vehículos y edificios con emblemas registrados.</div>
+      <button class="btn btn-primary btn-sm" onclick="segEmbAbrirModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Registrar vehículo / edificio
+      </button>
+    </div>
+    <div id="seg-emb-table" class="table-wrap"></div>
+  </div>
+
+  <!-- Modal seguimiento emblemas -->
+  <div id="seg-emb-modal" class="gt-modal-overlay" onclick="if(event.target===this)segEmbCerrarModal()">
+    <div class="gt-modal">
+      <div class="gt-modal-header">
+        <h3 id="seg-emb-modal-title" style="font-weight:700;font-size:1rem">Registrar vehículo / edificio</h3>
+        <button onclick="segEmbCerrarModal()" style="background:none;border:none;cursor:pointer;color:var(--muted)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="gt-modal-body">
+        <input type="hidden" id="seg-emb-id">
+        <div class="grid-2">
+          <div class="form-group"><label class="form-label">Tipo <span class="req">*</span></label>
+            <select id="seg-emb-tipo" class="form-select" onchange="segEmbActualizarSubtipo()">
+              <option value="vehiculo">Vehículo</option>
+              <option value="edificio">Edificio</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Subtipo <span class="req">*</span></label>
+            <select id="seg-emb-subtipo" class="form-select">
+              <option value="ambulancia">Ambulancia</option>
+              <option value="camioneta">Camioneta</option>
+            </select></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group"><label class="form-label" id="seg-emb-placa-lbl">Placa <span class="req">*</span></label>
+            <input id="seg-emb-placa" class="form-input" placeholder="Ej: ABC-123 o Nombre edificio"></div>
+          <div class="form-group"><label class="form-label">Municipio</label>
+            <select id="seg-emb-municipio" class="form-select">${selOpts(CFG.MUNICIPIOS,'Seleccione...')}</select></div>
+        </div>
+        <div class="grid-3" id="seg-emb-extra-wrap">
+          <div class="form-group"><label class="form-label">Marca</label><input id="seg-emb-marca" class="form-input" placeholder="Ej: Toyota"></div>
+          <div class="form-group"><label class="form-label">Año</label><input id="seg-emb-anio" type="number" min="1990" max="2030" class="form-input"></div>
+          <div class="form-group"><label class="form-label">Modelo</label><input id="seg-emb-modelo" class="form-input" placeholder="Ej: Hilux"></div>
+        </div>
+        <div class="form-group"><label class="form-label" style="font-weight:700;color:var(--text);margin-bottom:.5rem">Estado de emblemas</label>
+          <div id="seg-emb-emblemas-form" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.5rem"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Observaciones</label>
+          <textarea id="seg-emb-obs" class="form-input" rows="2" style="resize:vertical" placeholder="Notas adicionales..."></textarea></div>
+      </div>
+      <div class="gt-modal-footer">
+        <button class="btn btn-secondary" onclick="segEmbCerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="segEmbGuardar()">Guardar</button>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ MODAL RIESGO ═══ -->
@@ -4224,10 +4623,167 @@ function renderGestion(){
 
 // ── Cambio de tabs ─────────────────────────────────────────────
 function gtShowTab(t){
-  document.getElementById('gt-pane-riesgos').style.display      = t==='riesgos'      ? 'block' : 'none';
-  document.getElementById('gt-pane-contingencia').style.display = t==='contingencia'  ? 'block' : 'none';
-  document.getElementById('gt-tab-riesgos').classList.toggle('active',      t==='riesgos');
-  document.getElementById('gt-tab-contingencia').classList.toggle('active', t==='contingencia');
+  document.getElementById('gt-pane-riesgos').style.display       = t==='riesgos'       ? 'block' : 'none';
+  document.getElementById('gt-pane-contingencia').style.display  = t==='contingencia'  ? 'block' : 'none';
+  document.getElementById('gt-pane-emblemas-seg').style.display  = t==='emblemas-seg'  ? 'block' : 'none';
+  document.getElementById('gt-tab-riesgos').classList.toggle('active',       t==='riesgos');
+  document.getElementById('gt-tab-contingencia').classList.toggle('active',  t==='contingencia');
+  document.getElementById('gt-tab-emblemas-seg').classList.toggle('active',  t==='emblemas-seg');
+  if(t==='emblemas-seg') loadEmblemasSeguimiento();
+}
+
+/* ═══════════════════════════════════════════
+   GESTIÓN: SEGUIMIENTO EMBLEMAS EN CAMPO
+═══════════════════════════════════════════ */
+const SEG_EMB_POSICIONES = {
+  vehiculo: ['techo','lateral_der','lateral_izq','capo','trasero'],
+  edificio: ['techo','frente','lateral_der','lateral_izq','trasero']
+};
+const SEG_EMB_LABELS = {techo:'Techo',lateral_der:'Lateral der.',lateral_izq:'Lateral izq.',capo:'Capó',trasero:'Trasero',frente:'Frente'};
+const SEG_EMB_ESTADOS = ['Bueno','Deteriorado','Ausente'];
+
+async function loadEmblemasSeguimiento(){
+  const elKpi = document.getElementById('seg-emb-kpi');
+  const elTbl = document.getElementById('seg-emb-table');
+  elKpi.innerHTML=''; elTbl.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner" style="display:inline-block"></span></div>`;
+  const {data,error} = await supa.from('mm_emblemas_seguimiento').select('*').order('created_at',{ascending:false});
+  if(error){ elTbl.innerHTML=`<div style="color:var(--red)">Error: ${error.message}</div>`; return; }
+  window._segEmbData = data||[];
+
+  const vehiculos = (data||[]).filter(r=>r.tipo==='vehiculo');
+  const edificios = (data||[]).filter(r=>r.tipo==='edificio');
+  const totalFaltantes = (data||[]).reduce((s,r)=>{ const pos=SEG_EMB_POSICIONES[r.tipo]||[]; return s+pos.filter(p=>(r.emblemas||{})[p]==='Ausente').length; },0);
+  const totalDeterioro = (data||[]).reduce((s,r)=>{ const pos=SEG_EMB_POSICIONES[r.tipo]||[]; return s+pos.filter(p=>(r.emblemas||{})[p]==='Deteriorado').length; },0);
+
+  elKpi.innerHTML=`
+  <div class="gt-kpi-card"><div class="gt-kpi-val" style="color:var(--blue)">${vehiculos.length}</div><div class="gt-kpi-label">Vehículos</div></div>
+  <div class="gt-kpi-card"><div class="gt-kpi-val" style="color:var(--purple)">${edificios.length}</div><div class="gt-kpi-label">Edificios</div></div>
+  <div class="gt-kpi-card"><div class="gt-kpi-val" style="color:var(--red)">${totalFaltantes}</div><div class="gt-kpi-label">Emblemas ausentes</div></div>
+  <div class="gt-kpi-card"><div class="gt-kpi-val" style="color:var(--yellow)">${totalDeterioro}</div><div class="gt-kpi-label">Deteriorados</div></div>`;
+
+  if(!(data||[]).length){
+    elTbl.innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted)">No hay registros. Haz clic en "Registrar vehículo / edificio" para comenzar.</div>';
+    return;
+  }
+
+  function estadoGeneral(r){
+    const pos=SEG_EMB_POSICIONES[r.tipo]||[], emb=r.emblemas||{};
+    if(pos.some(p=>emb[p]==='Ausente')) return{color:'#da291c',label:'Incompleto'};
+    if(pos.some(p=>emb[p]==='Deteriorado')) return{color:'#b45309',label:'Deteriorado'};
+    if(pos.every(p=>emb[p]==='Bueno')) return{color:'#0a8f63',label:'Completo'};
+    return{color:'#76808c',label:'Sin registrar'};
+  }
+
+  elTbl.innerHTML=`<table class="data-table">
+    <thead><tr><th>Tipo</th><th>Subtipo</th><th>Placa / Nombre</th><th>Municipio</th><th>Marca / Modelo</th><th>Estado</th><th>Faltantes</th><th>Acciones</th></tr></thead>
+    <tbody>${(data||[]).map(r=>{
+      const pos=SEG_EMB_POSICIONES[r.tipo]||[], emb=r.emblemas||{};
+      const faltantes=pos.filter(p=>emb[p]==='Ausente').length;
+      const est=estadoGeneral(r);
+      return`<tr>
+        <td><span class="badge ${r.tipo==='vehiculo'?'badge-blue':'badge-purple'}">${r.tipo==='vehiculo'?'Vehículo':'Edificio'}</span></td>
+        <td style="font-size:.82rem;text-transform:capitalize">${(r.subtipo||'').replace('_',' ')}</td>
+        <td style="font-weight:700">${r.placa_o_nombre}</td>
+        <td style="font-size:.82rem">${r.municipio||'—'}</td>
+        <td style="font-size:.78rem;color:var(--muted)">${[r.marca,r.modelo,r.anio].filter(Boolean).join(' ')||'—'}</td>
+        <td><span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;font-weight:700;color:${est.color}"><span style="width:9px;height:9px;border-radius:50%;background:${est.color}"></span>${est.label}</span>
+          <div style="font-size:.68rem;color:var(--muted);margin-top:.15rem">${pos.map(p=>`${SEG_EMB_LABELS[p]}:${emb[p]||'—'}`).join(' · ')}</div></td>
+        <td style="font-weight:700;color:${faltantes>0?'#da291c':'#0a8f63'}">${faltantes}</td>
+        <td><div style="display:flex;gap:.3rem">
+          <button class="btn btn-secondary btn-sm" onclick="segEmbAbrirModal('${r.id}')">Editar</button>
+          <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="segEmbEliminar('${r.id}')">Eliminar</button>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+function segEmbActualizarSubtipo(){
+  const tipo=document.getElementById('seg-emb-tipo').value;
+  const sel=document.getElementById('seg-emb-subtipo');
+  const plEl=document.getElementById('seg-emb-placa-lbl');
+  const extra=document.getElementById('seg-emb-extra-wrap');
+  if(tipo==='vehiculo'){
+    sel.innerHTML='<option value="ambulancia">Ambulancia</option><option value="camioneta">Camioneta</option>';
+    plEl.textContent='Placa *'; extra.style.display='grid';
+  } else {
+    sel.innerHTML='<option value="hospital">Hospital</option><option value="puesto_salud">Puesto de salud</option>';
+    plEl.textContent='Nombre del edificio *'; extra.style.display='none';
+  }
+  segEmbActualizarFormEmblemas();
+}
+
+function segEmbActualizarFormEmblemas(emblemas){
+  const tipo=document.getElementById('seg-emb-tipo').value;
+  const pos=SEG_EMB_POSICIONES[tipo]||[];
+  const emb=emblemas||{};
+  document.getElementById('seg-emb-emblemas-form').innerHTML=pos.map(p=>`
+    <div style="background:var(--bg-soft);border-radius:var(--r-md);padding:.6rem">
+      <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:.3rem">${SEG_EMB_LABELS[p]}</div>
+      <select class="form-select" style="font-size:.8rem;padding:.3rem" id="seg-emb-pos-${p}">
+        <option value="">Sin registrar</option>
+        ${SEG_EMB_ESTADOS.map(e=>`<option value="${e}" ${emb[p]===e?'selected':''}>${e}</option>`).join('')}
+      </select>
+    </div>`).join('');
+}
+
+function segEmbAbrirModal(id){
+  const r=id ? (window._segEmbData||[]).find(x=>x.id===id) : null;
+  document.getElementById('seg-emb-modal-title').textContent=r?'Editar registro':'Registrar vehículo / edificio';
+  document.getElementById('seg-emb-id').value=r?.id||'';
+  document.getElementById('seg-emb-tipo').value=r?.tipo||'vehiculo';
+  segEmbActualizarSubtipo();
+  if(r){
+    document.getElementById('seg-emb-subtipo').value=r.subtipo||'ambulancia';
+    document.getElementById('seg-emb-placa').value=r.placa_o_nombre||'';
+    document.getElementById('seg-emb-municipio').value=r.municipio||'';
+    document.getElementById('seg-emb-marca').value=r.marca||'';
+    document.getElementById('seg-emb-anio').value=r.anio||'';
+    document.getElementById('seg-emb-modelo').value=r.modelo||'';
+    document.getElementById('seg-emb-obs').value=r.observaciones||'';
+    segEmbActualizarFormEmblemas(r.emblemas||{});
+  } else {
+    ['placa','marca','anio','modelo','obs'].forEach(f=>{ document.getElementById('seg-emb-'+f).value=''; });
+    document.getElementById('seg-emb-municipio').value='';
+    segEmbActualizarFormEmblemas({});
+  }
+  document.getElementById('seg-emb-modal').style.display='flex';
+}
+
+function segEmbCerrarModal(){
+  document.getElementById('seg-emb-modal').style.display='none';
+}
+
+async function segEmbGuardar(){
+  const tipo=document.getElementById('seg-emb-tipo').value;
+  const placa=document.getElementById('seg-emb-placa').value.trim();
+  if(!placa){ toast('Ingresa placa o nombre','warn'); return; }
+  const pos=SEG_EMB_POSICIONES[tipo]||[];
+  const emblemas={};
+  pos.forEach(p=>{ const v=document.getElementById(`seg-emb-pos-${p}`)?.value||''; if(v) emblemas[p]=v; });
+  const payload={
+    tipo, subtipo:document.getElementById('seg-emb-subtipo').value,
+    placa_o_nombre:placa, municipio:document.getElementById('seg-emb-municipio').value||null,
+    marca:document.getElementById('seg-emb-marca').value.trim()||null,
+    anio:parseInt(document.getElementById('seg-emb-anio').value)||null,
+    modelo:document.getElementById('seg-emb-modelo').value.trim()||null,
+    observaciones:document.getElementById('seg-emb-obs').value.trim()||null,
+    emblemas, updated_at:new Date().toISOString()
+  };
+  const id=document.getElementById('seg-emb-id').value;
+  const {error}=id
+    ? await supa.from('mm_emblemas_seguimiento').update(payload).eq('id',id)
+    : await supa.from('mm_emblemas_seguimiento').insert(payload);
+  if(error){ toast('Error: '+error.message,'error'); return; }
+  toast(id?'Actualizado':'Guardado','success');
+  segEmbCerrarModal(); loadEmblemasSeguimiento();
+}
+
+async function segEmbEliminar(id){
+  showConfirm('Eliminar registro','¿Eliminar este registro de seguimiento?',async()=>{
+    const {error}=await supa.from('mm_emblemas_seguimiento').delete().eq('id',id);
+    if(error){ toast('Error: '+error.message,'error'); return; }
+    toast('Eliminado','warn'); loadEmblemasSeguimiento();
+  },'Eliminar','btn-secondary');
 }
 
 // ── MATRIZ DE RIESGOS ──────────────────────────────────────────
@@ -4513,11 +5069,42 @@ function gtImprimirContingencia(){
   gtSetPrintBanner(BANNER_CONTINGENCIA_KEY);
   document.getElementById('gt-pane-riesgos').style.display = 'none';
   document.getElementById('gt-pane-contingencia').style.display = 'block';
+
+  // Inyectar soportes de imagen en sección solo-impresión
+  let soportesEl = document.getElementById('gt-print-soportes');
+  if(!soportesEl){
+    soportesEl = document.createElement('div');
+    soportesEl.id = 'gt-print-soportes';
+    document.getElementById('gt-pane-contingencia').appendChild(soportesEl);
+  }
+  const data = gtLoad('mm_contingencia');
+  const conSoportes = data.filter(r=>(r.soportes||[]).some(s=>s.type&&s.type.startsWith('image/')));
+  if(conSoportes.length){
+    soportesEl.innerHTML = `
+      <div style="margin-top:1.5rem;page-break-before:always">
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:1rem;border-bottom:2px solid #da291c;padding-bottom:.4rem">Soportes fotográficos adjuntos</div>
+        ${conSoportes.map((r,i)=>`
+          <div style="margin-bottom:1.25rem">
+            <div style="font-size:.78rem;font-weight:600;color:#444;margin-bottom:.5rem">${i+1}. ${r.actividad} — ${r.responsable}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+              ${r.soportes.filter(s=>s.type&&s.type.startsWith('image/')).map(s=>`
+                <div style="text-align:center">
+                  <img src="${s.data}" style="max-width:220px;max-height:160px;border:1px solid #ddd;border-radius:4px;display:block">
+                  <span style="font-size:.65rem;color:#777">${s.name}</span>
+                </div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>`;
+  } else {
+    soportesEl.innerHTML = '';
+  }
+
   window.print();
   setTimeout(()=>{
     document.getElementById('gt-pane-riesgos').style.display = 'block';
-    const el = document.getElementById('gt-print-banner');
-    if(el) el.style.display = 'none';
+    const banEl = document.getElementById('gt-print-banner');
+    if(banEl) banEl.style.display = 'none';
+    if(soportesEl) soportesEl.innerHTML = '';
   }, 500);
 }
 
@@ -4583,20 +5170,11 @@ function avRender(){
   }).join('');
 }
 
-/* Diálogo de confirmación reutilizable (sin window.confirm) */
-let _confirmCb = null;
+/* Diálogo de confirmación — delega al sistema showConfirm() unificado */
 function confirmarAccion(msg, cb, btnLabel){
-  _confirmCb = cb;
-  document.getElementById('confirm-msg').textContent = msg;
-  document.getElementById('confirm-ok').textContent = btnLabel || 'Eliminar';
-  const el = document.getElementById('confirm-modal');
-  el.style.display = 'flex';
+  showConfirm('¿Confirmar acción?', msg, cb, btnLabel||'Eliminar');
 }
-function confirmarCerrar(ok){
-  document.getElementById('confirm-modal').style.display = 'none';
-  if(ok && _confirmCb) _confirmCb();
-  _confirmCb = null;
-}
+function confirmarCerrar(ok){ if(ok) confirmOk(); else closeConfirm(); }
 
 function avAbrirModal(){
   if(!S.adminLoggedIn){ toast('Solo el administrador puede agregar videos.','warn'); return; }

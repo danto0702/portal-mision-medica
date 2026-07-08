@@ -4438,9 +4438,9 @@ function handleRoute(){
    MÓDULO: GESTIÓN TÉCNICA — Matriz de Riesgos + Plan Contingencia
 ═══════════════════════════════════════════════════════════════ */
 
-// ── Helpers de almacenamiento ──────────────────────────────────
-function gtLoad(key){ try{ return JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){ return []; } }
-function gtSave(key,data){ localStorage.setItem(key, JSON.stringify(data)); }
+// ── Cache local (poblado desde Supabase) ──────────────────────
+let gtRiesgosCache = [];
+let gtContingenciaCache = [];
 
 // ── Nivel de riesgo (prob × impacto) ──────────────────────────
 function nivelRiesgo(p, i){
@@ -4929,8 +4929,13 @@ async function segEmbEliminar(id){
 }
 
 // ── MATRIZ DE RIESGOS ──────────────────────────────────────────
-function gtRenderRiesgos(){
-  const data = gtLoad('mm_riesgos');
+async function gtRenderRiesgos(){
+  const tEl2 = document.getElementById('gt-riesgos-table');
+  if(tEl2) tEl2.innerHTML = '<div style="text-align:center;padding:2.5rem;color:var(--muted)">Cargando...</div>';
+  const {data: rData, error: rErr} = await supa.from('mm_riesgos').select('*').order('fecha',{ascending:true});
+  if(rErr){ if(tEl2) tEl2.innerHTML = `<div style="color:var(--red);padding:1rem">Error: ${rErr.message}</div>`; return; }
+  gtRiesgosCache = rData || [];
+  const data = gtRiesgosCache;
   const total    = data.length;
   const criticos = data.filter(r=>nivelRiesgo(r.probabilidad,r.impacto).label==='Crítico').length;
   const altos    = data.filter(r=>nivelRiesgo(r.probabilidad,r.impacto).label==='Alto').length;
@@ -4990,7 +4995,7 @@ function gtAbrirModalRiesgo(id){
   if(!S.adminLoggedIn){ toast('Solo el administrador puede editar.','warn'); return; }
   document.getElementById('gt-nivel-preview').innerHTML = '';
   if(id){
-    const r = gtLoad('mm_riesgos').find(x=>x.id===id);
+    const r = gtRiesgosCache.find(x=>x.id===id);
     if(!r) return;
     document.getElementById('gt-modal-riesgo-title').textContent = 'Editar Riesgo';
     document.getElementById('gt-r-id').value          = r.id;
@@ -5011,7 +5016,7 @@ function gtAbrirModalRiesgo(id){
 
 function gtCerrarModalRiesgo(){ document.getElementById('gt-modal-riesgo').classList.remove('active'); }
 
-function gtGuardarRiesgo(){
+async function gtGuardarRiesgo(){
   const riesgo     = document.getElementById('gt-r-riesgo').value.trim();
   const prob       = document.getElementById('gt-r-prob').value;
   const impacto    = document.getElementById('gt-r-impacto').value;
@@ -5020,23 +5025,24 @@ function gtGuardarRiesgo(){
   const estado     = document.getElementById('gt-r-estado').value;
   if(!riesgo||!prob||!impacto||!medida||!responsable){ toast('Completa todos los campos requeridos.','warn'); return; }
   const id = document.getElementById('gt-r-id').value;
-  let data = gtLoad('mm_riesgos');
   const now = new Date().toISOString();
   if(id){
-    data = data.map(r=>r.id===id ? {...r, riesgo, probabilidad:Number(prob), impacto:Number(impacto), medida_control:medida, responsable, estado, fecha_actualizacion:now} : r);
+    const {error} = await supa.from('mm_riesgos').update({riesgo, probabilidad:Number(prob), impacto:Number(impacto), medida_control:medida, responsable, estado, fecha_actualizacion:now}).eq('id',id);
+    if(error){ toast('Error: '+error.message,'error'); return; }
     toast('Riesgo actualizado.','success');
   } else {
-    data.push({id:'r_'+Date.now(), riesgo, probabilidad:Number(prob), impacto:Number(impacto), medida_control:medida, responsable, estado, fecha:now, fecha_actualizacion:now});
+    const {error} = await supa.from('mm_riesgos').insert({riesgo, probabilidad:Number(prob), impacto:Number(impacto), medida_control:medida, responsable, estado, fecha:now, fecha_actualizacion:now});
+    if(error){ toast('Error: '+error.message,'error'); return; }
     toast('Riesgo registrado.','success');
   }
-  gtSave('mm_riesgos', data);
   gtCerrarModalRiesgo();
   gtRenderRiesgos();
 }
 
 function gtEliminarRiesgo(id){
-  showConfirm('Eliminar riesgo','¿Seguro que deseas eliminar este riesgo? Esta acción no se puede deshacer.',()=>{
-    gtSave('mm_riesgos', gtLoad('mm_riesgos').filter(r=>r.id!==id));
+  showConfirm('Eliminar riesgo','¿Seguro que deseas eliminar este riesgo? Esta acción no se puede deshacer.',async ()=>{
+    const {error} = await supa.from('mm_riesgos').delete().eq('id',id);
+    if(error){ toast('Error: '+error.message,'error'); return; }
     toast('Riesgo eliminado.','info');
     gtRenderRiesgos();
   },'Eliminar','btn-primary');
@@ -5072,8 +5078,13 @@ function gtImprimirRiesgos(){
 // ── PLAN DE CONTINGENCIA ───────────────────────────────────────
 let _gtSoportesTemp = [];
 
-function gtRenderContingencia(){
-  const data = gtLoad('mm_contingencia');
+async function gtRenderContingencia(){
+  const cTel = document.getElementById('gt-contingencia-table');
+  if(cTel) cTel.innerHTML = '<div style="text-align:center;padding:2.5rem;color:var(--muted)">Cargando...</div>';
+  const {data: cData, error: cErr} = await supa.from('mm_contingencia').select('*').order('fecha',{ascending:true});
+  if(cErr){ if(cTel) cTel.innerHTML = `<div style="color:var(--red);padding:1rem">Error: ${cErr.message}</div>`; return; }
+  gtContingenciaCache = cData || [];
+  const data = gtContingenciaCache;
   const hoy  = new Date().toISOString().split('T')[0];
   const total     = data.length;
   const completadas = data.filter(r=>r.estado==='Completado').length;
@@ -5156,7 +5167,7 @@ function gtAbrirModalContingencia(id){
   _gtSoportesTemp = [];
   gtRenderSoportesPreview();
   if(id){
-    const r = gtLoad('mm_contingencia').find(x=>x.id===id);
+    const r = gtContingenciaCache.find(x=>x.id===id);
     if(!r) return;
     document.getElementById('gt-modal-cont-title').textContent = 'Editar Actividad';
     document.getElementById('gt-c-id').value          = r.id;
@@ -5177,7 +5188,7 @@ function gtAbrirModalContingencia(id){
 
 function gtCerrarModalContingencia(){ document.getElementById('gt-modal-contingencia').classList.remove('active'); }
 
-function gtGuardarContingencia(){
+async function gtGuardarContingencia(){
   const actividad   = document.getElementById('gt-c-actividad').value.trim();
   const responsable = document.getElementById('gt-c-responsable').value.trim();
   const plazo       = document.getElementById('gt-c-plazo').value;
@@ -5185,23 +5196,25 @@ function gtGuardarContingencia(){
   const observaciones = document.getElementById('gt-c-obs').value.trim();
   if(!actividad||!responsable||!plazo){ toast('Completa actividad, responsable y plazo.','warn'); return; }
   const id = document.getElementById('gt-c-id').value;
-  let data = gtLoad('mm_contingencia');
   const now = new Date().toISOString();
+  const soportes = [..._gtSoportesTemp];
   if(id){
-    data = data.map(r=>r.id===id ? {...r, actividad, responsable, plazo, estado, observaciones, soportes:[..._gtSoportesTemp], fecha_actualizacion:now} : r);
+    const {error} = await supa.from('mm_contingencia').update({actividad, responsable, plazo, estado, observaciones, soportes, fecha_actualizacion:now}).eq('id',id);
+    if(error){ toast('Error: '+error.message,'error'); return; }
     toast('Actividad actualizada.','success');
   } else {
-    data.push({id:'c_'+Date.now(), actividad, responsable, plazo, estado, observaciones, soportes:[..._gtSoportesTemp], fecha:now, fecha_actualizacion:now});
+    const {error} = await supa.from('mm_contingencia').insert({actividad, responsable, plazo, estado, observaciones, soportes, fecha:now, fecha_actualizacion:now});
+    if(error){ toast('Error: '+error.message,'error'); return; }
     toast('Actividad registrada.','success');
   }
-  gtSave('mm_contingencia', data);
   gtCerrarModalContingencia();
   gtRenderContingencia();
 }
 
 function gtEliminarContingencia(id){
-  showConfirm('Eliminar actividad','¿Seguro que deseas eliminar esta actividad?',()=>{
-    gtSave('mm_contingencia', gtLoad('mm_contingencia').filter(r=>r.id!==id));
+  showConfirm('Eliminar actividad','¿Seguro que deseas eliminar esta actividad?',async ()=>{
+    const {error} = await supa.from('mm_contingencia').delete().eq('id',id);
+    if(error){ toast('Error: '+error.message,'error'); return; }
     toast('Actividad eliminada.','info');
     gtRenderContingencia();
   },'Eliminar','btn-primary');
@@ -5219,7 +5232,7 @@ function gtImprimirContingencia(){
     soportesEl.id = 'gt-print-soportes';
     document.getElementById('gt-pane-contingencia').appendChild(soportesEl);
   }
-  const data = gtLoad('mm_contingencia');
+  const data = gtContingenciaCache;
   const conSoportes = data.filter(r=>(r.soportes||[]).some(s=>s.type&&s.type.startsWith('image/')));
   if(conSoportes.length){
     soportesEl.innerHTML = `

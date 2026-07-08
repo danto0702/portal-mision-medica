@@ -4795,8 +4795,8 @@ async function loadEmblemasSeguimiento(){
           <div style="font-size:.68rem;color:var(--muted);margin-top:.15rem">${pos.map(p=>`${SEG_EMB_LABELS[p]}:${emb[p]||'—'}`).join(' · ')}</div></td>
         <td style="font-weight:700;color:${faltantes>0?'#da291c':'#0a8f63'}">${faltantes}</td>
         <td><div style="display:flex;gap:.3rem">
-          <button class="btn btn-secondary btn-sm" onclick="segEmbAbrirModal('${r.id}')">Editar</button>
-          <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="segEmbEliminar('${r.id}')">Eliminar</button>
+          ${S.adminLoggedIn?`<button class="btn btn-secondary btn-sm" onclick="segEmbAbrirModal('${r.id}')">Editar</button>
+          <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="segEmbEliminar('${r.id}')">Eliminar</button>`:''}
         </div></td>
       </tr>`;
     }).join('')}</tbody></table>`;

@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700;8..60,800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════
@@ -1013,28 +1014,14 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
       <button class="admin-tab" onclick="showAdminPane('config-pdf')" id="atab-config-pdf">Banners PDF</button>
       <button class="admin-tab" onclick="showAdminPane('config-cap')" id="atab-config-cap">Config Capacitación</button>
       <button class="admin-tab" onclick="showAdminPane('seguimiento')" id="atab-seguimiento">Seguimiento Casos</button>
+      <button class="admin-tab" onclick="showAdminPane('desplazamientos-admin')" id="atab-desplazamientos-admin">Desplazamientos</button>
     </div>
     <div id="apane-estadisticas" class="admin-pane active"><!-- inyectado --></div>
     <div id="apane-carnets" class="admin-pane"><!-- inyectado --></div>
     <div id="apane-emblemas-admin" class="admin-pane"><!-- inyectado --></div>
     <div id="apane-stock" class="admin-pane"><!-- inyectado --></div>
     <div id="apane-resultados" class="admin-pane"><!-- inyectado --></div>
-    <div id="apane-config-cap" class="admin-pane">
-      <h3 style="font-weight:700;font-size:1rem;margin-bottom:.5rem">Configuración del Pre/Postest</h3>
-      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Selecciona cuántas preguntas tendrá la evaluación para la próxima sesión de capacitación. El banco actual tiene <strong>${PREGUNTAS.length} preguntas</strong>.</p>
-      <div style="display:flex;flex-direction:column;gap:.75rem;max-width:340px">
-        ${[5,10,20].map(n=>`
-        <label style="display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border:2px solid var(--border);border-radius:var(--r-lg);cursor:pointer;transition:border-color .15s" id="cap-cfg-label-${n}" onclick="capSetNumPreguntas(${n})">
-          <input type="radio" name="cap-num-q" value="${n}" ${n===20?'checked':''} style="accent-color:var(--red);width:17px;height:17px">
-          <div>
-            <div style="font-weight:700">${n} preguntas</div>
-            <div style="font-size:.78rem;color:var(--muted)">${n===5?'Evaluación rápida (~5 min)':n===10?'Evaluación estándar (~10 min)':'Evaluación completa (~20 min)'}</div>
-          </div>
-        </label>`).join('')}
-        <div id="cap-cfg-alert" style="display:none;padding:.75rem 1rem;border-radius:var(--r-md);background:#fff3cd;border:1px solid #ffc107;font-size:.83rem;color:#664d03;margin-top:.25rem"></div>
-        <div id="cap-cfg-status" style="font-size:.82rem;color:var(--green);font-weight:600;margin-top:.25rem"></div>
-      </div>
-    </div>
+    <div id="apane-config-cap" class="admin-pane"><!-- inyectado por renderConfigCap() --></div>
     <div id="apane-config-pdf" class="admin-pane">
       <h3 style="font-weight:700;font-size:1rem;margin-bottom:1.25rem">Configurar banners</h3>
       <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Personaliza las imágenes de encabezado del módulo y de los PDFs de Gestión Técnica. Formato recomendado: JPG o PNG, ancho mínimo 1200px.</p>
@@ -1080,6 +1067,7 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
         </div>
       </div>
     <div id="apane-seguimiento" class="admin-pane"><!-- inyectado --></div>
+    <div id="apane-desplazamientos-admin" class="admin-pane"><!-- inyectado por adminDesp_render() --></div>
     </div>
   </div>
 </div>
@@ -1192,7 +1180,7 @@ function toast(msg, type='info', dur=3500){
 
 function showConfirm(title, msg, cb, btnLabel='Confirmar', btnClass='btn-primary'){
   document.getElementById('confirm-title').textContent = title;
-  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-msg').innerHTML = msg;
   const btn = document.getElementById('confirm-ok-btn');
   btn.textContent = btnLabel;
   btn.className = `btn ${btnClass}`;
@@ -2942,19 +2930,37 @@ function capGetActivePreguntas(){
 }
 let _activaPreguntas = null; // fijada al abrir el form, constante durante la sesión
 
+function renderConfigCap(){
+  const cur = capGetNumPreguntas();
+  const el = document.getElementById('apane-config-cap');
+  if(!el) return;
+  el.innerHTML = `
+    <h3 style="font-weight:700;font-size:1rem;margin-bottom:.5rem">Configuración del Pre/Postest</h3>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.5rem">Selecciona cuántas preguntas tendrá la evaluación para la próxima sesión de capacitación. El banco actual tiene <strong>${PREGUNTAS.length} preguntas</strong>.</p>
+    <div style="display:flex;flex-direction:column;gap:.75rem;max-width:340px">
+      ${[5,10,20].map(n=>`
+      <label style="display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border:2px solid ${n===cur?'var(--red)':'var(--border)'};border-radius:var(--r-lg);cursor:pointer;transition:border-color .15s" onclick="capSetNumPreguntas(${n})">
+        <input type="radio" name="cap-num-q" value="${n}" ${n===cur?'checked':''} style="accent-color:var(--red);width:17px;height:17px">
+        <div>
+          <div style="font-weight:700">${n} preguntas</div>
+          <div style="font-size:.78rem;color:var(--muted)">${n===5?'Evaluación rápida (~5 min)':n===10?'Evaluación estándar (~10 min)':'Evaluación completa (~20 min)'}</div>
+        </div>
+      </label>`).join('')}
+      <div id="cap-cfg-alert" style="display:none;padding:.75rem 1rem;border-radius:var(--r-md);background:#fff3cd;border:1px solid #ffc107;font-size:.83rem;color:#664d03;margin-top:.25rem"></div>
+      <div id="cap-cfg-status" style="font-size:.82rem;color:var(--green);font-weight:600;margin-top:.25rem">Configuración actual: ${Math.min(cur,PREGUNTAS.length)} preguntas</div>
+    </div>`;
+}
+
 function capSetNumPreguntas(n){
   const num = parseInt(n);
+  localStorage.setItem('mm_pretest_num', num);
+  renderConfigCap();
+  const statusEl = document.getElementById('cap-cfg-status');
+  if(statusEl) statusEl.textContent = `✓ Guardado: ${Math.min(num,PREGUNTAS.length)} preguntas para la próxima sesión`;
   if(PREGUNTAS.length < num){
     const alertEl = document.getElementById('cap-cfg-alert');
     if(alertEl){ alertEl.style.display='block'; alertEl.textContent=`El banco solo tiene ${PREGUNTAS.length} preguntas. Se usarán todas las disponibles.`; }
-  } else {
-    const alertEl = document.getElementById('cap-cfg-alert');
-    if(alertEl) alertEl.style.display='none';
   }
-  localStorage.setItem('mm_pretest_num', num);
-  const statusEl = document.getElementById('cap-cfg-status');
-  if(statusEl) statusEl.textContent = `✓ Guardado: ${Math.min(num,PREGUNTAS.length)} preguntas para la próxima sesión`;
-  document.querySelectorAll('[name="cap-num-q"]').forEach(r=>r.checked=parseInt(r.value)===num);
 }
 
 function renderTestForm(){
@@ -3139,12 +3145,8 @@ function showAdminPane(id){
   if(id==='stock') loadStock();
   if(id==='resultados') loadResultados();
   if(id==='seguimiento') loadSeguimientoNominal();
-  if(id==='config-cap'){
-    const cur = capGetNumPreguntas();
-    document.querySelectorAll('[name="cap-num-q"]').forEach(r=>r.checked=parseInt(r.value)===cur);
-    const statusEl = document.getElementById('cap-cfg-status');
-    if(statusEl) statusEl.textContent = `Configuración actual: ${Math.min(cur,PREGUNTAS.length)} preguntas`;
-  }
+  if(id==='config-cap') renderConfigCap();
+  if(id==='desplazamientos-admin') adminDesp_render();
 }
 function initAdminPanel(){ showAdminPane('estadisticas'); }
 
@@ -3865,7 +3867,9 @@ async function loadSeguimientoNominal(){
     supa.from('mm_infracciones').select('id,radicado,tipo_evento,categoria_evento,municipio_ocurrencia,fecha_ocurrencia').order('fecha_ocurrencia',{ascending:false}),
     supa.from('mm_seguimiento_infracciones').select('*')
   ]);
-  if(e1){ el.innerHTML=`<div style="color:var(--red)">Error: ${e1.message}</div>`; return; }
+  if(e1){ el.innerHTML=`<div style="color:var(--red);padding:1rem">Error al cargar infracciones: ${e1.message}</div>`; return; }
+  if(e2){ el.innerHTML=`<div style="color:var(--red);padding:1rem">Error: la tabla de seguimiento no existe aún. Ejecuta la migración SQL en Supabase.<br><code style="font-size:.78rem">CREATE TABLE mm_seguimiento_infracciones (...)</code></div>`; return; }
+  if(!infracciones?.length){ el.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--muted)">No hay infracciones registradas aún.</div>`; return; }
   const segMap={};
   (seguimientos||[]).forEach(s=>{ segMap[s.infraccion_id]=s; });
 
@@ -4429,6 +4433,7 @@ function renderGestion(){
     <button class="gt-tab active" id="gt-tab-riesgos" onclick="gtShowTab('riesgos')">Matriz de Riesgos</button>
     <button class="gt-tab" id="gt-tab-contingencia" onclick="gtShowTab('contingencia')">Plan de Contingencia</button>
     <button class="gt-tab" id="gt-tab-emblemas-seg" onclick="gtShowTab('emblemas-seg')">Seguimiento Emblemas</button>
+    <button class="gt-tab" id="gt-tab-desplazamientos" onclick="gtShowTab('desplazamientos')">Desplazamientos</button>
   </div>
 
   <!-- ═══ MATRIZ DE RIESGOS ═══ -->
@@ -4529,6 +4534,107 @@ function renderGestion(){
     </div>
   </div>
 
+  <!-- ═══ DESPLAZAMIENTOS ═══ -->
+  <div id="gt-pane-desplazamientos" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.25rem">
+      <div class="section-title" style="margin-bottom:0">Reporte de Desplazamiento</div>
+      <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="gtDesp_abrirFormulario()">+ Nuevo reporte</button>
+    </div>
+    <div id="gt-desp-lista"><!-- inyectado --></div>
+  </div>
+
+  <!-- Modal formulario desplazamiento -->
+  <div id="gt-desp-modal" class="gt-modal-overlay" style="display:none" onclick="if(event.target===this)gtDesp_cerrarFormulario()">
+    <div class="gt-modal" style="max-width:680px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <h3 style="font-weight:700;font-size:1.05rem;margin:0">Reporte de Desplazamiento — ESE HRNO</h3>
+        <button onclick="gtDesp_cerrarFormulario()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      <form id="gt-desp-form" onsubmit="gtDesp_guardar(event)">
+        <!-- Fechas y horas -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem">
+          <div>
+            <label class="form-label">Fecha de desplazamiento *</label>
+            <input type="date" id="desp-fecha-salida" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label">Hora de desplazamiento *</label>
+            <input type="time" id="desp-hora-salida" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label">Fecha de regreso *</label>
+            <input type="date" id="desp-fecha-regreso" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label">Hora de regreso *</label>
+            <input type="time" id="desp-hora-regreso" class="form-input" required>
+          </div>
+        </div>
+        <!-- Lugar -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem">
+          <div>
+            <label class="form-label">Municipio *</label>
+            <select id="desp-municipio" class="form-select" required>
+              <option value="">— Seleccionar —</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Lugar / vereda / corregimiento *</label>
+            <input type="text" id="desp-lugar" class="form-input" placeholder="Ej: Vereda El Palmar" required>
+          </div>
+        </div>
+        <!-- Concertación -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem">
+          <div>
+            <label class="form-label">¿Concertado con la comunidad? *</label>
+            <select id="desp-concertado" class="form-select" onchange="gtDesp_toggleFechaConcertacion()" required>
+              <option value="">— Seleccionar —</option>
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+          <div id="desp-fecha-concertacion-wrap" style="display:none">
+            <label class="form-label">Fecha de concertación</label>
+            <input type="date" id="desp-fecha-concertacion" class="form-input">
+          </div>
+        </div>
+        <!-- Actividad y personas -->
+        <div style="margin-bottom:.85rem">
+          <label class="form-label">Actividad a realizar *</label>
+          <textarea id="desp-actividad" class="form-input" rows="2" placeholder="Describe brevemente la actividad" required style="resize:vertical"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem">
+          <div>
+            <label class="form-label">Cantidad de personas que se movilizarán *</label>
+            <input type="number" id="desp-personas" class="form-input" min="1" placeholder="Ej: 4" required>
+          </div>
+          <div>
+            <label class="form-label">Responsable del desplazamiento *</label>
+            <input type="text" id="desp-responsable" class="form-input" placeholder="Nombre completo" required>
+          </div>
+        </div>
+        <!-- Correo y autorización -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem">
+          <div>
+            <label class="form-label">Correo del responsable *</label>
+            <input type="email" id="desp-correo" class="form-input" placeholder="correo@dominio.com" required>
+          </div>
+          <div style="display:flex;flex-direction:column;justify-content:flex-end">
+            <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;padding:.6rem 0">
+              <input type="checkbox" id="desp-autorizacion" style="accent-color:var(--red);width:17px;height:17px">
+              <span style="font-size:.85rem">Autorización del supervisor del contrato obtenida</span>
+            </label>
+          </div>
+        </div>
+        <div id="desp-form-error" style="display:none;padding:.65rem .85rem;border-radius:var(--r-md);background:#fee2e2;border:1px solid #fca5a5;font-size:.83rem;color:#991b1b;margin-bottom:.75rem"></div>
+        <div style="display:flex;gap:.75rem;justify-content:flex-end;padding-top:.5rem;border-top:1px solid var(--border)">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="gtDesp_cerrarFormulario()">Cancelar</button>
+          <button type="submit" id="desp-btn-guardar" class="btn btn-sm" style="background:var(--red);color:#fff">Enviar reporte</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ═══ MODAL RIESGO ═══ -->
   <div id="gt-modal-riesgo" class="gt-modal-overlay" onclick="if(event.target===this)gtCerrarModalRiesgo()">
     <div class="gt-modal">
@@ -4623,13 +4729,12 @@ function renderGestion(){
 
 // ── Cambio de tabs ─────────────────────────────────────────────
 function gtShowTab(t){
-  document.getElementById('gt-pane-riesgos').style.display       = t==='riesgos'       ? 'block' : 'none';
-  document.getElementById('gt-pane-contingencia').style.display  = t==='contingencia'  ? 'block' : 'none';
-  document.getElementById('gt-pane-emblemas-seg').style.display  = t==='emblemas-seg'  ? 'block' : 'none';
-  document.getElementById('gt-tab-riesgos').classList.toggle('active',       t==='riesgos');
-  document.getElementById('gt-tab-contingencia').classList.toggle('active',  t==='contingencia');
-  document.getElementById('gt-tab-emblemas-seg').classList.toggle('active',  t==='emblemas-seg');
-  if(t==='emblemas-seg') loadEmblemasSeguimiento();
+  ['riesgos','contingencia','emblemas-seg','desplazamientos'].forEach(id=>{
+    document.getElementById('gt-pane-'+id).style.display = t===id ? 'block' : 'none';
+    document.getElementById('gt-tab-'+id).classList.toggle('active', t===id);
+  });
+  if(t==='emblemas-seg')    loadEmblemasSeguimiento();
+  if(t==='desplazamientos') gtDesp_cargarLista();
 }
 
 /* ═══════════════════════════════════════════
@@ -5477,6 +5582,260 @@ function adminCargarBannersGuardados(){
   });
   // Luego sincroniza con Supabase (actualiza si hay versión más nueva en el servidor)
   bannersCargarDesdeSupabase();
+}
+
+/* ═══════════════════════════════════════════
+   MÓDULO: DESPLAZAMIENTOS
+═══════════════════════════════════════════ */
+
+const DESP_CFG_KEY = 'mm_desp_emailjs_cfg';
+
+function despGetEmailJSCfg(){
+  try{ return JSON.parse(localStorage.getItem(DESP_CFG_KEY)||'{}'); }catch(e){ return {}; }
+}
+
+/* ── Gestión: abrir / cerrar formulario ── */
+function gtDesp_abrirFormulario(){
+  document.getElementById('gt-desp-form').reset();
+  document.getElementById('desp-fecha-concertacion-wrap').style.display = 'none';
+  document.getElementById('desp-form-error').style.display = 'none';
+  const sel = document.getElementById('desp-municipio');
+  if(sel.options.length <= 1){
+    CFG.MUNICIPIOS.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+  }
+  document.getElementById('gt-desp-modal').style.display = 'flex';
+}
+function gtDesp_cerrarFormulario(){
+  document.getElementById('gt-desp-modal').style.display = 'none';
+}
+function gtDesp_toggleFechaConcertacion(){
+  const val = document.getElementById('desp-concertado').value;
+  const wrap = document.getElementById('desp-fecha-concertacion-wrap');
+  wrap.style.display = val==='true' ? 'block' : 'none';
+  if(val==='true') document.getElementById('desp-fecha-concertacion').setAttribute('required','');
+  else { document.getElementById('desp-fecha-concertacion').removeAttribute('required'); document.getElementById('desp-fecha-concertacion').value=''; }
+}
+
+/* ── Gestión: guardar reporte ── */
+async function gtDesp_guardar(e){
+  e.preventDefault();
+  const btn = document.getElementById('desp-btn-guardar');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const errEl = document.getElementById('desp-form-error');
+  errEl.style.display = 'none';
+
+  const payload = {
+    fecha_desplazamiento : document.getElementById('desp-fecha-salida').value,
+    hora_desplazamiento  : document.getElementById('desp-hora-salida').value,
+    fecha_regreso        : document.getElementById('desp-fecha-regreso').value,
+    hora_regreso         : document.getElementById('desp-hora-regreso').value,
+    municipio            : document.getElementById('desp-municipio').value,
+    lugar                : document.getElementById('desp-lugar').value.trim(),
+    concertado_comunidad : document.getElementById('desp-concertado').value === 'true',
+    fecha_concertacion   : document.getElementById('desp-fecha-concertacion').value || null,
+    cantidad_personas    : parseInt(document.getElementById('desp-personas').value),
+    actividad            : document.getElementById('desp-actividad').value.trim(),
+    responsable          : document.getElementById('desp-responsable').value.trim(),
+    correo_responsable   : document.getElementById('desp-correo').value.trim().toLowerCase(),
+    autorizacion_supervisor: document.getElementById('desp-autorizacion').checked,
+    estado               : 'Pendiente',
+  };
+
+  const {error} = await supa.from('mm_desplazamientos').insert(payload);
+  if(error){
+    errEl.textContent = 'Error al guardar: ' + error.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Enviar reporte';
+    return;
+  }
+  gtDesp_cerrarFormulario();
+  toast('Reporte de desplazamiento enviado. Pendiente de autorización.','info');
+  gtDesp_cargarLista();
+}
+
+/* ── Gestión: cargar lista de reportes ── */
+async function gtDesp_cargarLista(){
+  const el = document.getElementById('gt-desp-lista');
+  el.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner" style="display:inline-block"></span> Cargando...</div>`;
+  const {data, error} = await supa.from('mm_desplazamientos')
+    .select('*').order('fecha_desplazamiento',{ascending:false}).limit(50);
+  if(error){ el.innerHTML=`<div style="color:var(--red);padding:1rem">Error: ${error.message}</div>`; return; }
+  if(!data?.length){ el.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--muted)">No hay reportes de desplazamiento aún.<br>Usa el botón <strong>+ Nuevo reporte</strong> para registrar uno.</div>`; return; }
+
+  const semColor = e => e==='Autorizado'?'#0a8f63':e==='Rechazado'?'#da291c':'#b45309';
+  el.innerHTML = data.map(d=>`
+    <div class="card" style="margin-bottom:.75rem;border-left:4px solid ${semColor(d.estado)}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+        <div>
+          <div style="font-weight:700;font-size:.9rem">${d.actividad}</div>
+          <div style="font-size:.8rem;color:var(--muted);margin-top:.2rem">${d.municipio} · ${d.lugar}</div>
+          <div style="font-size:.78rem;color:var(--muted)">${fmtDate(d.fecha_desplazamiento)} ${d.hora_desplazamiento} → ${fmtDate(d.fecha_regreso)} ${d.hora_regreso}</div>
+          <div style="font-size:.78rem;color:var(--muted)">Responsable: ${d.responsable} · ${d.cantidad_personas} persona(s)</div>
+        </div>
+        <span class="badge" style="background:${semColor(d.estado)}22;color:${semColor(d.estado)};font-weight:700;font-size:.75rem;padding:.25rem .6rem;border-radius:99px;white-space:nowrap">${d.estado}</span>
+      </div>
+      ${d.motivo_rechazo?`<div style="margin-top:.5rem;font-size:.78rem;color:var(--red)">Motivo: ${d.motivo_rechazo}</div>`:''}
+    </div>`).join('');
+}
+
+/* ── Admin: renderizar panel de desplazamientos ── */
+async function adminDesp_render(){
+  const el = document.getElementById('apane-desplazamientos-admin');
+  el.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner" style="display:inline-block"></span> Cargando...</div>`;
+  const {data, error} = await supa.from('mm_desplazamientos')
+    .select('*').order('created_at',{ascending:false});
+  if(error){ el.innerHTML=`<div style="color:var(--red);padding:1rem">Error: ${error.message}</div>`; return; }
+
+  const cfg = despGetEmailJSCfg();
+  const semColor = e => e==='Autorizado'?'#0a8f63':e==='Rechazado'?'#da291c':'#b45309';
+  const pendientes = (data||[]).filter(d=>d.estado==='Pendiente').length;
+
+  el.innerHTML = `
+  <!-- Config EmailJS -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <div style="font-weight:700;font-size:.9rem;margin-bottom:.75rem">Configuración de correo (EmailJS)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;margin-bottom:.75rem">
+      <div>
+        <label class="form-label">Service ID</label>
+        <input type="text" id="desp-ejs-service" class="form-input" placeholder="service_xxxxxx" value="${cfg.serviceId||''}">
+      </div>
+      <div>
+        <label class="form-label">Template ID</label>
+        <input type="text" id="desp-ejs-template" class="form-input" placeholder="template_xxxxxx" value="${cfg.templateId||''}">
+      </div>
+      <div>
+        <label class="form-label">Public Key</label>
+        <input type="text" id="desp-ejs-pubkey" class="form-input" placeholder="Tu Public Key" value="${cfg.publicKey||''}">
+      </div>
+      <div>
+        <label class="form-label">Correo del administrador (destino)</label>
+        <input type="email" id="desp-ejs-adminemail" class="form-input" placeholder="admin@hrno.gov.co" value="${cfg.adminEmail||''}">
+      </div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="adminDesp_guardarCfgEmail()">Guardar configuración de correo</button>
+    <p style="font-size:.75rem;color:var(--muted);margin-top:.5rem">Crea tu cuenta gratis en <strong>emailjs.com</strong> → Email Services → Templates → Account > API Keys. El correo se enviará al responsable cuando autorices un reporte.</p>
+  </div>
+
+  <!-- KPI -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.75rem;margin-bottom:1.25rem">
+    <div class="card" style="text-align:center">
+      <div style="font-size:1.5rem;font-weight:800;color:var(--red)">${pendientes}</div>
+      <div style="font-size:.78rem;color:var(--muted)">Pendientes</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:1.5rem;font-weight:800;color:#0a8f63">${(data||[]).filter(d=>d.estado==='Autorizado').length}</div>
+      <div style="font-size:.78rem;color:var(--muted)">Autorizados</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:1.5rem;font-weight:800;color:var(--muted)">${(data||[]).length}</div>
+      <div style="font-size:.78rem;color:var(--muted)">Total</div>
+    </div>
+  </div>
+
+  <!-- Tabla de reportes -->
+  <div class="section-title" style="margin-bottom:.75rem">Reportes de desplazamiento</div>
+  ${!(data?.length)?'<div style="text-align:center;padding:2rem;color:var(--muted)">No hay reportes registrados aún.</div>':data.map(d=>`
+  <div class="card" style="margin-bottom:.85rem;border-left:4px solid ${semColor(d.estado)}">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+      <div style="flex:1;min-width:200px">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.3rem">
+          <span style="font-weight:700">${d.responsable}</span>
+          <span class="badge" style="background:${semColor(d.estado)}22;color:${semColor(d.estado)};font-weight:700;font-size:.72rem;padding:.2rem .55rem;border-radius:99px">${d.estado}</span>
+          ${d.autorizacion_supervisor?'<span class="badge badge-green" style="font-size:.72rem">Supervisor ✓</span>':''}
+        </div>
+        <div style="font-size:.82rem;font-weight:600">${d.actividad}</div>
+        <div style="font-size:.78rem;color:var(--muted)">${d.municipio} · ${d.lugar} · ${d.cantidad_personas} persona(s)</div>
+        <div style="font-size:.78rem;color:var(--muted)">Salida: ${fmtDate(d.fecha_desplazamiento)} ${d.hora_desplazamiento} — Regreso: ${fmtDate(d.fecha_regreso)} ${d.hora_regreso}</div>
+        <div style="font-size:.78rem;color:var(--muted)">Concertado: ${d.concertado_comunidad?'Sí':'No'}${d.fecha_concertacion?' ('+fmtDate(d.fecha_concertacion)+')':''}</div>
+        <div style="font-size:.78rem;color:var(--blue)">${d.correo_responsable}</div>
+        ${d.motivo_rechazo?`<div style="font-size:.78rem;color:var(--red);margin-top:.25rem">Rechazo: ${d.motivo_rechazo}</div>`:''}
+      </div>
+      ${d.estado==='Pendiente'?`
+      <div style="display:flex;flex-direction:column;gap:.4rem;min-width:130px">
+        <button class="btn btn-sm" style="background:#0a8f63;color:#fff;font-size:.78rem" onclick="adminDesp_autorizar('${d.id}','${d.correo_responsable}','${d.responsable.replace(/'/g,"\\'")}','${d.actividad.replace(/'/g,"\\'")}','${d.municipio}','${d.fecha_desplazamiento}')">✓ Autorizar</button>
+        <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;font-size:.78rem" onclick="adminDesp_rechazar('${d.id}')">✕ Rechazar</button>
+      </div>`:''}
+    </div>
+  </div>`).join('')}`;
+}
+
+/* ── Admin: guardar config EmailJS ── */
+function adminDesp_guardarCfgEmail(){
+  const cfg = {
+    serviceId  : document.getElementById('desp-ejs-service').value.trim(),
+    templateId : document.getElementById('desp-ejs-template').value.trim(),
+    publicKey  : document.getElementById('desp-ejs-pubkey').value.trim(),
+    adminEmail : document.getElementById('desp-ejs-adminemail').value.trim(),
+  };
+  localStorage.setItem(DESP_CFG_KEY, JSON.stringify(cfg));
+  toast('Configuración de correo guardada','info');
+}
+
+/* ── Admin: autorizar ── */
+async function adminDesp_autorizar(id, correo, responsable, actividad, municipio, fecha){
+  showConfirm(
+    'Autorizar desplazamiento',
+    `¿Autorizar el desplazamiento de <strong>${responsable}</strong> hacia <strong>${municipio}</strong> (${fmtDate(fecha)})?<br>Se enviará un correo de notificación al responsable.`,
+    async ()=>{
+      const {error} = await supa.from('mm_desplazamientos')
+        .update({estado:'Autorizado', updated_at: new Date().toISOString()}).eq('id',id);
+      if(error){ toast('Error: '+error.message,'error'); return; }
+      toast('Desplazamiento autorizado','info');
+      await adminDesp_enviarCorreo(id, correo, responsable, actividad, municipio, fecha);
+      adminDesp_render();
+    },
+    'Autorizar', 'btn-primary'
+  );
+}
+
+/* ── Admin: rechazar ── */
+function adminDesp_rechazar(id){
+  showConfirm(
+    'Rechazar desplazamiento',
+    `<div style="margin-bottom:.75rem">Indica el motivo del rechazo:</div>
+     <textarea id="desp-motivo-txt" class="form-input" rows="2" placeholder="Ej: No se cuenta con el personal suficiente..." style="width:100%;resize:vertical"></textarea>`,
+    async ()=>{
+      const motivo = document.getElementById('desp-motivo-txt')?.value?.trim()||'';
+      const {error} = await supa.from('mm_desplazamientos')
+        .update({estado:'Rechazado', motivo_rechazo:motivo, updated_at:new Date().toISOString()}).eq('id',id);
+      if(error){ toast('Error: '+error.message,'error'); return; }
+      toast('Desplazamiento rechazado','info');
+      adminDesp_render();
+    },
+    'Rechazar', 'btn-primary'
+  );
+}
+
+/* ── Admin: enviar correo por EmailJS ── */
+async function adminDesp_enviarCorreo(id, correo, responsable, actividad, municipio, fecha){
+  const cfg = despGetEmailJSCfg();
+  if(!cfg.serviceId || !cfg.templateId || !cfg.publicKey){
+    toast('EmailJS no configurado. El reporte quedó autorizado pero el correo no se envió. Configura las claves en la sección superior.','warn');
+    return;
+  }
+  try{
+    if(typeof emailjs === 'undefined'){ toast('Librería EmailJS no cargó. Verifica tu conexión.','warn'); return; }
+    emailjs.init(cfg.publicKey);
+    const {data:d} = await supa.from('mm_desplazamientos').select('*').eq('id',id).single();
+    const params = {
+      to_email          : d.correo_responsable,
+      to_name           : d.responsable,
+      admin_email       : cfg.adminEmail||'',
+      actividad         : d.actividad,
+      municipio         : d.municipio,
+      lugar             : d.lugar,
+      fecha_salida      : `${fmtDate(d.fecha_desplazamiento)} ${d.hora_desplazamiento}`,
+      fecha_regreso     : `${fmtDate(d.fecha_regreso)} ${d.hora_regreso}`,
+      cantidad_personas : d.cantidad_personas,
+      concertado        : d.concertado_comunidad ? 'Sí' : 'No',
+      fecha_concertacion: d.fecha_concertacion ? fmtDate(d.fecha_concertacion) : 'N/A',
+      autorizacion_supervisor: d.autorizacion_supervisor ? 'Sí' : 'No',
+    };
+    await emailjs.send(cfg.serviceId, cfg.templateId, params);
+    toast('Correo de autorización enviado a '+d.correo_responsable,'info');
+  } catch(err){
+    toast('Error al enviar correo: '+(err?.text||err?.message||err),'warn');
+  }
 }
 </script>
 </body>

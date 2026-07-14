@@ -389,9 +389,19 @@ function calcLimite() {
 }
 
 // ── Semáforo ──────────────────────────────────────────────────────
+function normFecha(s) {
+  if (!s) return '';
+  var str = String(s).trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+  var d = new Date(str);
+  if (isNaN(d)) return str;
+  return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+}
+
 function parseDMY(s) {
   if (!s) return null;
-  var p = s.split('/');
+  var str = normFecha(s);
+  var p = str.split('/');
   if (p.length !== 3) return null;
   return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
 }
@@ -630,7 +640,7 @@ function renderAlertas(lista) {
     h += '<div class="alerta-dot ' + dotCls + '"></div>';
     h += '<div class="alerta-txt">';
     h += '<div class="alerta-asu">' + esc(r.radicadoRem) + ' · ' + esc(asu) + '</div>';
-    h += '<div class="alerta-meta">Límite: ' + esc(r.fechaLimite) + ' · ' + esc(r.responsable) + ' · <strong style="color:' + (s.tipo==='vencido'?'#dc2626':'#c2410c') + '">' + s.label + '</strong></div>';
+    h += '<div class="alerta-meta">Límite: ' + esc(normFecha(r.fechaLimite)) + ' · ' + esc(r.responsable) + ' · <strong style="color:' + (s.tipo==='vencido'?'#dc2626':'#c2410c') + '">' + s.label + '</strong></div>';
     h += '</div></div>';
   });
   document.getElementById('alertasList').innerHTML = h;
@@ -654,9 +664,9 @@ function renderTablaRec(lista) {
     h += '<td><span class="pill ' + s.cls + '">' + s.label + '</span></td>';
     h += '<td class="td-rad">' + esc(r.radicadoRem) + '</td>';
     h += '<td style="white-space:nowrap">' + esc(r.remitente) + '</td>';
-    h += '<td style="white-space:nowrap">' + esc(r.fechaRecepcion) + '</td>';
+    h += '<td style="white-space:nowrap">' + esc(normFecha(r.fechaRecepcion)) + '</td>';
     h += '<td>' + esc(r.asunto) + '</td>';
-    h += '<td style="white-space:nowrap">' + esc(r.fechaLimite) + '</td>';
+    h += '<td style="white-space:nowrap">' + esc(normFecha(r.fechaLimite)) + '</td>';
     h += '<td>' + esc(r.responsable) + '</td>';
     h += '<td>';
     h += '<select class="est-select ' + estCls + '" onchange="cambiarEstado(this,' + JSON.stringify(r.id || '') + ',' + JSON.stringify(r.no || '') + ')">';

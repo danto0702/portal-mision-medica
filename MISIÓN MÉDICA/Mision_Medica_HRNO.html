@@ -2145,7 +2145,7 @@ function renderCapacitacion(){
       onmouseout="this.style.borderColor='rgba(124,58,237,.25)';this.style.transform=''">
       <div style="font-size:2.5rem;margin-bottom:.75rem">📊</div>
       <div style="font-weight:700;color:var(--purple);margin-bottom:.35rem">Presentación</div>
-      <div style="font-size:.82rem;color:var(--muted)">Carga y visualiza presentaciones PowerPoint o PDF para la sesión.</div>
+      <div style="font-size:.82rem;color:var(--muted)">Carga y visualiza presentaciones HTML, PowerPoint o PDF para la sesión.</div>
     </div>
   </div>
 
@@ -2326,7 +2326,7 @@ function renderCapacitacion(){
         Agregar presentación
       </button>
     </div>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.25rem">Carga archivos PowerPoint o PDF, o enlaza una presentación de Google Slides / OneDrive.</p>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.25rem">Carga archivos HTML, PowerPoint o PDF, o enlaza una presentación de Google Slides / OneDrive.</p>
     <div id="pres-lista"></div>
   </div>
 
@@ -2344,8 +2344,8 @@ function renderCapacitacion(){
         </div>
         <div style="background:var(--bg-soft);border-radius:var(--r-md);padding:1rem;border:1px solid var(--border)">
           <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Opción 1 — Subir archivo</div>
-          <input type="file" id="pres-file" class="form-input" accept=".pptx,.ppt,.pptm,.pdf" style="padding:.4rem" onchange="presPreviewFile()">
-          <div style="font-size:.73rem;color:var(--muted);margin-top:.25rem">PowerPoint (.pptx, .ppt) o PDF. Máx. 10 MB.</div>
+          <input type="file" id="pres-file" class="form-input" accept=".pptx,.ppt,.pptm,.pdf,.html,.htm" style="padding:.4rem" onchange="presPreviewFile()">
+          <div style="font-size:.73rem;color:var(--muted);margin-top:.25rem">HTML (.html), PowerPoint (.pptx, .ppt) o PDF. Máx. 50 MB.</div>
           <div id="pres-file-info" style="margin-top:.5rem;font-size:.8rem;color:var(--green);display:none"></div>
         </div>
         <div style="text-align:center;color:var(--muted);font-size:.8rem;font-weight:600">— O —</div>
@@ -5503,7 +5503,8 @@ async function presGuardar(){
     const file = fileInput.files[0];
     toast('Subiendo archivo...','info');
     const path = Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    const {error: upErr} = await supa.storage.from('mm-presentaciones').upload(path, file, {contentType: file.type, upsert: false});
+    const contentType = /\.html?$/i.test(file.name) ? 'text/html' : (file.type || 'application/octet-stream');
+    const {error: upErr} = await supa.storage.from('mm-presentaciones').upload(path, file, {contentType, upsert: false});
     if(upErr){ toast('Error al subir: '+upErr.message,'error'); return; }
     const {data:{publicUrl}} = supa.storage.from('mm-presentaciones').getPublicUrl(path);
     const {error} = await supa.from('mm_cap_presentaciones').insert({titulo, tipo:'archivo', url: publicUrl, nombre_archivo: file.name});
@@ -5544,8 +5545,10 @@ function presVer(id){
   if(p.tipo==='url'){
     iframe.src = presNormalizarUrl(p.url);
   } else {
-    const isPdf = p.nombre_archivo && p.nombre_archivo.toLowerCase().endsWith('.pdf');
-    if(isPdf){
+    const ext = (p.nombre_archivo||'').toLowerCase();
+    const isPdf  = ext.endsWith('.pdf');
+    const isHtml = ext.endsWith('.html') || ext.endsWith('.htm');
+    if(isPdf || isHtml){
       iframe.src = p.url;
     } else {
       iframe.src = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(p.url)}`;

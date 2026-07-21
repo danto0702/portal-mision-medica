@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recomendaciones de Seguridad para el Personal Sanitario · Misión Médica</title>
+<style>
+  :root{
+    --red-900:#5c0a12;
+    --red-800:#7a0f19;
+    --red-700:#a4161a;
+    --red-600:#c1121f;
+    --red-500:#d90429;
+    --red-400:#e94560;
+    --red-050:#fff1f2;
+    --red-100:#ffe1e3;
+    --ink:#171417;
+    --ink-2:#403a3d;
+    --ink-3:#6b6469;
+    --line:#eadcde;
+    --line-2:#f2e7e9;
+    --white:#ffffff;
+    --paper:#fffafa;
+    --shadow-sm:0 1px 2px rgba(92,10,18,.06),0 2px 6px rgba(92,10,18,.05);
+    --shadow-md:0 8px 24px rgba(92,10,18,.10),0 2px 6px rgba(92,10,18,.06);
+    --shadow-lg:0 24px 60px rgba(92,10,18,.18);
+    --r-sm:10px; --r-md:16px; --r-lg:24px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font);
+    color:var(--ink);
+    background:var(--white);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ============ DECK SHELL ============ */
+  .deck{position:fixed;inset:0;overflow:hidden}
+
+  .bg-decor{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .bg-decor .blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5}
+  .bg-decor .b1{width:520px;height:520px;top:-180px;right:-120px;background:radial-gradient(circle,var(--red-100),transparent 70%)}
+  .bg-decor .b2{width:460px;height:460px;bottom:-200px;left:-140px;background:radial-gradient(circle,#ffe9eb,transparent 70%)}
+  .bg-cross{position:absolute;right:4%;bottom:6%;width:min(38vw,440px);opacity:.05;z-index:0;color:var(--red-600)}
+
+  /* progress */
+  .progress{position:absolute;top:0;left:0;right:0;height:5px;background:var(--line-2);z-index:40}
+  .progress__bar{height:100%;width:0;background:linear-gradient(90deg,var(--red-600),var(--red-400));transition:width .5s var(--ease);box-shadow:0 0 12px rgba(217,4,41,.5)}
+
+  /* top bar */
+  .topbar{position:absolute;top:0;left:0;right:0;height:78px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(20px,4vw,56px);z-index:30}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand__mark{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;box-shadow:var(--shadow-sm);flex:none;overflow:hidden}
+  .brand__mark svg{width:100%;height:100%;display:block}
+  .brand__txt{line-height:1.15}
+  .brand__txt b{font-size:14px;letter-spacing:.2px;display:block}
+  .brand__txt span{font-size:11px;color:var(--ink-3);letter-spacing:.3px;text-transform:uppercase}
+  .counter{display:flex;align-items:center;gap:14px}
+  .counter__kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--red-600);font-weight:700}
+  .counter__num{font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink-3);font-weight:600}
+  .counter__num b{color:var(--ink)}
+
+  /* slides */
+  .slides{position:absolute;inset:0;z-index:10}
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    padding:96px clamp(20px,6vw,120px) 104px;opacity:0;visibility:hidden;
+    transform:translateY(24px) scale(.99);
+    transition:opacity .55s var(--ease),transform .55s var(--ease),visibility .55s;
+    overflow-y:auto;overflow-x:hidden}
+  .slide.active{opacity:1;visibility:visible;transform:none}
+  .slide.prev{transform:translateY(-24px) scale(.99)}
+  .slide::-webkit-scrollbar{width:8px}
+  .slide::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+
+  .wrap{width:100%;max-width:1180px;margin:0 auto}
+
+  /* reveal */
+  .r{opacity:0;transform:translateY(18px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+  .slide.active .r{opacity:1;transform:none}
+  .slide.active .r{transition-delay:calc(var(--i,0)*70ms + 120ms)}
+
+  /* headings */
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--red-600);background:var(--red-050);border:1px solid var(--red-100);padding:7px 14px;border-radius:999px;margin-bottom:20px}
+  .eyebrow svg{width:15px;height:15px}
+  h1.title{font-size:clamp(30px,5vw,58px);line-height:1.04;letter-spacing:-.02em;font-weight:800}
+  h2.title{font-size:clamp(26px,3.6vw,44px);line-height:1.08;letter-spacing:-.02em;font-weight:800;margin-bottom:10px}
+  .title .accent{color:var(--red-600)}
+  .lead{font-size:clamp(15px,1.5vw,19px);line-height:1.6;color:var(--ink-2);max-width:70ch}
+  .section-sub{font-size:15px;color:var(--ink-3);max-width:74ch;margin-top:2px}
+  .rule{height:4px;width:64px;background:var(--red-600);border-radius:4px;margin:18px 0 26px}
+
+  /* ============ COVER ============ */
+  .cover{align-items:flex-start}
+  .cover .wrap{max-width:1080px}
+  .cover-grid{display:grid;grid-template-columns:1.35fr .9fr;gap:48px;align-items:center}
+  .cover-emblem{position:relative;display:grid;place-items:center;max-width:300px;margin:0 auto;width:100%;padding:16px 0}
+  .emblem-glow{position:absolute;inset:8%;background:radial-gradient(circle,rgba(227,6,19,.30),transparent 66%);filter:blur(36px);z-index:0}
+  .emblem-frame{position:relative;z-index:1;width:min(80%,238px);background:#fff;border-radius:0;padding:11px;box-shadow:var(--shadow-lg);border:1px solid var(--line-2);animation:float 5.6s var(--ease) infinite}
+  .emblem-frame .emblem-svg{width:100%;height:auto;display:block;border-radius:0}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .cover .kick{font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--red-600);margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  .cover .kick::before{content:"";width:34px;height:2px;background:var(--red-600)}
+  .cover h1{margin-bottom:20px}
+  .cover .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+  .chip{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--ink-2);background:var(--white);border:1px solid var(--line);padding:8px 14px;border-radius:999px;box-shadow:var(--shadow-sm)}
+  .chip svg{width:15px;height:15px;color:var(--red-600)}
+  .start-hint{margin-top:34px;display:inline-flex;align-items:center;gap:12px;font-size:13.5px;color:var(--ink-3);font-weight:600}
+  .start-hint .keys{display:flex;gap:6px}
+  .kbd{min-width:26px;height:26px;padding:0 7px;border-radius:7px;border:1px solid var(--line);border-bottom-width:2px;background:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--ink-2);box-shadow:var(--shadow-sm)}
+  .start-hint .keys .kbd{animation:nudge 2.4s var(--ease) infinite}
+
+  @keyframes nudge{0%,100%{transform:none}50%{transform:translateX(4px)}}
+
+  /* stats row on cover */
+  .cover-stats{display:flex;gap:26px;margin-top:30px;flex-wrap:wrap}
+  .stat b{display:block;font-size:clamp(24px,3vw,34px);font-weight:800;color:var(--red-600);line-height:1;font-variant-numeric:tabular-nums}
+  .stat span{font-size:12px;color:var(--ink-3);font-weight:600;letter-spacing:.02em}
+
+  /* ============ CARD GRIDS ============ */
+  .grid{display:grid;gap:16px}
+  .g-2{grid-template-columns:repeat(2,1fr)}
+  .g-3{grid-template-columns:repeat(3,1fr)}
+  .g-4{grid-template-columns:repeat(4,1fr)}
+
+  .card{position:relative;background:var(--white);border:1px solid var(--line);border-radius:var(--r-md);padding:20px;box-shadow:var(--shadow-sm);cursor:pointer;transition:transform .28s var(--ease),box-shadow .28s var(--ease),border-color .28s var(--ease);overflow:hidden}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--red-600);transform:scaleY(0);transform-origin:top;transition:transform .3s var(--ease)}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:var(--red-100)}
+  .card:hover::before,.card.open::before{transform:scaleY(1)}
+  .card:focus-visible{outline:3px solid var(--red-400);outline-offset:3px}
+  .card.open{border-color:var(--red-200,#f2c9cd);box-shadow:var(--shadow-md)}
+  .card__head{display:flex;align-items:flex-start;gap:14px}
+  .card__ico{flex:none;width:44px;height:44px;border-radius:12px;background:var(--red-050);color:var(--red-600);display:grid;place-items:center;transition:background .28s,color .28s}
+  .card:hover .card__ico,.card.open .card__ico{background:var(--red-600);color:#fff}
+  .card__ico svg{width:23px;height:23px}
+  .card__label{font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--red-500);text-transform:uppercase}
+  .card__title{font-size:15.5px;font-weight:700;line-height:1.3;margin-top:3px;color:var(--ink)}
+  .card__chev{margin-left:auto;flex:none;color:var(--ink-3);transition:transform .3s var(--ease);margin-top:4px}
+  .card.open .card__chev{transform:rotate(180deg);color:var(--red-600)}
+  .card__chev svg{width:18px;height:18px}
+  .card__detail{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s var(--ease),margin .38s var(--ease),opacity .3s;opacity:.6;margin-top:0}
+  .card.open .card__detail{grid-template-rows:1fr;margin-top:14px;opacity:1}
+  .card__detail>div{overflow:hidden}
+  .card__detail p{font-size:13.5px;line-height:1.62;color:var(--ink-2);border-top:1px solid var(--line-2);padding-top:13px}
+
+  /* concept cards (slide 3) */
+  .concept{padding:22px}
+  .concept .card__title{font-size:18px}
+  .concept .badge{position:absolute;top:16px;right:16px;font-size:11px;font-weight:800;color:var(--red-400);opacity:.5}
+
+  .formula{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;background:linear-gradient(180deg,var(--paper),#fff);border:1px dashed var(--red-200,#f2c9cd);border-radius:var(--r-md);padding:22px;margin-bottom:22px}
+  .fx{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 20px;border-radius:12px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-sm);min-width:120px}
+  .fx b{font-size:15px;font-weight:800}
+  .fx.res b{color:var(--red-600)}
+  .fx span{font-size:11px;color:var(--ink-3);font-weight:600;letter-spacing:.02em}
+  .fx-op{font-size:26px;font-weight:300;color:var(--red-400)}
+
+  /* info callout */
+  .callout{display:flex;gap:16px;align-items:flex-start;background:var(--red-050);border:1px solid var(--red-100);border-left:4px solid var(--red-600);border-radius:var(--r-md);padding:18px 20px;margin-top:18px}
+  .callout__ico{flex:none;width:40px;height:40px;border-radius:11px;background:#fff;color:var(--red-600);display:grid;place-items:center;box-shadow:var(--shadow-sm)}
+  .callout__ico svg{width:22px;height:22px}
+  .callout b{display:block;font-size:14px;margin-bottom:4px}
+  .callout p{font-size:13px;line-height:1.55;color:var(--ink-2)}
+  .callout .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+  .tag{font-size:11.5px;font-weight:600;color:var(--red-700);background:#fff;border:1px solid var(--red-100);padding:4px 10px;border-radius:8px}
+
+  /* context list (slide 2/4) */
+  .ctx{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .ctx-item{display:flex;gap:14px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px;box-shadow:var(--shadow-sm);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+  .ctx-item:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+  .ctx-num{flex:none;width:34px;height:34px;border-radius:9px;background:var(--red-600);color:#fff;font-weight:800;font-size:14px;display:grid;place-items:center}
+  .ctx-item p{font-size:14px;line-height:1.5;color:var(--ink-2)}
+  .ctx-item p b{color:var(--ink)}
+
+  /* two-col intro */
+  .split{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+  .steps{display:flex;flex-direction:column;gap:14px}
+  .step{display:flex;gap:16px;align-items:flex-start}
+  .step__n{flex:none;width:40px;height:40px;border-radius:12px;background:var(--red-050);border:1px solid var(--red-100);color:var(--red-600);display:grid;place-items:center;font-weight:800;font-size:15px}
+  .step b{font-size:15px;display:block;margin-bottom:2px}
+  .step p{font-size:13.5px;color:var(--ink-2);line-height:1.5}
+
+  /* closing / report */
+  .report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:6px}
+  .report-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:22px;box-shadow:var(--shadow-sm);text-align:center;transition:transform .28s var(--ease),box-shadow .28s var(--ease)}
+  .report-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-md)}
+  .report-card .rc-ico{width:52px;height:52px;border-radius:14px;background:var(--red-600);color:#fff;display:grid;place-items:center;margin:0 auto 14px}
+  .report-card .rc-ico svg{width:26px;height:26px}
+  .report-card b{font-size:16px;display:block;margin-bottom:6px}
+  .report-card p{font-size:13px;color:var(--ink-2);line-height:1.5}
+  .final-note{margin-top:26px;text-align:center;font-size:14px;color:var(--ink-3)}
+  .final-note b{color:var(--red-600)}
+
+  /* ============ NAV ============ */
+  .dots{position:absolute;right:clamp(14px,2vw,26px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:11px;z-index:35}
+  .dot{width:11px;height:11px;border-radius:50%;border:2px solid var(--red-200,#f2c9cd);background:transparent;cursor:pointer;padding:0;transition:all .3s var(--ease);position:relative}
+  .dot:hover{border-color:var(--red-500);transform:scale(1.2)}
+  .dot.active{background:var(--red-600);border-color:var(--red-600);height:26px;border-radius:8px}
+  .dot span{position:absolute;right:22px;top:50%;transform:translateY(-50%) translateX(6px);white-space:nowrap;font-size:11px;font-weight:700;color:#fff;background:var(--ink);padding:4px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+  .dot:hover span{opacity:1;transform:translateY(-50%) translateX(0)}
+
+  .controls{position:absolute;bottom:clamp(18px,3vh,30px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;z-index:35;background:rgba(255,255,255,.75);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:8px 10px;box-shadow:var(--shadow-md)}
+  .nav-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--ink);display:grid;place-items:center;cursor:pointer;transition:all .25s var(--ease)}
+  .nav-btn:hover:not(:disabled){background:var(--red-600);color:#fff;border-color:var(--red-600);transform:translateY(-2px)}
+  .nav-btn:disabled{opacity:.35;cursor:not-allowed}
+  .nav-btn svg{width:20px;height:20px}
+  .nav-info{font-size:12.5px;font-weight:700;color:var(--ink-2);min-width:120px;text-align:center;letter-spacing:.01em}
+  .nav-info span{color:var(--ink-3);font-weight:600}
+
+  /* helper */
+  .muted{color:var(--ink-3)}
+  .hint-tap{font-size:12px;color:var(--ink-3);margin-top:14px;display:inline-flex;align-items:center;gap:7px}
+  .hint-tap svg{width:15px;height:15px;color:var(--red-500)}
+
+  /* control extras */
+  .ctrl-sep{width:1px;height:26px;background:var(--line);margin:0 3px;display:inline-block}
+  .nav-btn.ghost{width:40px;height:40px}
+  .nav-btn.ghost svg{width:19px;height:19px}
+
+  /* ============ QUIZ ============ */
+  .quiz{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .q-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:18px 20px;box-shadow:var(--shadow-sm)}
+  .q-text{display:flex;gap:10px;align-items:flex-start;font-size:15px;font-weight:700;line-height:1.35;margin-bottom:14px;color:var(--ink)}
+  .q-num{flex:none;width:24px;height:24px;border-radius:7px;background:var(--red-600);color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center;margin-top:1px}
+  .q-opts{display:grid;gap:8px}
+  .opt{display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:13.6px;line-height:1.35;color:var(--ink-2);transition:border-color .2s var(--ease),background .2s var(--ease)}
+  .opt:hover{border-color:var(--red-200,#f2c9cd);background:var(--red-050)}
+  .opt:focus-visible{outline:3px solid var(--red-400);outline-offset:2px}
+  .opt .mark{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;transition:all .2s var(--ease)}
+  .opt .mark svg{width:15px;height:15px}
+  .opt.sel{border-color:var(--red-500);background:var(--red-050)}
+  .opt.sel .mark{border-color:var(--red-500);box-shadow:inset 0 0 0 4px var(--red-500)}
+  .q-card.graded .opt{cursor:default}
+  .opt.correct{border-color:#1f8a4c;background:#eafaf0;color:#14532d}
+  .opt.correct .mark{border-color:#1f8a4c;background:#1f8a4c;box-shadow:none}
+  .opt.wrong{border-color:var(--red-600);background:#fdeef0;color:var(--red-800)}
+  .opt.wrong .mark{border-color:var(--red-600);background:var(--red-600);box-shadow:none}
+  .quiz-bar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:18px;padding:16px 20px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-md)}
+  .quiz-result{font-size:14.5px;color:var(--ink-2);opacity:0;transform:translateY(4px);transition:all .3s var(--ease)}
+  .quiz-result.show{opacity:1;transform:none}
+  .quiz-result b{font-size:19px;color:var(--red-600);font-variant-numeric:tabular-nums}
+  .quiz-result.good b{color:#1f8a4c}
+  .quiz-actions{display:flex;gap:10px;margin-left:auto}
+  .btn{font-family:inherit;font-size:14px;font-weight:700;padding:11px 22px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:transform .2s var(--ease),box-shadow .2s var(--ease),background .2s}
+  .btn:focus-visible{outline:3px solid var(--red-400);outline-offset:2px}
+  .btn-primary{background:var(--red-600);color:#fff;box-shadow:var(--shadow-sm)}
+  .btn-primary:hover{background:var(--red-700);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+  .btn-ghost{background:#fff;color:var(--ink-2);border-color:var(--line)}
+  .btn-ghost:hover{border-color:var(--red-300,#eaa);color:var(--red-700)}
+
+  /* ============ RESPONSIVE ============ */
+  @media(max-width:900px){
+    .cover-grid,.split{grid-template-columns:1fr;gap:28px}
+    .cover-emblem{max-width:220px;order:-1}
+    .g-3,.g-4{grid-template-columns:repeat(2,1fr)}
+    .ctx,.report-grid,.quiz{grid-template-columns:1fr}
+    .dots{display:none}
+    .slide{padding:88px 20px 96px}
+  }
+  @media(max-width:600px){
+    .g-2,.g-3,.g-4{grid-template-columns:1fr}
+    .report-grid{grid-template-columns:1fr}
+    .brand__txt span{display:none}
+    .cover-stats{gap:18px}
+    .nav-info{min-width:auto}
+    .formula{gap:8px}
+    .fx{min-width:96px;padding:10px 12px}
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition-duration:.001ms!important}
+    .slide{transition:opacity .2s}
+  }
+
+  /* ============ PRINT / PDF ============ */
+  @media print{
+    @page{size:A4 landscape;margin:12mm}
+    html,body{height:auto;overflow:visible;background:#fff}
+    .bg-decor,.progress,.counter,.dots,.controls,.card__chev,.start-hint,.hint-tap,.quiz-actions,.emblem-glow{display:none!important}
+    .deck,.slides{position:static;inset:auto;overflow:visible}
+    .topbar{position:static;height:auto;padding:0 0 10px;margin:0 0 14px;border-bottom:2px solid var(--red-600)}
+    .slide{position:static!important;opacity:1!important;visibility:visible!important;transform:none!important;display:block;height:auto;min-height:0;padding:0 0 6px;margin-bottom:10px;overflow:visible;page-break-after:always;break-after:page}
+    .slide:last-child{page-break-after:auto}
+    .wrap{max-width:100%}
+    .r{opacity:1!important;transform:none!important}
+    .grid.g-3,.grid.g-4,.quiz{grid-template-columns:repeat(2,1fr)}
+    .card,.q-card,.ctx-item,.report-card,.callout,.step{break-inside:avoid;box-shadow:none}
+    .card{cursor:default}
+    .card__detail{grid-template-rows:1fr!important;margin-top:12px!important;opacity:1!important}
+    .card__detail>div{overflow:visible}
+    .emblem-frame{box-shadow:none;animation:none}
+    .title,h1.title,h2.title{font-size:26px!important}
+    .lead{font-size:14px}
+    .slide::-webkit-scrollbar{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <div class="bg-decor">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+  </div>
+
+  <div class="progress"><div class="progress__bar" id="pbar"></div></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand__txt">
+        <b>Misión Médica</b>
+        <span>ESE Hospital Regional Noroccidental</span>
+      </div>
+    </div>
+    <div class="counter">
+      <span class="counter__kicker" id="kicker">Portada</span>
+      <span class="counter__num"><b id="cnum">01</b> / <span id="ctot">10</span></span>
+    </div>
+  </header>
+
+  <main class="slides" id="slides">
+
+    <!-- ===== 1. COVER ===== -->
+    <section class="slide cover active" data-kicker="Portada">
+      <div class="wrap">
+        <div class="cover-grid">
+          <div>
+            <div class="kick r" style="--i:0">Resolución 4481 de 2012 · Ministerio de Salud</div>
+            <h1 class="title r" style="--i:1">Recomendaciones de<br><span class="accent">seguridad</span> para el<br>personal sanitario</h1>
+            <p class="lead r" style="--i:2">Medidas de protección, prudencia y autocuidado para quienes ejercen funciones sanitarias al amparo de la Misión Médica en zonas de conflicto armado y otras situaciones de violencia.</p>
+            <div class="cover-stats r" style="--i:3">
+              <div class="stat"><b data-count="5">0</b><span>Ámbitos de seguridad</span></div>
+              <div class="stat"><b data-count="48">0</b><span>Recomendaciones</span></div>
+              <div class="stat"><b>DIH</b><span>Derecho Int. Humanitario</span></div>
+            </div>
+            <div class="start-hint r" style="--i:4">
+              <span>Usa las flechas para navegar</span>
+              <span class="keys"><span class="kbd">←</span><span class="kbd">→</span></span>
+            </div>
+          </div>
+          <div class="cover-emblem r" style="--i:2">
+            <div class="emblem-glow"></div>
+            <div class="emblem-frame">
+              <svg class="emblem-svg" viewBox="0 0 424 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Emblema de la Misión Médica">
+                <rect width="424" height="640" fill="#E30613"/>
+                <circle cx="212" cy="246" r="178" fill="#2B4C9B"/>
+                <rect x="76" y="202" width="272" height="88" fill="#fff"/>
+                <rect x="168" y="110" width="88" height="272" fill="#fff"/>
+                <text x="212" y="522" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="98" letter-spacing="1" fill="#fff">MISION</text>
+                <text x="212" y="616" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="98" letter-spacing="1" fill="#fff">MEDICA</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 2. CONTEXTO ===== -->
+    <section class="slide" data-kicker="Contexto">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg> ¿Por qué es necesario?</div>
+        <div class="split">
+          <div>
+            <h2 class="title r" style="--i:1">La Misión Médica es <span class="accent">altamente vulnerable</span></h2>
+            <div class="rule r" style="--i:1"></div>
+            <p class="lead r" style="--i:2">La dinámica del conflicto armado y otras situaciones de violencia son muchas veces el marco de recurrentes infracciones contra el ejercicio de la Misión Médica en Colombia. Por ello el personal de salud debe adoptar medidas que fortalezcan su marco de protección y respeto.</p>
+            <div class="callout r" style="--i:3">
+              <div class="callout__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
+              <div>
+                <b>Neutralidad e imparcialidad</b>
+                <p>Es responsabilidad del personal de salud actuar de manera neutral e imparcial, basado en los principios éticos de la actividad sanitaria, y aplicar las normas y medidas de protección existentes.</p>
+              </div>
+            </div>
+          </div>
+          <div class="steps r" style="--i:2">
+            <div class="step"><div class="step__n">1</div><div><b>Responsabilidad personal</b><p>Cada trabajador aplica las medidas de autocuidado y protección.</p></div></div>
+            <div class="step"><div class="step__n">2</div><div><b>Obligación institucional</b><p>Incorporar la seguridad en los planes hospitalarios para emergencias.</p></div></div>
+            <div class="step"><div class="step__n">3</div><div><b>Análisis de riesgo</b><p>Aplicar medidas donde el análisis de riesgo lo identifique como necesario.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 3. CONCEPTOS CLAVE ===== -->
+    <section class="slide" data-kicker="Conceptos clave">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="m5 8 7-5 7 5"/><path d="m5 16 7 5 7-5"/></svg> Marco conceptual</div>
+        <h2 class="title r" style="--i:1">Amenaza, riesgo y <span class="accent">vulnerabilidad</span></h2>
+        <p class="section-sub r" style="--i:1">Tomados de la teoría de emergencias y desastres. Toca cada tarjeta para ver su definición.</p>
+        <div class="formula r" style="--i:2" role="img" aria-label="Riesgo en función de amenaza y vulnerabilidad">
+          <div class="fx"><b>Amenaza</b><span>Factor externo</span></div>
+          <div class="fx-op">×</div>
+          <div class="fx"><b>Vulnerabilidad</b><span>Factor interno</span></div>
+          <div class="fx-op">=</div>
+          <div class="fx res"><b>Riesgo</b><span>Probabilidad de daño</span></div>
+        </div>
+        <div class="grid g-4 r" style="--i:3" id="grid-conceptos"></div>
+      </div>
+    </section>
+
+    <!-- ===== 4. ANALISIS DEL CONTEXTO ===== -->
+    <section class="slide" data-kicker="Análisis del contexto">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Antes de actuar</div>
+        <h2 class="title r" style="--i:1">Conocer y analizar el <span class="accent">contexto</span></h2>
+        <p class="section-sub r" style="--i:1">La premisa inicial es aceptar la existencia del riesgo y la necesidad de adoptar medidas para su disminución.</p>
+        <div class="rule r" style="--i:1"></div>
+        <div class="ctx r" style="--i:2">
+          <div class="ctx-item"><div class="ctx-num">a</div><p><b>Contexto social, económico, político y militar</b> de la zona donde se desarrolla la actividad.</p></div>
+          <div class="ctx-item"><div class="ctx-num">b</div><p><b>Necesidades locales</b> relacionadas con las actividades de salud.</p></div>
+          <div class="ctx-item"><div class="ctx-num">c</div><p><b>Dinámica local del conflicto armado</b> y presencia de grupos armados organizados.</p></div>
+          <div class="ctx-item"><div class="ctx-num">d</div><p><b>Naturaleza de las infracciones</b> a la Misión Médica en la zona.</p></div>
+        </div>
+        <div class="callout r" style="--i:3">
+          <div class="callout__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div>
+            <b>Reducción del riesgo</b>
+            <p>Trabajar en disminuir la amenaza y la vulnerabilidad: difundir y aplicar los mecanismos de protección a la Misión Médica, cumplir los deberes del personal sanitario e institucionalizar las medidas de seguridad del Manual.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 5. 8.1 ACTITUD Y VALORES ===== -->
+    <section class="slide" data-kicker="8.1 · Actitud y valores">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg> Ámbito 1 de 5</div>
+        <h2 class="title r" style="--i:1">Actitud y <span class="accent">valores personales</span></h2>
+        <p class="section-sub r" style="--i:1">Comportamiento humanitario, autocontrol y ética como primera línea de protección.</p>
+        <div class="grid g-3 r" style="--i:2" id="grid-actitud"></div>
+        <div class="callout r" style="--i:3">
+          <div class="callout__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg></div>
+          <div>
+            <b>Factores que pueden menoscabar la personalidad más firme</b>
+            <p>Identifícalos y abórdalos en todo momento:</p>
+            <div class="tags">
+              <span class="tag">Tensión con el equipo</span>
+              <span class="tag">Uso de medicamentos</span>
+              <span class="tag">Tensión nerviosa</span>
+              <span class="tag">Cansancio</span>
+              <span class="tag">Apatía</span>
+              <span class="tag">Indiferencia ante el peligro</span>
+              <span class="tag">Automatismo</span>
+              <span class="tag">Sentimientos de impotencia</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 6. 8.2 TRANSPORTE ===== -->
+    <section class="slide" data-kicker="8.2 · Transporte sanitario">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg> Ámbito 2 de 5</div>
+        <h2 class="title r" style="--i:1">Transporte <span class="accent">sanitario</span></h2>
+        <p class="section-sub r" style="--i:1">Vehículos exclusivos, documentación vigente y comportamiento seguro ante controles.</p>
+        <div class="grid g-3 r" style="--i:2" id="grid-transporte"></div>
+      </div>
+    </section>
+
+    <!-- ===== 7. 8.3 COMUNICACIONES ===== -->
+    <section class="slide" data-kicker="8.3 · Comunicaciones">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg> Ámbito 3 de 5</div>
+        <h2 class="title r" style="--i:1">Comunicaciones</h2>
+        <p class="section-sub r" style="--i:1">Reporte permanente, lenguaje claro y confidencialidad del paciente.</p>
+        <div class="rule r" style="--i:1"></div>
+        <div class="grid g-2 r" style="--i:2" id="grid-comunicaciones"></div>
+      </div>
+    </section>
+
+    <!-- ===== 8. 8.4 EXTRAMURALES ===== -->
+    <section class="slide" data-kicker="8.4 · Actividades extramurales">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 3 3v15l6 3 6-3 6 3V6l-6-3-6 3Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg> Ámbito 4 de 5</div>
+        <h2 class="title r" style="--i:1">Actividades <span class="accent">extramurales</span></h2>
+        <p class="section-sub r" style="--i:1">Planeación, reporte periódico e identificación visible en jornadas de campo.</p>
+        <div class="grid g-4 r" style="--i:2" id="grid-extramural"></div>
+      </div>
+    </section>
+
+    <!-- ===== 9. 8.5 IPS ===== -->
+    <section class="slide" data-kicker="8.5 · Instituciones (IPS)">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/></svg> Ámbito 5 de 5</div>
+        <h2 class="title r" style="--i:1">Empresas prestadoras de <span class="accent">servicios de salud</span></h2>
+        <p class="section-sub r" style="--i:1">Responsabilidades de gerentes y administradores: protocolos, afiliación y respuesta ante infracciones.</p>
+        <div class="grid g-4 r" style="--i:2" id="grid-ips"></div>
+      </div>
+    </section>
+
+    <!-- ===== 10. ANTE UNA INFRACCION / CIERRE ===== -->
+    <section class="slide" data-kicker="Ante una infracción">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg> Si ocurre una infracción</div>
+        <h2 class="title r" style="--i:1">Reportar <span class="accent">de inmediato</span></h2>
+        <p class="section-sub r" style="--i:1">Ante una infracción contra la Misión Médica, active la ruta de reporte usando los formatos establecidos.</p>
+        <div class="report-grid r" style="--i:2">
+          <div class="report-card">
+            <div class="rc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg></div>
+            <b>Secretaría de Salud</b>
+            <p>Reporte inmediato a la Secretaría de Salud departamental, distrital o local respectiva.</p>
+          </div>
+          <div class="report-card">
+            <div class="rc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></div>
+            <b>Ministerio de Salud</b>
+            <p>Notificación al Ministerio de Salud y Protección Social con los formatos establecidos.</p>
+          </div>
+          <div class="report-card">
+            <div class="rc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4a1 1 0 0 1 1 1v5h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-5v5a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-5H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h5V4a1 1 0 0 1 1-1Z"/></svg></div>
+            <b>CICR</b>
+            <p>Informar al Comité Internacional de la Cruz Roja para asistencia pronta a las víctimas.</p>
+          </div>
+        </div>
+        <div class="callout r" style="--i:3">
+          <div class="callout__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg></div>
+          <div>
+            <b>Después del reporte</b>
+            <p>Estudiar objetivamente las circunstancias en que ocurrió la infracción para implementar medidas preventivas que disminuyan el riesgo y eviten su repetición.</p>
+          </div>
+        </div>
+        <p class="final-note r" style="--i:4">Fuente: <b>Resolución 4481 de 2012</b> — Manual de Misión Médica · Ministerio de Salud y Protección Social · Colombia</p>
+      </div>
+    </section>
+
+    <!-- ===== 11. EVALUACION ===== -->
+    <section class="slide" data-kicker="Evaluación final">
+      <div class="wrap">
+        <div class="eyebrow r" style="--i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Verifica lo aprendido</div>
+        <h2 class="title r" style="--i:1">Evaluación <span class="accent">final</span></h2>
+        <p class="section-sub r" style="--i:1">Selecciona una respuesta por pregunta y pulsa «Calificar». Todas las preguntas provienen del Manual de Misión Médica.</p>
+        <div class="quiz r" style="--i:2" id="quiz"></div>
+        <div class="quiz-bar r" style="--i:3">
+          <div class="quiz-result" id="quiz-result" aria-live="polite"></div>
+          <div class="quiz-actions">
+            <button class="btn btn-ghost" id="retry" style="display:none">Reintentar</button>
+            <button class="btn btn-primary" id="grade">Calificar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="dots" id="dots" aria-label="Navegación de diapositivas"></nav>
+
+  <div class="controls">
+    <button class="nav-btn" id="prev" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <div class="nav-info"><span id="ninfo">Portada</span></div>
+    <button class="nav-btn" id="next" aria-label="Siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+    <span class="ctrl-sep"></span>
+    <button class="nav-btn ghost" id="fs" aria-label="Pantalla completa" title="Pantalla completa (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+    <button class="nav-btn ghost" id="prn" aria-label="Exportar o imprimir a PDF" title="Exportar / imprimir a PDF (P)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg></button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- SVG icon set (Lucide-style) ---------- */
+  var I = {
+    heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>',
+    scale:'<path d="M16 16h6l-3-6-3 6Z"/><path d="M2 16h6l-3-6-3 6Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M5 7l7-2 7 2"/>',
+    gauge:'<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+    brain:'<path d="M12 5a3 3 0 1 0-5.997.142 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.142 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>',
+    hand:'<path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 13"/>',
+    calm:'<path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/>',
+    check:'<path d="M20 6 9 17l-5-5"/>',
+    wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/>',
+    parking:'<circle cx="12" cy="12" r="10"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>',
+    file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/>',
+    moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    lights:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+    ban:'<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+    userX:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5"/><path d="m22 8-5 5"/>',
+    stop:'<path d="M8 3H16L21 8V16L16 21H8L3 16V8L8 3Z"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/>',
+    mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    convoy:'<path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+    phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/>',
+    lock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    message:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+    map:'<path d="M9 6 3 3v15l6 3 6-3 6 3V6l-6-3-6 3Z"/><path d="M9 3v15"/><path d="M15 6v15"/>',
+    search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    clipboard:'<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
+    users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    megaphone:'<path d="m3 11 18-5v12L3 14v-3Z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+    clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    id:'<rect width="18" height="14" x="3" y="5" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M13 9h4"/><path d="M13 13h4"/><path d="M6.5 16a3 3 0 0 1 4 0"/>',
+    flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1Z"/><path d="M4 22v-7"/>',
+    sun:'<path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/>',
+    plane:'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z"/>',
+    camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/>',
+    shieldPlus:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="M9 12h6"/><path d="M12 9v6"/>',
+    doc2:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M9 13h6"/><path d="M9 17h3"/>',
+    handshake:'<path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>',
+    badge:'<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/>',
+    alert:'<path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/>',
+    move:'<path d="M12 8V2"/><path d="m5 12-3 3 3 3"/><path d="M2 15h20"/><path d="m19 9 3-3-3-3"/><path d="M22 6H2"/>'
+  };
+  function svg(name){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(I[name]||'')+'</svg>';}
+
+  /* ---------- Content data ---------- */
+  var DATA = {
+    conceptos:[
+      {ico:'alert',label:'Externo',title:'Amenaza',text:'Factor externo de riesgo: potencial ocurrencia de un suceso natural o humano en un lugar específico. Para la Misión Médica incluye alteraciones del orden público, la actividad del conflicto armado y el incumplimiento del DIH por las partes.'},
+      {ico:'gauge',label:'Probabilidad',title:'Riesgo',text:'Probabilidad de daños sociales, ambientales y económicos en función de la amenaza y la vulnerabilidad. Se evalúa según las consecuencias humanitarias sobre la prestación de servicios a heridos, enfermos y población civil.'},
+      {ico:'shieldPlus',label:'Interno',title:'Vulnerabilidad',text:'Factor interno de riesgo: predisposición a ser dañado. En la Misión Médica se agrava por el desconocimiento de las normas que protegen la actividad y la falta de protocolos de seguridad durante la labor.'},
+      {ico:'check',label:'Acción',title:'Reducción del riesgo',text:'Al reducir amenaza y vulnerabilidad baja el riesgo: dar a conocer y aplicar los mecanismos de protección a la Misión Médica y garantizar la protección de heridos y enfermos.'}
+    ],
+    actitud:[
+      {ico:'heart',label:'a',title:'Comportamiento humanitario',text:'Conservar un comportamiento y actitud basados en criterios humanitarios, imparciales, neutrales y en principios éticos.'},
+      {ico:'scale',label:'b',title:'Atención sin distinción',text:'Atender siempre a heridos, enfermos, náufragos y población civil sin distinción alguna ni carácter desfavorable, determinando la prioridad de atención únicamente con criterios médicos.'},
+      {ico:'gauge',label:'c',title:'Autocontrol y evaluación',text:'Tener actitud responsable, autocontrol y capacidad para evaluar situaciones en momentos críticos, sopesando el peligro y el riesgo de manera objetiva.'},
+      {ico:'brain',label:'d',title:'Red de apoyo en salud mental',text:'Contar con una red de apoyo en salud mental que sirva de soporte ante situaciones críticas.'},
+      {ico:'hand',label:'e',title:'Prudencia y cortesía',text:'Comportarse siempre con prudencia, discreción y cortesía en el desarrollo de las actividades.'},
+      {ico:'calm',label:'f',title:'Reconocer límites y calma',text:'Reconocer los propios límites; en situaciones críticas conservar la calma y evitar el pánico y el temor extremos, que podrían transmitirse al equipo y afectar la asistencia.'},
+      {ico:'check',label:'g',title:'Cumplir los deberes',text:'Cumplir siempre con los deberes del personal sanitario en situaciones de conflicto armado.'}
+    ],
+    transporte:[
+      {ico:'wrench',label:'a',title:'Mantenimiento constante',text:'Los medios de transporte sanitario deben tener cuidado y mantenimiento técnico-mecánico constante: aceite, frenos, agua, batería, luces y llantas.'},
+      {ico:'parking',label:'b',title:'Estacionar hacia la salida',text:'El conductor estaciona el vehículo en el sentido de la salida y procura abastecerlo de combustible al final de cada jornada.'},
+      {ico:'convoy',label:'c',title:'Normas de tránsito',text:'Se deben cumplir estrictamente las normas de tránsito.'},
+      {ico:'file',label:'d',title:'Documentos vigentes',text:'Llevar siempre todos los documentos requeridos por ley y vigentes (tarjeta de propiedad, seguros, SOAT) más copia de la autorización de uso del Emblema.'},
+      {ico:'moon',label:'e',title:'Evitar recorridos nocturnos',text:'En la medida de lo posible, no se programarán recorridos nocturnos.'},
+      {ico:'lights',label:'f',title:'Luces encendidas de noche',text:'Si una urgencia médica exige desplazamiento nocturno, llevar encendidas todas las luces del vehículo, internas y externas.'},
+      {ico:'ban',label:'g',title:'Uso exclusivo sanitario',text:'No utilizar los transportes sanitarios para labores que no estén estrictamente relacionadas con la Misión Médica.'},
+      {ico:'userX',label:'h',title:'No transportar armados',text:'Evitar transportar personas armadas en los medios de transporte sanitarios.'},
+      {ico:'stop',label:'i',title:'Detenerse ante controles',text:'Ante la inminencia de un control en la ruta, disminuir la velocidad para poder detenerse a la más mínima señal de "PARE".'},
+      {ico:'hand',label:'j',title:'Actitud serena en requisas',text:'Conductor y acompañantes mantienen actitud serena y manos visibles; retirar lentes oscuros, presentar la Tarjeta de Identidad de Misión Médica y nunca oponerse a una requisa. Para quitar el cinturón, hacerlo lentamente avisando a quien lo solicite.'},
+      {ico:'mail',label:'k',title:'No llevar correo de terceros',text:'No se puede transportar ni transmitir correo, sobres, mensajes escritos o mercancías de y para terceros fuera del contexto de la Misión Médica.'},
+      {ico:'users',label:'l',title:'Solo personal sanitario',text:'Se prohíbe transportar personal diferente al encargado de las actividades sanitarias.'},
+      {ico:'convoy',label:'m',title:'Prudencia ante convoyes militares',text:'Ser particularmente prudente ante vehículos o caravanas militares. Antes de adelantarlos, preguntar los motivos de la detención y si se puede proseguir; si conviene, esperar a prudente distancia o regresar al centro asistencial.'}
+    ],
+    comunicaciones:[
+      {ico:'phone',label:'a',title:'Medio de comunicación permanente',text:'Contar con radio, celular o lugares identificados desde donde comunicarse (cabinas, locales de larga distancia) que permitan reportar las actividades.'},
+      {ico:'clock',label:'b',title:'Comunicación constante con central',text:'En todo desplazamiento mantener comunicación con una central: informar salida, llegada y cualquier eventualidad. Las comunicaciones se limitan a indicar la posición, señalar si el trabajo se lleva con normalidad y precisar el próximo reporte, sin mensajes personales.'},
+      {ico:'lock',label:'c',title:'Confidencialidad del paciente',text:'No transmitir por radio, teléfono o fax información confidencial sobre la condición del paciente, quienes lo entregaron o los familiares acompañantes.'},
+      {ico:'message',label:'d',title:'Lenguaje claro, sin claves',text:'Evitar códigos, señales o claves en las comunicaciones; usar el idioma español de manera clara.'}
+    ],
+    extramural:[
+      {ico:'search',label:'a',title:'Analizar la información',text:'Analizar y evaluar la información disponible: situación local y regional, necesidades en salud, condiciones logísticas y de seguridad, recursos disponibles y contactos. Tener presente campos minados o zonas con riesgo de minas y munición sin estallar.'},
+      {ico:'shieldPlus',label:'b',title:'Verificar seguridad',text:'Averiguar las condiciones de seguridad con las autoridades locales u otros medios: CRUE, Cruz Roja Colombiana, organizaciones locales, prensa y medios.'},
+      {ico:'clipboard',label:'c',title:'Revisar antes de partir',text:'Antes de partir revisar identificación, indumentaria, material y equipo médico, transporte, equipo de comunicación, objeto, itinerario y horario de la misión.'},
+      {ico:'megaphone',label:'d',title:'Informar a la comunidad',text:'Informar a la comunidad las actividades, lugares y cronograma. No emprender ninguna actividad médica si hay manifestación en contra de su realización.'},
+      {ico:'map',label:'e',title:'Cubrir el itinerario previsto',text:'El equipo extramural debe cubrir a cabalidad el itinerario previsto y las actividades programadas.'},
+      {ico:'move',label:'f',title:'Informar cambios',text:'Si es indispensable cambiar la programación, informar de inmediato a la secretaría de salud y a la comunidad.'},
+      {ico:'clock',label:'g',title:'Reportarse cada 2 horas',text:'Reportarse a la sede (hospital o servicio de salud) a la salida, cada 2 horas según condiciones y distancia, y durante el regreso.'},
+      {ico:'users',label:'h',title:'Registrar al personal',text:'Al salir, registrar los nombres completos de todo el personal que integra la misión.'},
+      {ico:'id',label:'i',title:'Documentos de identificación',text:'Llevar vigentes: cédula, carné de la entidad y Tarjeta de Identidad de Misión Médica, licencia de conducción, tarjeta de propiedad, certificados de seguros, copia de autorización del Emblema y carné de equipos de comunicación.'},
+      {ico:'userX',label:'j',title:'No viajar con las partes',text:'Evitar viajar en vehículos de alguna de las partes en conflicto o hacerse desvarar por ellos; no solicitar ni aceptar escolta de estos.'},
+      {ico:'ban',label:'k',title:'Evitar medios vulnerables',text:'En lo posible, no desplazarse a pie, en moto, bicicleta o a caballo, salvo que se pueda regresar el mismo día.'},
+      {ico:'sun',label:'l',title:'Desplazarse de día',text:'Fuera de las poblaciones, en lo posible los desplazamientos terrestres, aéreos, marítimos y fluviales se efectúan entre las 6:00 a.m. y las 6:00 p.m.'},
+      {ico:'clock',label:'m',title:'Respetar toques de queda',text:'Respetar estrictamente las órdenes y horarios de toques de queda y altos al fuego.'},
+      {ico:'flag',label:'n',title:'Identificar el lugar',text:'Identificar los sitios de actividad sanitaria con pendones o banderas visibles.'},
+      {ico:'plane',label:'o',title:'Operación aérea',text:'Ante una operación aérea en zonas conflictivas, identificarse buscando una zona descubierta, dejando a un lado equipos y morrales y formando una cruz en el piso para llamar la atención de los pilotos.'},
+      {ico:'camera',label:'p',title:'Evitar equipos de registro',text:'Evitar al máximo portar grabadoras, cámaras fotográficas, celulares con cámara, filmadoras u objetos similares durante las actividades sanitarias.'}
+    ],
+    ips:[
+      {ico:'megaphone',label:'a',title:'Difusión amplia',text:'Realizar extensa difusión en su área de influencia sobre el respeto y protección a la Misión Médica.'},
+      {ico:'doc2',label:'b',title:'Plan de contingencia',text:'Mantener, difundir y aplicar un plan de contingencia que incorpore estas recomendaciones.'},
+      {ico:'handshake',label:'c',title:'Acuerdos con autoridades',text:'Contactar autoridades locales y Fuerza Pública para establecer acuerdos y protocolos de actuación ante situaciones complejas del conflicto que requieran al personal de salud civil.'},
+      {ico:'badge',label:'d',title:'Afiliación al SGSSS',text:'Mantener a todos los trabajadores afiliados a la seguridad social, en especial al Sistema de Riesgos Laborales. En contratos con terceros, exigir la afiliación como cláusula mandataria y facultar al interventor para su control.'},
+      {ico:'move',label:'e',title:'Medidas ante amenaza',text:'En caso de amenaza, aplicar medidas de protección individual y de seguridad: traslado, reubicación, estudio de riesgo, conforme a las normas vigentes.'},
+      {ico:'alert',label:'f',title:'Reportar infracciones',text:'Ante una infracción, reportar de inmediato a la secretaría de salud y al Ministerio de Salud con los formatos establecidos; considerar informar al CICR para asistencia a las víctimas.'},
+      {ico:'search',label:'g',title:'Estudiar las circunstancias',text:'Estudiar objetivamente las circunstancias de la infracción para implementar medidas preventivas y evitar su repetición.'},
+      {ico:'handshake',label:'h',title:'Protocolos de actuación',text:'Al contactar autoridades y fuerza pública, establecer claramente acuerdos de actuación para situaciones complejas del conflicto armado.'}
+    ]
+  };
+
+  function cardHTML(item){
+    return '<div class="card" tabindex="0" role="button" aria-expanded="false">'+
+      '<div class="card__head">'+
+        '<div class="card__ico">'+svg(item.ico)+'</div>'+
+        '<div><div class="card__label">'+item.label+'</div><div class="card__title">'+item.title+'</div></div>'+
+        '<div class="card__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>'+
+      '</div>'+
+      '<div class="card__detail"><div><p>'+item.text+'</p></div></div>'+
+    '</div>';
+  }
+  function conceptHTML(item){
+    return '<div class="card concept" tabindex="0" role="button" aria-expanded="false">'+
+      '<span class="badge">'+item.label+'</span>'+
+      '<div class="card__head">'+
+        '<div class="card__ico">'+svg(item.ico)+'</div>'+
+        '<div class="card__title">'+item.title+'</div>'+
+      '</div>'+
+      '<div class="card__detail"><div><p>'+item.text+'</p></div></div>'+
+    '</div>';
+  }
+  function fill(id,arr,fn){
+    var el=document.getElementById(id); if(!el) return;
+    el.innerHTML=arr.map(fn).join('');
+  }
+  fill('grid-conceptos',DATA.conceptos,conceptHTML);
+  fill('grid-actitud',DATA.actitud,cardHTML);
+  fill('grid-transporte',DATA.transporte,cardHTML);
+  fill('grid-comunicaciones',DATA.comunicaciones,cardHTML);
+  fill('grid-extramural',DATA.extramural,cardHTML);
+  fill('grid-ips',DATA.ips,cardHTML);
+
+  /* ---------- Quiz ---------- */
+  var QUIZ=[
+    {q:'¿Con qué criterio se determina la prioridad de atención a heridos y enfermos?',
+     o:['Según el bando al que pertenezcan','Únicamente con criterios médicos','Según el orden de llegada','Según la disponibilidad de transporte'],a:1},
+    {q:'Ante un control en la ruta, el conductor y sus acompañantes deben:',
+     o:['Acelerar para evitar la requisa','Mantener actitud serena, manos visibles y presentar la Tarjeta de Identidad de Misión Médica','Oponerse a la requisa del vehículo','Conservar los lentes oscuros puestos'],a:1},
+    {q:'En las comunicaciones por radio o teléfono se debe:',
+     o:['Usar códigos y claves para mayor seguridad','Usar lenguaje español claro, sin códigos ni claves','Informar la condición clínica detallada del paciente','Intercambiar mensajes personales del equipo'],a:1},
+    {q:'En actividades extramurales, el equipo debe reportarse a su sede:',
+     o:['Solo a la salida','Cada 2 horas según condiciones y distancia, y durante el regreso','Únicamente al finalizar la jornada','Cada 6 horas'],a:1},
+    {q:'Fuera de las poblaciones, los desplazamientos se efectúan preferiblemente:',
+     o:['En horario nocturno','Entre las 6:00 a.m. y las 6:00 p.m.','A cualquier hora si hay urgencia','Solo los fines de semana'],a:1},
+    {q:'Ante una infracción contra la Misión Médica se debe reportar de inmediato a:',
+     o:['Únicamente a la comunidad','La Secretaría de Salud y el Ministerio de Salud (y considerar informar al CICR)','Solo a la EPS del paciente','A ningún organismo, por seguridad'],a:1}
+  ];
+  var answers={};
+  var iconCheck='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var iconX='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  function renderQuiz(){
+    var el=document.getElementById('quiz'); if(!el)return;
+    el.innerHTML=QUIZ.map(function(item,qi){
+      return '<div class="q-card" data-q="'+qi+'">'+
+        '<div class="q-text"><span class="q-num">'+(qi+1)+'</span><span>'+item.q+'</span></div>'+
+        '<div class="q-opts">'+item.o.map(function(op,oi){
+          return '<div class="opt" role="button" tabindex="0" data-q="'+qi+'" data-o="'+oi+'"><span class="mark"></span><span>'+op+'</span></div>';
+        }).join('')+'</div></div>';
+    }).join('');
+  }
+  renderQuiz();
+  function grade(){
+    var score=0;
+    QUIZ.forEach(function(item,qi){
+      var card=document.querySelector('.q-card[data-q="'+qi+'"]'); if(!card)return;
+      card.classList.add('graded');
+      var opts=card.querySelectorAll('.opt'), sel=answers[qi];
+      opts.forEach(function(op,oi){
+        if(oi===item.a){op.classList.add('correct');op.querySelector('.mark').innerHTML=iconCheck;}
+        else if(sel===oi){op.classList.add('wrong');op.querySelector('.mark').innerHTML=iconX;}
+      });
+      if(sel===item.a)score++;
+    });
+    var res=document.getElementById('quiz-result');
+    var pct=Math.round(score/QUIZ.length*100);
+    var msg=pct>=80?' — ¡Excelente!':pct>=60?' — Aceptable, repasa los puntos fallados.':' — Repasa el material y reintenta.';
+    res.innerHTML='<b>'+score+' / '+QUIZ.length+'</b> respuestas correctas · '+pct+'%'+msg;
+    res.classList.add('show'); res.classList.toggle('good',pct>=80);
+    document.getElementById('grade').style.display='none';
+    document.getElementById('retry').style.display='';
+  }
+  document.getElementById('grade').addEventListener('click',grade);
+  document.getElementById('retry').addEventListener('click',function(){
+    answers={}; renderQuiz();
+    var res=document.getElementById('quiz-result'); res.classList.remove('show','good'); res.innerHTML='';
+    document.getElementById('grade').style.display=''; document.getElementById('retry').style.display='none';
+  });
+  document.addEventListener('click',function(e){
+    var o=e.target.closest('.opt'); if(!o)return;
+    var card=o.closest('.q-card'); if(card.classList.contains('graded'))return;
+    card.querySelectorAll('.opt').forEach(function(x){x.classList.remove('sel')});
+    o.classList.add('sel'); answers[o.dataset.q]=+o.dataset.o;
+  });
+
+  /* ---------- Fullscreen & print ---------- */
+  function toggleFS(){
+    var el=document.documentElement;
+    if(!document.fullscreenElement){ if(el.requestFullscreen)el.requestFullscreen(); }
+    else { if(document.exitFullscreen)document.exitFullscreen(); }
+  }
+  document.getElementById('fs').addEventListener('click',toggleFS);
+  document.getElementById('prn').addEventListener('click',function(){window.print();});
+
+  /* card expand interaction (event delegation) */
+  document.addEventListener('click',function(e){
+    var c=e.target.closest('.card'); if(!c) return;
+    var open=c.classList.toggle('open');
+    c.setAttribute('aria-expanded',open?'true':'false');
+  });
+  document.addEventListener('keydown',function(e){
+    var a=document.activeElement;
+    if((e.key==='Enter'||e.key===' ')&&a&&(a.classList.contains('card')||a.classList.contains('opt'))){
+      e.preventDefault(); a.click();
+    }
+  });
+
+  /* ---------- Slide engine ---------- */
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total=slides.length, cur=0;
+  var pbar=document.getElementById('pbar');
+  var kicker=document.getElementById('kicker');
+  var cnum=document.getElementById('cnum');
+  var ninfo=document.getElementById('ninfo');
+  var prevBtn=document.getElementById('prev');
+  var nextBtn=document.getElementById('next');
+  var dotsWrap=document.getElementById('dots');
+  document.getElementById('ctot').textContent=String(total).padStart(2,'0');
+
+  // dots
+  slides.forEach(function(s,i){
+    var b=document.createElement('button');
+    b.className='dot'; b.setAttribute('aria-label','Ir a: '+s.dataset.kicker);
+    b.innerHTML='<span>'+s.dataset.kicker+'</span>';
+    b.addEventListener('click',function(){go(i)});
+    dotsWrap.appendChild(b);
+  });
+  var dots=Array.prototype.slice.call(dotsWrap.children);
+
+  var counters=null;
+  function go(n){
+    n=Math.max(0,Math.min(total-1,n));
+    var prev=cur; cur=n;
+    slides.forEach(function(s,i){
+      s.classList.remove('active','prev');
+      if(i===cur) s.classList.add('active');
+      else if(i<cur) s.classList.add('prev');
+    });
+    dots.forEach(function(d,i){d.classList.toggle('active',i===cur)});
+    pbar.style.width=((cur)/(total-1)*100)+'%';
+    kicker.textContent=slides[cur].dataset.kicker;
+    cnum.textContent=String(cur+1).padStart(2,'0');
+    ninfo.textContent=slides[cur].dataset.kicker;
+    prevBtn.disabled=(cur===0);
+    nextBtn.disabled=(cur===total-1);
+    // reset scroll
+    slides[cur].scrollTop=0;
+    // cover counters
+    if(cur===0) animateCounters();
+  }
+  function next(){go(cur+1)}
+  function prevS(){go(cur-1)}
+
+  prevBtn.addEventListener('click',prevS);
+  nextBtn.addEventListener('click',next);
+
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='PageDown'){next();e.preventDefault();}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){prevS();e.preventDefault();}
+    else if(e.key==='Home'){go(0);e.preventDefault();}
+    else if(e.key==='End'){go(total-1);e.preventDefault();}
+    else if(e.key==='f'||e.key==='F'){toggleFS();e.preventDefault();}
+    else if(e.key==='p'||e.key==='P'){window.print();e.preventDefault();}
+    else if(e.key===' '){var a=document.activeElement;if(!(a&&(a.classList.contains('card')||a.classList.contains('opt')))){next();e.preventDefault();}}
+  });
+
+  // wheel navigation (debounced, only when not scrolling inner content)
+  var wheelLock=false;
+  document.getElementById('slides').addEventListener('wheel',function(e){
+    var s=slides[cur];
+    var atTop=s.scrollTop<=0, atBottom=s.scrollTop+s.clientHeight>=s.scrollHeight-2;
+    if(wheelLock) return;
+    if(e.deltaY>18 && atBottom){wheelLock=true;next();setTimeout(function(){wheelLock=false},650);}
+    else if(e.deltaY<-18 && atTop){wheelLock=true;prevS();setTimeout(function(){wheelLock=false},650);}
+  },{passive:true});
+
+  // touch swipe
+  var tx=0,ty=0;
+  document.addEventListener('touchstart',function(e){tx=e.changedTouches[0].clientX;ty=e.changedTouches[0].clientY;},{passive:true});
+  document.addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){ dx<0?next():prevS(); }
+  },{passive:true});
+
+  // counters
+  function animateCounters(){
+    var els=document.querySelectorAll('.stat b[data-count]');
+    els.forEach(function(el){
+      var target=+el.dataset.count, start=0, t0=null, dur=1100;
+      if(el.dataset.done) {el.textContent=target;return;}
+      function step(ts){
+        if(!t0)t0=ts; var p=Math.min((ts-t0)/dur,1);
+        el.textContent=Math.round((1-Math.pow(1-p,3))*target);
+        if(p<1)requestAnimationFrame(step); else el.dataset.done="1";
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  // init
+  go(0);
+})();
+</script>
+</body>
+</html>

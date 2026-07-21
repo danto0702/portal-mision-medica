@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Misión Médica y DIH — Capacitación 2025</title>
+<style>
+  :root {
+    --bg:        #ffffff;
+    --surface:   #f5f7fa;
+    --surface2:  #eaecf0;
+    --border:    #d0d7de;
+    --red:       #c0392b;
+    --red-light: #e74c3c;
+    --red-dim:   rgba(192,57,43,.10);
+    --blue:      #1a4fa0;
+    --blue-light:#2264c4;
+    --gold:      #b8860b;
+    --gold-light:#d4a017;
+    --text:      #1a1a2e;
+    --text-muted:#57606a;
+    --white:     #ffffff;
+    --radius:    12px;
+    --radius-sm: 8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── PRESENTATION WRAPPER ── */
+  #pres {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-track {
+    height: 3px;
+    background: var(--surface2);
+    flex-shrink: 0;
+    position: relative;
+  }
+  #progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), var(--red-light));
+    transition: width .4s ease;
+  }
+
+  /* ── SLIDE AREA ── */
+  #slide-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 48px 64px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity .45s ease, transform .45s ease;
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1; transform: translateX(0);
+    pointer-events: all;
+  }
+  .slide.out-left {
+    opacity: 0; transform: translateX(-60px);
+  }
+
+  /* ── LAYOUTS ── */
+  .layout-title     { text-align: center; gap: 24px; }
+  .layout-content   { align-items: flex-start; gap: 32px; }
+  .layout-two-col   { flex-direction: row; align-items: stretch; gap: 40px; }
+  .layout-grid      { flex-direction: column; align-items: stretch; gap: 24px; }
+  .layout-cards     { flex-direction: column; align-items: stretch; gap: 20px; }
+
+  /* ── GLOBAL ELEMENTS ── */
+  .slide-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--red-light);
+    background: var(--red-dim);
+    border: 1px solid rgba(192,57,43,.35);
+    padding: 4px 12px; border-radius: 20px;
+    align-self: flex-start;
+  }
+  .slide-tag.blue {
+    color: var(--blue-light);
+    background: rgba(26,107,181,.18);
+    border-color: rgba(26,107,181,.4);
+  }
+  .slide-tag.gold {
+    color: var(--gold-light);
+    background: rgba(212,160,23,.18);
+    border-color: rgba(212,160,23,.4);
+  }
+  .slide-tag.center { align-self: center; }
+
+  .slide-title {
+    font-size: clamp(26px,3.5vw,44px);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+  }
+  .slide-title .accent { color: var(--red-light); }
+  .slide-title.center { text-align: center; }
+  .slide-title.large  { font-size: clamp(32px,4.5vw,58px); }
+
+  .slide-subtitle {
+    font-size: clamp(14px,1.6vw,20px);
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 700px;
+  }
+  .slide-subtitle.center { text-align: center; }
+
+  .divider {
+    width: 60px; height: 3px;
+    background: linear-gradient(90deg, var(--red), var(--red-light));
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .divider.center { align-self: center; }
+  .divider.gold { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+  .divider.blue { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+
+  /* ── BACKGROUND DECO ── */
+  .bg-cross {
+    position: absolute;
+    right: -40px; top: 50%;
+    transform: translateY(-50%);
+    opacity: .04;
+    pointer-events: none;
+  }
+  .bg-number {
+    position: absolute;
+    right: 48px; bottom: 32px;
+    font-size: 180px; font-weight: 900;
+    color: var(--text); opacity: .04;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    flex: 1;
+  }
+  .card.red-border { border-color: rgba(192,57,43,.5); }
+  .card.blue-border { border-color: rgba(26,107,181,.4); }
+  .card.gold-border { border-color: rgba(212,160,23,.4); }
+
+  .card-title {
+    font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: var(--red-light); margin-bottom: 10px;
+  }
+  .card-title.blue  { color: var(--blue-light); }
+  .card-title.gold  { color: var(--gold-light); }
+  .card-title.white { color: var(--text); }
+
+  /* ── BULLET LIST ── */
+  .bullet-list {
+    display: flex; flex-direction: column; gap: 12px;
+    list-style: none;
+  }
+  .bullet-list li {
+    display: flex; align-items: flex-start; gap: 12px;
+    font-size: clamp(13px,1.4vw,16px); line-height: 1.55;
+    color: var(--text);
+  }
+  .bullet-list li .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--red-light);
+    flex-shrink: 0; margin-top: 6px;
+  }
+  .bullet-list li .dot.blue  { background: var(--blue-light); }
+  .bullet-list li .dot.gold  { background: var(--gold-light); }
+
+  /* ── ICON ROWS ── */
+  .icon-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: clamp(13px,1.35vw,15px);
+    color: var(--text); line-height: 1.5;
+    transition: border-color .2s;
+  }
+  .icon-row:hover { border-color: var(--red); }
+  .icon-circle {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--red-dim);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .icon-circle.blue { background: rgba(26,107,181,.2); }
+  .icon-circle.gold { background: rgba(212,160,23,.15); }
+
+  /* ── STAT BLOCKS ── */
+  .stat-row {
+    display: flex; gap: 20px;
+  }
+  .stat-box {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-box .stat-num {
+    font-size: clamp(28px,3.5vw,48px);
+    font-weight: 800; color: var(--red-light);
+    line-height: 1;
+  }
+  .stat-box .stat-label {
+    font-size: 12px; color: var(--text-muted);
+    margin-top: 6px; text-transform: uppercase; letter-spacing: .08em;
+  }
+
+  /* ── QUOTE BLOCK ── */
+  .quote-block {
+    background: var(--surface);
+    border-left: 4px solid var(--red);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 24px 28px;
+    position: relative;
+  }
+  .quote-block p {
+    font-size: clamp(14px,1.6vw,18px);
+    line-height: 1.7; color: var(--text);
+    font-style: italic;
+  }
+  .quote-mark {
+    position: absolute; top: -8px; left: 20px;
+    font-size: 60px; color: var(--red); opacity: .25;
+    font-family: Georgia, serif; line-height: 1;
+  }
+
+  /* ── TWO-COLUMN helpers ── */
+  .col { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .col.narrow { flex: 0 0 38%; }
+  .col.wide   { flex: 0 0 58%; }
+
+  /* ── TITLE SLIDE SPECIFIC ── */
+  .title-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--red-dim);
+    border: 1px solid rgba(192,57,43,.4);
+    border-radius: 40px;
+    padding: 8px 20px;
+    font-size: 13px; font-weight: 600;
+    color: var(--red-light);
+  }
+  .title-meta {
+    font-size: 14px; color: var(--text-muted);
+    display: flex; flex-direction: column; gap: 4px;
+    align-items: center;
+  }
+
+  /* ── EMBLEMA ── */
+  .emblem-svg-wrap {
+    display: flex; align-items: center; justify-content: center;
+    width: 160px; height: 160px;
+    background: var(--surface2);
+    border-radius: 50%;
+    border: 2px solid rgba(192,57,43,.3);
+    margin: 0 auto;
+    flex-shrink: 0;
+  }
+
+  /* ── PRINCIPLE PILLS ── */
+  .principle-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .principle-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 14px;
+    text-align: center;
+    font-size: 13px; font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    transition: border-color .2s, background .2s;
+  }
+  .principle-pill:hover { border-color: var(--red); background: var(--red-dim); }
+  .principle-pill span { display: block; font-size: 22px; margin-bottom: 6px; }
+
+  /* ── PRECAUTION CARDS ── */
+  .prec-cards {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .prec-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .prec-card-title {
+    font-size: 14px; font-weight: 700;
+    color: var(--text); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ── CONTACT ── */
+  .contact-item {
+    display: flex; align-items: center; gap: 14px;
+    font-size: 15px; color: var(--text);
+  }
+
+  /* ── NAVIGATION ── */
+  #nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 32px;
+    background: var(--surface);
+    border-top: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+  .nav-info {
+    font-size: 12px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 16px;
+  }
+  #slide-counter { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+  .nav-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 20px; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: background .2s, border-color .2s, color .2s;
+  }
+  .nav-btn:hover { background: var(--surface); border-color: var(--text-muted); }
+  .nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .nav-btn.primary {
+    background: var(--red); border-color: var(--red); color: #fff;
+  }
+  .nav-btn.primary:hover { background: var(--red-light); border-color: var(--red-light); }
+
+  /* dot nav */
+  #dot-nav {
+    display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
+    max-width: 420px; justify-content: center;
+  }
+  .dot-nav-btn {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--border); border: none; cursor: pointer;
+    transition: background .2s, transform .2s;
+    padding: 0;
+  }
+  .dot-nav-btn.active {
+    background: var(--red-light);
+    transform: scale(1.5);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .slide.active > * {
+    animation: fadeUp .5s ease both;
+  }
+  .slide.active > *:nth-child(1) { animation-delay: .05s; }
+  .slide.active > *:nth-child(2) { animation-delay: .12s; }
+  .slide.active > *:nth-child(3) { animation-delay: .19s; }
+  .slide.active > *:nth-child(4) { animation-delay: .26s; }
+  .slide.active > *:nth-child(5) { animation-delay: .33s; }
+  .slide.active > *:nth-child(6) { animation-delay: .40s; }
+  .slide.active > *:nth-child(7) { animation-delay: .47s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide, .slide.active > * { transition: none; animation: none; }
+  }
+
+  /* ── KEYBOARD HINT ── */
+  #kbd-hint {
+    position: fixed; bottom: 70px; right: 24px;
+    font-size: 11px; color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 10px;
+    opacity: .7;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="pres">
+  <div id="progress-track"><div id="progress-fill"></div></div>
+
+  <div id="slide-area">
+
+    <!-- ═══════════════════════════ SLIDE 1 — PORTADA ═══════════════════════════ -->
+    <section class="slide active" id="s1" style="padding:0; flex-direction:row; justify-content:stretch; align-items:stretch; gap:0;">
+
+      <!-- Panel izquierdo — rojo con logo -->
+      <div style="
+        width:38%; background:#c0392b;
+        display:flex; flex-direction:column;
+        align-items:center; justify-content:center;
+        gap:28px; padding:40px 32px;
+        position:relative; overflow:hidden; flex-shrink:0;">
+        <!-- Decoración geométrica de fondo -->
+        <svg style="position:absolute;bottom:-60px;left:-60px;opacity:.12" width="260" height="260" viewBox="0 0 260 260">
+          <circle cx="130" cy="130" r="120" fill="none" stroke="white" stroke-width="2"/>
+          <circle cx="130" cy="130" r="80"  fill="none" stroke="white" stroke-width="2"/>
+          <circle cx="130" cy="130" r="40"  fill="none" stroke="white" stroke-width="2"/>
+        </svg>
+        <svg style="position:absolute;top:-40px;right:-40px;opacity:.10" width="180" height="180" viewBox="0 0 180 180">
+          <rect x="60" y="0"  width="60" height="180" fill="white"/>
+          <rect x="0"  y="60" width="180" height="60" fill="white"/>
+        </svg>
+
+        <!-- Logo — clic para cambiar -->
+        <div id="logo-wrap" style="cursor:pointer;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;"
+             title="Clic para cargar tu propio logo" onclick="document.getElementById('logo-upload').click()">
+          <img id="logo-img" src="logo_mision_medica.png"
+               onerror="this.style.display='none';document.getElementById('logo-svg').style.display='flex';"
+               style="height:140px;width:auto;object-fit:contain;display:block;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));" alt="Logo Misión Médica">
+          <div id="logo-svg" style="display:none;align-items:center;justify-content:center;">
+            <svg width="100" height="120" viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
+              <rect width="300" height="360" fill="#ffffff" rx="8"/>
+              <circle cx="150" cy="155" r="115" fill="#1a4fa0"/>
+              <rect x="112" y="55"  width="76" height="200" fill="#ffffff"/>
+              <rect x="55"  y="112" width="190" height="76"  fill="#ffffff"/>
+              <text x="150" y="305" font-family="Arial Black,Arial" font-weight="900" font-size="36" fill="#c0392b" text-anchor="middle" letter-spacing="2">MISIÓN</text>
+              <text x="150" y="348" font-family="Arial Black,Arial" font-weight="900" font-size="36" fill="#c0392b" text-anchor="middle" letter-spacing="2">MÉDICA</text>
+            </svg>
+          </div>
+          <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="loadLogo(event)">
+          <span style="font-size:10px;color:rgba(255,255,255,.65);letter-spacing:.05em;">clic para cambiar logo</span>
+        </div>
+
+        <!-- Institución -->
+        <div style="z-index:1;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:.08em;text-transform:uppercase;line-height:1.5">
+            ESE Hospital Regional<br>Noroccidental
+          </div>
+          <div style="width:40px;height:2px;background:rgba(255,255,255,.4);margin:10px auto 0;border-radius:2px;"></div>
+        </div>
+      </div>
+
+      <!-- Panel derecho — blanco con contenido -->
+      <div style="
+        flex:1; background:#ffffff;
+        display:flex; flex-direction:column;
+        justify-content:center; padding:52px 56px;
+        gap:24px; position:relative; overflow:hidden;">
+
+        <!-- Decoración sutil fondo derecho -->
+        <div style="position:absolute;top:0;right:0;width:220px;height:220px;background:linear-gradient(135deg,rgba(192,57,43,.05),transparent);pointer-events:none;border-radius:0 0 0 100%;"></div>
+        <div style="position:absolute;bottom:0;left:0;width:160px;height:160px;background:linear-gradient(315deg,rgba(26,79,160,.05),transparent);pointer-events:none;border-radius:0 100% 0 0;"></div>
+
+        <!-- Etiqueta -->
+        <div style="
+          display:inline-flex; align-items:center; gap:8px;
+          background:rgba(192,57,43,.08); border:1px solid rgba(192,57,43,.25);
+          border-radius:20px; padding:6px 16px;
+          font-size:11px; font-weight:700; letter-spacing:.1em;
+          color:#c0392b; text-transform:uppercase; align-self:flex-start;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Capacitación 2025
+        </div>
+
+        <!-- Título principal -->
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="font-size:clamp(28px,3.8vw,50px);font-weight:800;color:#1a1a2e;line-height:1.15;">
+            Misión Médica
+          </div>
+          <div style="font-size:clamp(22px,2.8vw,38px);font-weight:700;color:#c0392b;line-height:1.2;">
+            y Derecho Internacional Humanitario
+          </div>
+        </div>
+
+        <!-- Divisor -->
+        <div style="width:64px;height:3px;background:linear-gradient(90deg,#c0392b,#e74c3c);border-radius:2px;"></div>
+
+        <!-- Subtítulo -->
+        <div style="font-size:clamp(14px,1.5vw,18px);color:#57606a;line-height:1.65;max-width:480px;">
+          Protección del personal sanitario en zonas de conflicto armado · Norte de Santander, Colombia
+        </div>
+
+        <!-- Autor -->
+        <div style="
+          display:flex; align-items:center; gap:16px;
+          padding:16px 20px; margin-top:8px;
+          background:#f5f7fa; border-radius:12px;
+          border:1px solid #d0d7de; align-self:flex-start;">
+          <div style="width:44px;height:44px;border-radius:50%;background:#c0392b;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#1a1a2e;">Danilo Torrado Blanco</div>
+            <div style="font-size:12px;color:#57606a;margin-top:2px;">Referente de Misión Médica · ESE HRNO</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 2 — DIH ═══════════════════════════ -->
+    <section class="slide layout-content" id="s2">
+      <div class="bg-number">01</div>
+      <div class="slide-tag blue">Fundamentos</div>
+      <div class="slide-title"><span class="accent">Derecho Internacional</span> Humanitario</div>
+      <div class="divider blue"></div>
+      <div class="quote-block">
+        <div class="quote-mark">"</div>
+        <p>El DIH es el conjunto de normas internacionales que, por razones humanitarias, trata de limitar los efectos de los conflictos armados. Protege a las personas que no participan o que ya no participan en las hostilidades y limita los medios y métodos de hacer la guerra.</p>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-num">1864</div>
+          <div class="stat-label">Primer Convenio de Ginebra</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">4</div>
+          <div class="stat-label">Convenios de Ginebra vigentes</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">196</div>
+          <div class="stat-label">Estados signatarios</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 3 — DIH PRINCIPIOS ═══════════════════════════ -->
+    <section class="slide layout-content" id="s3">
+      <div class="bg-number">02</div>
+      <div class="slide-tag blue">DIH · Principios</div>
+      <div class="slide-title">Principios fundamentales <span class="accent">del DIH</span></div>
+      <div class="divider blue"></div>
+      <div style="display:flex; flex-direction:column; gap:12px; width:100%">
+        <div class="icon-row">
+          <div class="icon-circle blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2980d9" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+          </div>
+          <div><strong style="color:var(--text)">Distinción</strong> — Diferenciar entre civiles y combatientes; entre bienes civiles y objetivos militares.</div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2980d9" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div><strong style="color:var(--text)">Proporcionalidad</strong> — Los daños causados no deben ser excesivos en relación con la ventaja militar obtenida.</div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2980d9" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          </div>
+          <div><strong style="color:var(--text)">Precaución</strong> — Tomar todas las medidas factibles para evitar o reducir daños a civiles.</div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2980d9" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <div><strong style="color:var(--text)">Humanidad</strong> — Aliviar sufrimiento, proteger la vida y salud de los seres humanos sin distinción.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 4 — DIH COLOMBIA ═══════════════════════════ -->
+    <section class="slide layout-content" id="s4">
+      <div class="bg-number">03</div>
+      <div class="slide-tag blue">DIH · Colombia</div>
+      <div class="slide-title">DIH en el contexto <span class="accent">colombiano</span></div>
+      <div class="divider blue"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; width:100%">
+        <div class="card blue-border">
+          <div class="card-title blue">Marco normativo</div>
+          <ul class="bullet-list">
+            <li><div class="dot blue"></div>Ley 5 de 1960 — Adhesión a Convenios de Ginebra</li>
+            <li><div class="dot blue"></div>Ley 171 de 1994 — Protocolo II</li>
+            <li><div class="dot blue"></div>Artículo 214 Constitución Política</li>
+          </ul>
+        </div>
+        <div class="card blue-border">
+          <div class="card-title blue">Contexto Norte de Santander</div>
+          <ul class="bullet-list">
+            <li><div class="dot blue"></div>Zona con presencia de grupos armados</li>
+            <li><div class="dot blue"></div>Municipios rurales de difícil acceso</li>
+            <li><div class="dot blue"></div>Personal de salud en riesgo permanente</li>
+          </ul>
+        </div>
+        <div class="card blue-border" style="grid-column:1/-1">
+          <div class="card-title blue">Obligaciones del Estado</div>
+          <p style="font-size:14px; color:var(--text); line-height:1.6">Colombia debe garantizar el respeto al DIH por parte de todas las partes del conflicto, proteger al personal sanitario y asegurar el acceso humanitario a las poblaciones vulnerables.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 5 — MARCO LEGAL MM ═══════════════════════════ -->
+    <section class="slide layout-content" id="s5">
+      <div class="bg-number">04</div>
+      <div class="slide-tag">Marco legal</div>
+      <div class="slide-title">Misión Médica — <span class="accent">Fundamento normativo</span></div>
+      <div class="divider"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; width:100%; flex:1">
+        <div class="card red-border" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--red-dim);display:flex;align-items:center;justify-content:center;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="card-title white" style="font-size:15px">Convenios de Ginebra</div>
+          <p style="font-size:13px; color:var(--text-muted); line-height:1.5">Base del DIH — protección de heridos, enfermos y personal sanitario en conflictos armados</p>
+        </div>
+        <div class="card red-border" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--red-dim);display:flex;align-items:center;justify-content:center;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+          </div>
+          <div class="card-title white" style="font-size:15px">Resolución 1020 de 2002</div>
+          <p style="font-size:13px; color:var(--text-muted); line-height:1.5">Ministerio de Salud — reglamentación de la Misión Médica en Colombia</p>
+        </div>
+        <div class="card red-border" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--red-dim);display:flex;align-items:center;justify-content:center;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+          </div>
+          <div class="card-title white" style="font-size:15px">Resolución 4481 de 2012</div>
+          <p style="font-size:13px; color:var(--text-muted); line-height:1.5">Actualización y fortalecimiento del marco de protección del personal de salud</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 6 — MINISTERIO ═══════════════════════════ -->
+    <section class="slide layout-content" id="s6">
+      <div class="bg-number">05</div>
+      <div class="slide-tag">Ministerio de Salud</div>
+      <div class="slide-title">Misión Médica — <span class="accent">Institucionalidad</span></div>
+      <div class="divider"></div>
+      <div style="display:flex; gap:24px; width:100%; flex:1; align-items:stretch">
+        <div class="col">
+          <div class="card red-border">
+            <div class="card-title">Rector de la política</div>
+            <p style="font-size:14px; color:var(--text); line-height:1.6">El <strong style="color:var(--text)">Ministerio de Salud y Protección Social</strong> es el ente rector de la Misión Médica en Colombia y coordina su implementación a nivel nacional.</p>
+          </div>
+          <div class="card red-border">
+            <div class="card-title">Nivel departamental</div>
+            <p style="font-size:14px; color:var(--text); line-height:1.6">Las <strong style="color:var(--text)">Secretarías de Salud departamentales</strong> implementan y monitorean la política de Misión Médica en su territorio.</p>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card red-border">
+            <div class="card-title">En la ESE HRNO</div>
+            <ul class="bullet-list" style="margin-top:4px">
+              <li><div class="dot"></div>Referente institucional de Misión Médica</li>
+              <li><div class="dot"></div>Registro y reporte de eventos</li>
+              <li><div class="dot"></div>Capacitación al personal de salud</li>
+              <li><div class="dot"></div>Articulación con entes territoriales</li>
+              <li><div class="dot"></div>Señalización y registro del emblema</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 7 — QUÉ ES ═══════════════════════════ -->
+    <section class="slide layout-content" id="s7">
+      <div class="bg-number">06</div>
+      <div class="slide-tag">Definición</div>
+      <div class="slide-title">Misión Médica — <span class="accent">¿Qué es?</span></div>
+      <div class="divider"></div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; width:100%">
+        <div class="icon-row" style="flex-direction:column; align-items:center; text-align:center; padding:20px 14px">
+          <div class="icon-circle" style="width:48px;height:48px;margin-bottom:8px">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <strong style="color:var(--text);font-size:13px">Personal sanitario</strong>
+          <span style="font-size:12px;color:var(--text-muted);margin-top:4px">Médicos, enfermeras, odontólogos, psicólogos y demás THS</span>
+        </div>
+        <div class="icon-row" style="flex-direction:column; align-items:center; text-align:center; padding:20px 14px">
+          <div class="icon-circle" style="width:48px;height:48px;margin-bottom:8px">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+          </div>
+          <strong style="color:var(--text);font-size:13px">Bienes e instalaciones</strong>
+          <span style="font-size:12px;color:var(--text-muted);margin-top:4px">Hospitales, clínicas, puestos de salud, ambulancias</span>
+        </div>
+        <div class="icon-row" style="flex-direction:column; align-items:center; text-align:center; padding:20px 14px">
+          <div class="icon-circle" style="width:48px;height:48px;margin-bottom:8px">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <strong style="color:var(--text);font-size:13px">Acciones sanitarias</strong>
+          <span style="font-size:12px;color:var(--text-muted);margin-top:4px">Prestación de servicios en zonas de conflicto y emergencia</span>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;width:100%">
+        <p style="font-size:13px;color:var(--text-muted);text-align:center">Aplica en: <strong style="color:var(--text)">conflictos armados · desastres naturales · otras calamidades</strong></p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 8 — DEFINICIÓN COMPLETA ═══════════════════════════ -->
+    <section class="slide layout-content" id="s8">
+      <div class="bg-number">07</div>
+      <div class="slide-tag">Definición oficial</div>
+      <div class="slide-title">Misión Médica — <span class="accent">Definición completa</span></div>
+      <div class="divider"></div>
+      <div class="quote-block" style="width:100%">
+        <div class="quote-mark">"</div>
+        <p>El conjunto conformado por el personal sanitario, bienes, instalaciones, instituciones, vehículos, equipos, materiales necesarios, personas participantes y acciones propias de la prestación de servicios de salud en situaciones o zonas de conflictos armadas, desastres naturales y otras calamidades.</p>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted); text-align:right; width:100%; padding-right:8px">
+        — Resolución 1020 de 2002, Ministerio de Salud y Protección Social
+      </div>
+      <div style="display:flex; gap:16px; width:100%">
+        <div class="card" style="flex:1; background:var(--red-dim); border-color:rgba(192,57,43,.4)">
+          <div style="font-size:13px;color:var(--red-light);font-weight:700;margin-bottom:6px">Elemento humano</div>
+          <p style="font-size:13px;color:var(--text)">Todo personal que ejerce funciones sanitarias, sin importar su cargo o nivel jerárquico.</p>
+        </div>
+        <div class="card" style="flex:1">
+          <div style="font-size:13px;color:var(--text-muted);font-weight:700;margin-bottom:6px">Elemento material</div>
+          <p style="font-size:13px;color:var(--text)">Instalaciones, vehículos, equipos y materiales médicos de cualquier nivel de complejidad.</p>
+        </div>
+        <div class="card" style="flex:1">
+          <div style="font-size:13px;color:var(--text-muted);font-weight:700;margin-bottom:6px">Elemento funcional</div>
+          <p style="font-size:13px;color:var(--text)">Las actividades de atención, prevención y asistencia humanitaria realizadas.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 9 — DERECHOS ═══════════════════════════ -->
+    <section class="slide layout-content" id="s9">
+      <div class="bg-number">08</div>
+      <div class="slide-tag gold">Derechos</div>
+      <div class="slide-title">Derechos de la <span class="accent">Misión Médica</span></div>
+      <div class="divider gold"></div>
+      <div style="display:flex; flex-direction:column; gap:10px; width:100%; flex:1">
+        <div class="icon-row">
+          <div class="icon-circle gold"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>A ser <strong style="color:var(--text)">respetado y protegido</strong> en todo momento</span>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle gold"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>A <strong style="color:var(--text)">no ser atacado</strong> bajo ninguna circunstancia</span>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle gold"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>A <strong style="color:var(--text)">acceder y prestar atención sanitaria</strong> a quienes lo necesiten</span>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle gold"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>A tener los <strong style="color:var(--text)">medios necesarios</strong> para la atención del paciente</span>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle gold"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>A no ser <strong style="color:var(--text)">sancionado ni castigado</strong> por ejercer su actividad médica</span>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle gold"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>A no ser obligado a actuar <strong style="color:var(--text)">contrariamente a la ética médica</strong></span>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle gold"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>A que se respete la <strong style="color:var(--text)">reserva del secreto profesional</strong></span>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle gold"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>A <strong style="color:var(--text)">identificarse</strong> con el emblema correspondiente</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 10 — DEBERES ═══════════════════════════ -->
+    <section class="slide layout-content" id="s10">
+      <div class="bg-number">09</div>
+      <div class="slide-tag">Deberes</div>
+      <div class="slide-title">Deberes de la <span class="accent">Misión Médica</span></div>
+      <div class="divider"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; flex:1">
+        <div class="icon-row" style="align-items:flex-start">
+          <div class="icon-circle" style="margin-top:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <span style="font-size:13px">Atender humanamente a <strong style="color:var(--text)">todas las víctimas sin distinción</strong>, priorizando solo por criterios médicos</span>
+        </div>
+        <div class="icon-row" style="align-items:flex-start">
+          <div class="icon-circle" style="margin-top:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <span style="font-size:13px">Asistencia humanitaria: <strong style="color:var(--text)">recoger, asistir y buscar</strong> a heridos y enfermos</span>
+        </div>
+        <div class="icon-row" style="align-items:flex-start">
+          <div class="icon-circle" style="margin-top:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg></div>
+          <span style="font-size:13px"><strong style="color:var(--text)">Respetar y proteger</strong> a las víctimas de conflictos armados y situaciones de violencia</span>
+        </div>
+        <div class="icon-row" style="align-items:flex-start">
+          <div class="icon-circle" style="margin-top:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span style="font-size:13px"><strong style="color:var(--text)">Evitar comentarios</strong> y abstenerse de participar en actos hostiles que afecten la seguridad</span>
+        </div>
+        <div class="icon-row" style="align-items:flex-start">
+          <div class="icon-circle" style="margin-top:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <span style="font-size:13px">Respetar y mantener el <strong style="color:var(--text)">secreto profesional</strong></span>
+        </div>
+        <div class="icon-row" style="align-items:flex-start">
+          <div class="icon-circle" style="margin-top:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span style="font-size:13px">Actuar siempre de acuerdo a los <strong style="color:var(--text)">principios éticos</strong> de su profesión</span>
+        </div>
+        <div class="icon-row" style="align-items:flex-start; grid-column:1/-1">
+          <div class="icon-circle" style="margin-top:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span style="font-size:13px"><strong style="color:var(--text)">Identificarse</strong> portando el emblema de Misión Médica en todo momento</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 11 — EVENTOS ═══════════════════════════ -->
+    <section class="slide layout-content" id="s11">
+      <div class="bg-number">10</div>
+      <div class="slide-tag">Eventos adversos</div>
+      <div class="slide-title">Eventos contra la <span class="accent">Misión Médica</span></div>
+      <div class="divider"></div>
+      <div style="display:flex; gap:24px; width:100%; flex:1">
+        <div class="card red-border" style="flex:1; display:flex; flex-direction:column; gap:16px; align-items:center; justify-content:center; text-align:center; padding:32px 24px">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--red-dim);border:2px solid rgba(192,57,43,.5);display:flex;align-items:center;justify-content:center;">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div>
+            <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px">INFRACCIONES</div>
+            <p style="font-size:13px;color:var(--text-muted);line-height:1.5">Violaciones deliberadas del DIH que constituyen crímenes de guerra y deben ser reportadas</p>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex-shrink:0">
+          <div style="width:2px;flex:1;background:var(--border)"></div>
+          <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.1em">VS</span>
+          <div style="width:2px;flex:1;background:var(--border)"></div>
+        </div>
+        <div class="card" style="flex:1; display:flex; flex-direction:column; gap:16px; align-items:center; justify-content:center; text-align:center; padding:32px 24px">
+          <div style="width:72px;height:72px;border-radius:50%;background:rgba(212,160,23,.12);border:2px solid rgba(212,160,23,.3);display:flex;align-items:center;justify-content:center;">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div>
+            <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px">INCIDENTES</div>
+            <p style="font-size:13px;color:var(--text-muted);line-height:1.5">Hechos que afectan o amenazan la misión sin constituir necesariamente una infracción al DIH</p>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="width:100%;padding:14px 20px">
+        <p style="font-size:13px;color:var(--text-muted);text-align:center">Ambos tipos deben ser <strong style="color:var(--text)">registrados y reportados</strong> al referente de Misión Médica de la institución</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 12 — INFRACCIONES ═══════════════════════════ -->
+    <section class="slide layout-content" id="s12">
+      <div class="bg-number">11</div>
+      <div class="slide-tag">Tipos de infracción</div>
+      <div class="slide-title">Infracciones en contra <span class="accent">de la MM</span></div>
+      <div class="divider"></div>
+      <div style="display:flex; flex-direction:column; gap:12px; width:100%; flex:1">
+        <div class="icon-row" style="border-color:rgba(192,57,43,.4)">
+          <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0">1</div>
+          <div><strong style="color:var(--red-light)">A la vida e integridad de la persona</strong><br><span style="font-size:12px;color:var(--text-muted)">Homicidio, lesiones, torturas, tratos crueles contra personal sanitario o pacientes</span></div>
+        </div>
+        <div class="icon-row" style="border-color:rgba(192,57,43,.4)">
+          <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0">2</div>
+          <div><strong style="color:var(--red-light)">A la infraestructura sanitaria</strong><br><span style="font-size:12px;color:var(--text-muted)">Destrucción, saqueo o daño de hospitales, ambulancias y establecimientos de salud</span></div>
+        </div>
+        <div class="icon-row" style="border-color:rgba(192,57,43,.4)">
+          <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0">3</div>
+          <div><strong style="color:var(--red-light)">Contra las actividades sanitarias</strong><br><span style="font-size:12px;color:var(--text-muted)">Impedimento del acceso a la atención médica, bloqueo de medicamentos o insumos</span></div>
+        </div>
+        <div class="icon-row" style="border-color:rgba(192,57,43,.4)">
+          <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0">4</div>
+          <div><strong style="color:var(--red-light)">Violaciones al secreto profesional</strong><br><span style="font-size:12px;color:var(--text-muted)">Divulgación forzada de información médica de pacientes o combatientes heridos</span></div>
+        </div>
+        <div class="icon-row" style="border-color:rgba(192,57,43,.4)">
+          <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0">5</div>
+          <div><strong style="color:var(--red-light)">Perfidia</strong><br><span style="font-size:12px;color:var(--text-muted)">Uso indebido del emblema para fines militares o para engañar al adversario</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 13 — REPORTE ═══════════════════════════ -->
+    <section class="slide layout-content" id="s13">
+      <div class="bg-number">12</div>
+      <div class="slide-tag">Procedimiento</div>
+      <div class="slide-title">¿Cómo <span class="accent">reportar</span> una infracción?</div>
+      <div class="divider"></div>
+      <div style="display:flex; gap:16px; width:100%; flex:1; align-items:center">
+        <div style="display:flex; flex-direction:column; gap:12px; flex:1">
+          <div class="icon-row">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">1</div>
+            <span style="font-size:14px"><strong style="color:var(--text)">Alejarse del riesgo</strong> — Garantizar la seguridad propia y del equipo antes de actuar</span>
+          </div>
+          <div style="width:2px;height:16px;background:var(--border);margin-left:15px"></div>
+          <div class="icon-row">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">2</div>
+            <span style="font-size:14px"><strong style="color:var(--text)">Documentar</strong> — Registrar fecha, hora, lugar, descripción del evento y testigos</span>
+          </div>
+          <div style="width:2px;height:16px;background:var(--border);margin-left:15px"></div>
+          <div class="icon-row">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">3</div>
+            <span style="font-size:14px"><strong style="color:var(--text)">Notificar al referente</strong> — Informar al Referente de Misión Médica institucional</span>
+          </div>
+          <div style="width:2px;height:16px;background:var(--border);margin-left:15px"></div>
+          <div class="icon-row">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">4</div>
+            <span style="font-size:14px"><strong style="color:var(--text)">Diligenciar formulario</strong> — Completar el Formulario de Reporte de Infracciones MM</span>
+          </div>
+          <div style="width:2px;height:16px;background:var(--border);margin-left:15px"></div>
+          <div class="icon-row">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">5</div>
+            <span style="font-size:14px"><strong style="color:var(--text)">Remitir a la Secretaría de Salud</strong> y demás entes competentes</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 14 — FORMULARIO ═══════════════════════════ -->
+    <section class="slide layout-content" id="s14">
+      <div class="bg-number">13</div>
+      <div class="slide-tag">Herramienta institucional</div>
+      <div class="slide-title">Formulario de Reporte — <span class="accent">Datos requeridos</span></div>
+      <div class="divider"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; width:100%">
+        <div class="card">
+          <div class="card-title">Identificación del evento</div>
+          <ul class="bullet-list">
+            <li><div class="dot"></div>Fecha y hora del incidente</li>
+            <li><div class="dot"></div>Municipio y vereda de ocurrencia</li>
+            <li><div class="dot"></div>Tipo de evento (infracción/incidente)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">Personal afectado</div>
+          <ul class="bullet-list">
+            <li><div class="dot"></div>Nombre y cargo del afectado</li>
+            <li><div class="dot"></div>Institución a la que pertenece</li>
+            <li><div class="dot"></div>Portaba emblema al momento del evento</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">Descripción del hecho</div>
+          <ul class="bullet-list">
+            <li><div class="dot"></div>Narración detallada del evento</li>
+            <li><div class="dot"></div>Presunto responsable (si se identifica)</li>
+            <li><div class="dot"></div>Testigos presenciales</li>
+          </ul>
+        </div>
+        <div class="card red-border">
+          <div class="card-title">Datos de contacto</div>
+          <ul class="bullet-list">
+            <li><div class="dot"></div>Referente que diligencia el reporte</li>
+            <li><div class="dot"></div>Firma y fecha de radicación</li>
+            <li><div class="dot"></div>Número de radicado asignado</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 15 — EMBLEMA ═══════════════════════════ -->
+    <section class="slide layout-two-col" id="s15">
+      <div class="col" style="justify-content:center; gap:24px">
+        <div class="slide-tag">Símbolo de protección</div>
+        <div class="slide-title">El <span class="accent">Emblema</span></div>
+        <div class="divider"></div>
+        <ul class="bullet-list">
+          <li><div class="dot"></div>Símbolo universal de protección sanitaria reconocido por el DIH</li>
+          <li><div class="dot"></div>Su uso está reglamentado por los Convenios de Ginebra</li>
+          <li><div class="dot"></div>Atacar a alguien que lo porta constituye un crimen de guerra</li>
+          <li><div class="dot"></div>Usarlo indebidamente (perfidia) también es un crimen de guerra</li>
+        </ul>
+        <div class="card red-border" style="padding:12px 16px">
+          <p style="font-size:13px; color:var(--text-muted)">El emblema es reconocido en <strong style="color:var(--text)">196 países</strong> signatarios de los Convenios de Ginebra</p>
+        </div>
+      </div>
+      <div class="col narrow" style="align-items:center; justify-content:center; gap:24px">
+        <!-- Emblema Misión Médica Colombia: fondo rojo, círculo azul, cruz blanca sin bordes redondeados -->
+        <div style="background:#ffffff; border:2px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; align-items:center; gap:10px;">
+          <svg width="150" height="180" viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
+            <!-- Fondo rojo -->
+            <rect width="300" height="360" fill="#c0392b"/>
+            <!-- Círculo azul -->
+            <circle cx="150" cy="155" r="115" fill="#1a4fa0"/>
+            <!-- Cruz blanca sin bordes redondeados -->
+            <rect x="112" y="55"  width="76" height="200" fill="#ffffff"/>
+            <rect x="55"  y="112" width="190" height="76"  fill="#ffffff"/>
+            <!-- Texto MISION MEDICA -->
+            <text x="150" y="305" font-family="Arial Black, Arial" font-weight="900" font-size="36" fill="#ffffff" text-anchor="middle" letter-spacing="2">MISIÓN</text>
+            <text x="150" y="348" font-family="Arial Black, Arial" font-weight="900" font-size="36" fill="#ffffff" text-anchor="middle" letter-spacing="2">MÉDICA</text>
+          </svg>
+          <p style="font-size:11px; color:var(--text-muted); text-align:center">Emblema oficial — Colombia</p>
+        </div>
+        <p style="font-size:12px; color:var(--text-muted); text-align:center; max-width:180px">Cruz Roja · Media Luna Roja · Cristal Rojo</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 16 — USO DEL EMBLEMA ═══════════════════════════ -->
+    <section class="slide layout-content" id="s16">
+      <div class="bg-number">15</div>
+      <div class="slide-tag">Uso correcto</div>
+      <div class="slide-title">¿Quién puede <span class="accent">usar el emblema</span>?</div>
+      <div class="divider"></div>
+      <div style="display:flex; flex-direction:column; gap:14px; width:100%; flex:1">
+        <div class="icon-row" style="background:var(--surface2); padding:18px 20px">
+          <div class="icon-circle" style="width:48px;height:48px;background:var(--red-dim)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">Personal de salud y otras disciplinas sanitarias</div>
+            <p style="font-size:13px;color:var(--text-muted)">Todo profesional que ejerza funciones sanitarias, incluyendo médicos, enfermeras, odontólogos, psicólogos, promotores de salud y auxiliares.</p>
+          </div>
+        </div>
+        <div class="icon-row" style="background:var(--surface2); padding:18px 20px">
+          <div class="icon-circle" style="width:48px;height:48px;background:var(--red-dim)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="m16 8 5 2v6h-5z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">Medios de transporte sanitario permanentes</div>
+            <p style="font-size:13px;color:var(--text-muted)">Ambulancias, vehículos de transporte administrativo de salud y demás medios de movilización sanitaria.</p>
+          </div>
+        </div>
+        <div class="icon-row" style="background:var(--surface2); padding:18px 20px">
+          <div class="icon-circle" style="width:48px;height:48px;background:var(--red-dim)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">Instituciones de salud de cualquier nivel</div>
+            <p style="font-size:13px;color:var(--text-muted)">Hospitales, clínicas, puestos de salud, centros de salud y demás IPS de los niveles de atención 1, 2 y 3.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 17 — PRINCIPIOS ═══════════════════════════ -->
+    <section class="slide layout-content" id="s17">
+      <div class="bg-number">16</div>
+      <div class="slide-tag blue">Principios</div>
+      <div class="slide-title">Principios de la <span class="accent">Misión Médica</span></div>
+      <div class="divider blue"></div>
+      <div class="principle-grid" style="width:100%;flex:1">
+        <div class="principle-pill">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-light)" stroke-width="2" style="margin:0 auto 8px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Humanidad
+        </div>
+        <div class="principle-pill">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-light)" stroke-width="2" style="margin:0 auto 8px"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 14.14 14.14"/></svg>
+          Imparcialidad
+        </div>
+        <div class="principle-pill">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-light)" stroke-width="2" style="margin:0 auto 8px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Neutralidad
+        </div>
+        <div class="principle-pill">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-light)" stroke-width="2" style="margin:0 auto 8px"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          Independencia
+        </div>
+        <div class="principle-pill">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-light)" stroke-width="2" style="margin:0 auto 8px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Voluntariado
+        </div>
+        <div class="principle-pill">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-light)" stroke-width="2" style="margin:0 auto 8px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Universalidad
+        </div>
+      </div>
+      <div class="card" style="width:100%; padding:12px 20px">
+        <p style="font-size:13px;color:var(--text-muted);text-align:center">Estos principios rigen la conducta del THS en situaciones de conflicto y emergencia humanitaria</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 18 — MEDIDAS 1 ═══════════════════════════ -->
+    <section class="slide layout-content" id="s18">
+      <div class="bg-number">17</div>
+      <div class="slide-tag">Seguridad</div>
+      <div class="slide-title">Medidas de Precaución — <span class="accent">Comunidad</span></div>
+      <div class="divider"></div>
+      <div class="quote-block" style="width:100%">
+        <div class="quote-mark">"</div>
+        <p>La atención humanizada, ética y profesional es la <strong style="color:var(--text)">primera línea de defensa</strong> del THS en Zonas de Conflicto Armado, ya que es la comunidad quien nos protege.</p>
+      </div>
+      <div style="width:100%; background:linear-gradient(135deg, rgba(192,57,43,.25), rgba(192,57,43,.08)); border:1px solid rgba(192,57,43,.4); border-radius:var(--radius); padding:20px 24px; text-align:center;">
+        <div style="font-size:18px; font-weight:800; color:var(--text); letter-spacing:.05em; text-transform:uppercase">
+          NUNCA ENTRAR EN CONFLICTO CON LA COMUNIDAD
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:8px">El respeto, la confianza y la presencia continua en el territorio son el mejor escudo de protección</p>
+      </div>
+      <div style="display:flex; gap:14px; width:100%">
+        <div class="card" style="flex:1;text-align:center">
+          <div style="color:var(--red-light);font-size:14px;font-weight:700;margin-bottom:6px">Escucha activa</div>
+          <p style="font-size:13px;color:var(--text-muted)">Comprender las dinámicas comunitarias antes de actuar</p>
+        </div>
+        <div class="card" style="flex:1;text-align:center">
+          <div style="color:var(--red-light);font-size:14px;font-weight:700;margin-bottom:6px">Sin estigmatizar</div>
+          <p style="font-size:13px;color:var(--text-muted)">Tratar a todos los pobladores con igual dignidad y respeto</p>
+        </div>
+        <div class="card" style="flex:1;text-align:center">
+          <div style="color:var(--red-light);font-size:14px;font-weight:700;margin-bottom:6px">Visibilidad</div>
+          <p style="font-size:13px;color:var(--text-muted)">Portar siempre el emblema de MM en campo</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 19 — MEDIDAS 2 ═══════════════════════════ -->
+    <section class="slide layout-content" id="s19">
+      <div class="bg-number">18</div>
+      <div class="slide-tag">Protocolo de campo</div>
+      <div class="slide-title">Medidas de Precaución — <span class="accent">Trabajo en campo</span></div>
+      <div class="divider"></div>
+      <div class="prec-cards" style="width:100%;flex:1">
+        <div class="prec-card" style="border-color:rgba(192,57,43,.4)">
+          <div class="prec-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="m16 8 5 2v6h-5z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            Desplazamientos Seguros
+          </div>
+          <ul class="bullet-list">
+            <li><div class="dot"></div>Planificar rutas con anticipación</li>
+            <li><div class="dot"></div>Coordinar con autoridades locales</li>
+            <li><div class="dot"></div>Viajar en horarios diurnos</li>
+            <li><div class="dot"></div>Evitar rutas conocidas de grupos armados</li>
+          </ul>
+        </div>
+        <div class="prec-card" style="border-color:rgba(26,107,181,.4)">
+          <div class="prec-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-light)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.9a16 16 0 0 0 5.95 5.95l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Comunicación y Evidencias
+          </div>
+          <ul class="bullet-list">
+            <li><div class="dot blue"></div>Mantener comunicación activa con base</li>
+            <li><div class="dot blue"></div>Reportar posición periódicamente</li>
+            <li><div class="dot blue"></div>Registrar y documentar eventos</li>
+            <li><div class="dot blue"></div>Guardar evidencias de incidentes</li>
+          </ul>
+        </div>
+        <div class="prec-card" style="border-color:rgba(212,160,23,.4)">
+          <div class="prec-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Protección de Grupo
+          </div>
+          <ul class="bullet-list">
+            <li><div class="dot gold"></div>No viajar solo en zonas de riesgo</li>
+            <li><div class="dot gold"></div>Designar un responsable del grupo</li>
+            <li><div class="dot gold"></div>Protocolo de acción ante amenazas</li>
+            <li><div class="dot gold"></div>Apoyo mutuo ante situaciones críticas</li>
+          </ul>
+        </div>
+        <div class="prec-card" style="border-color:rgba(192,57,43,.3)">
+          <div class="prec-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Calma y Prudencia
+          </div>
+          <ul class="bullet-list">
+            <li><div class="dot"></div>No ceder ante presiones de ningún actor</li>
+            <li><div class="dot"></div>Mantener la neutralidad en todo momento</li>
+            <li><div class="dot"></div>Actuar con serenidad ante situaciones adversas</li>
+            <li><div class="dot"></div>Consultar antes de tomar decisiones de riesgo</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 20 — RESOLUCIÓN DE CASOS ═══════════════════════════ -->
+    <section class="slide layout-content" id="s20">
+      <div class="bg-number">19</div>
+      <div class="slide-tag">Taller práctico</div>
+      <div class="slide-title"><span class="accent">Resolución</span> de Casos</div>
+      <div class="divider"></div>
+      <div style="display:flex; flex-direction:column; gap:16px; width:100%; flex:1; justify-content:center">
+        <div class="card" style="padding:20px 24px; border-color:rgba(212,160,23,.3)">
+          <div style="font-size:13px;font-weight:700;color:var(--gold-light);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Metodología del taller</div>
+          <div style="display:flex; gap:20px">
+            <div style="flex:1; display:flex; align-items:flex-start; gap:10px">
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(212,160,23,.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold-light);flex-shrink:0">1</div>
+              <p style="font-size:13px;color:var(--text)"><strong style="color:var(--text)">Presentación del caso</strong> — Se describe una situación real ocurrida en el departamento</p>
+            </div>
+            <div style="flex:1; display:flex; align-items:flex-start; gap:10px">
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(212,160,23,.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold-light);flex-shrink:0">2</div>
+              <p style="font-size:13px;color:var(--text)"><strong style="color:var(--text)">Análisis en grupos</strong> — Cada grupo identifica los derechos vulnerados y el tipo de evento</p>
+            </div>
+            <div style="flex:1; display:flex; align-items:flex-start; gap:10px">
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(212,160,23,.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold-light);flex-shrink:0">3</div>
+              <p style="font-size:13px;color:var(--text)"><strong style="color:var(--text)">Plenaria</strong> — Se socializan respuestas y se analiza el procedimiento correcto</p>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; gap:14px">
+          <div class="card red-border" style="flex:1; text-align:center; padding:16px">
+            <div style="font-size:28px;font-weight:900;color:var(--red-light);line-height:1">¿Infracción?</div>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px">¿Qué derechos se vulneraron?</p>
+          </div>
+          <div class="card" style="flex:1; text-align:center; padding:16px">
+            <div style="font-size:28px;font-weight:900;color:var(--text-muted);line-height:1">¿Deber?</div>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px">¿Se cumplió con la conducta debida?</p>
+          </div>
+          <div class="card" style="flex:1; text-align:center; padding:16px">
+            <div style="font-size:28px;font-weight:900;color:var(--blue-light);line-height:1">¿Acción?</div>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px">¿Cuál es el procedimiento correcto?</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ SLIDE 21 — CIERRE ═══════════════════════════ -->
+    <section class="slide layout-title" id="s21">
+      <svg class="bg-cross" width="380" height="380" viewBox="0 0 380 380" fill="none">
+        <rect x="140" y="0"   width="100" height="380" rx="8" fill="white"/>
+        <rect x="0"   y="140" width="380" height="100" rx="8" fill="white"/>
+      </svg>
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--red-dim);border:2px solid rgba(192,57,43,.4);display:flex;align-items:center;justify-content:center;margin:0 auto">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+      </div>
+      <div class="slide-title large center">¡Gracias por <span class="accent">su participación!</span></div>
+      <div class="divider center"></div>
+      <div class="slide-subtitle center" style="max-width:520px">
+        La protección de la Misión Médica es responsabilidad de todos.<br>
+        Juntos garantizamos la atención humanitaria en nuestro territorio.
+      </div>
+      <div class="card" style="max-width:420px; margin:0 auto; padding:24px 28px; border-color:rgba(192,57,43,.3)">
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:14px;text-align:center">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="contact-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span><strong style="color:var(--text)">Danilo Orlando Torrado Blanco</strong></span>
+          </div>
+          <div class="contact-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Referente de Misión Médica · ESE HRNO</span>
+          </div>
+          <div class="contact-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span>danto0702@gmail.com</span>
+          </div>
+          <div class="contact-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red-light)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.9a16 16 0 0 0 5.95 5.95l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>310 785 5392</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /slide-area -->
+
+  <!-- ── NAVIGATION BAR ── -->
+  <div id="nav">
+    <button class="nav-btn" id="btn-prev" onclick="navigate(-1)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Anterior
+    </button>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div id="dot-nav"></div>
+      <span id="slide-counter">1 / 21</span>
+    </div>
+    <button class="nav-btn primary" id="btn-next" onclick="navigate(1)">
+      Siguiente
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="kbd-hint">← → para navegar · Esc para ayuda</div>
+
+<script>
+  function loadLogo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.getElementById('logo-img');
+      const svg = document.getElementById('logo-svg');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      svg.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  const TOTAL = 21;
+  let current = 1;
+  let transitioning = false;
+
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const progressFill = document.getElementById('progress-fill');
+  const counter = document.getElementById('slide-counter');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  const dotNav  = document.getElementById('dot-nav');
+
+  // Build dots
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('button');
+    d.className = 'dot-nav-btn' + (i === 1 ? ' active' : '');
+    d.setAttribute('aria-label', `Diapositiva ${i}`);
+    d.onclick = () => goTo(i);
+    dotNav.appendChild(d);
+  }
+
+  function updateUI() {
+    const pct = ((current - 1) / (TOTAL - 1)) * 100;
+    progressFill.style.width = pct + '%';
+    counter.textContent = `${current} / ${TOTAL}`;
+    btnPrev.disabled = current === 1;
+    if (current === TOTAL) {
+      btnNext.textContent = ''; btnNext.innerHTML = 'Reiniciar <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>';
+    } else {
+      btnNext.innerHTML = 'Siguiente <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>';
+    }
+    document.querySelectorAll('.dot-nav-btn').forEach((d, i) => {
+      d.classList.toggle('active', i + 1 === current);
+    });
+  }
+
+  function goTo(n) {
+    if (transitioning || n === current) return;
+    if (n < 1 || n > TOTAL) { if (n > TOTAL) goTo(1); return; }
+    transitioning = true;
+    const prev = slides[current - 1];
+    const next = slides[n - 1];
+    prev.classList.add('out-left');
+    setTimeout(() => {
+      prev.classList.remove('active', 'out-left');
+      next.classList.add('active');
+      current = n;
+      updateUI();
+      transitioning = false;
+    }, 450);
+  }
+
+  function navigate(dir) {
+    const target = current + dir;
+    if (target > TOTAL) goTo(1);
+    else goTo(target);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') goTo(1);
+    if (e.key === 'End')  goTo(TOTAL);
+  });
+
+  // Touch / swipe
+  let touchX = null;
+  document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) navigate(dx < 0 ? 1 : -1);
+    touchX = null;
+  });
+
+  // Hide hint after 4s
+  setTimeout(() => {
+    const hint = document.getElementById('kbd-hint');
+    if (hint) hint.style.opacity = '0';
+  }, 4000);
+
+  updateUI();
+</script>
+</body>
+</html>

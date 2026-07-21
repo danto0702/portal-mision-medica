@@ -1133,7 +1133,7 @@ function getBanner(){ return localStorage.getItem(BANNER_PRINCIPAL_KEY) || CFG.B
 const CFG = {
   SUPA_URL: 'https://kukauvbqosizlxrapmim.supabase.co',
   SUPA_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2F1dmJxb3Npemx4cmFwbWltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODMzNTUsImV4cCI6MjA5NzQ1OTM1NX0.1ajCazK2YEb_DU14R96dQI5qU-ClwR0t7WHMYKWqOIU',
-  APPS_SCRIPT: 'https://script.google.com/macros/s/AKfycbx-CD6xVE3hcUYXqUxaj1mEaqNGITvajMSYeM9tzBLc1yFQrfhTZx9ghxUZ1FJ-ErAtmw/exec',
+  APPS_SCRIPT: 'https://script.google.com/macros/s/AKfycbzsj1h-QkCK8BA3F0YU_dE-I-4wMlgvM3vhOoPC42vtLN0R4s1pd05cAZ_0dUCUsxHi/exec',
   ADMIN_PWD: 'SPhrno2026.MM',
   MUNICIPIOS: ['Ábrego','El Carmen','Convención','Teorama'],
   CATEGORIAS: [
@@ -1964,24 +1964,85 @@ async function submitCarnet(e){
   e.preventDefault();
   if(!_pdfFile){ toast('Debes adjuntar el PDF del documento de identidad','error'); return; }
   const btn = document.getElementById('btn-submit-carnet');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Enviando...';
-
-  // Subir PDF a Supabase Storage
-  const ext = 'pdf';
-  const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const {data:upData, error:upErr} = await supa.storage.from('documentos-carnet').upload(fileName, _pdfFile, {contentType:'application/pdf'});
-  if(upErr){ toast('Error subiendo PDF: '+upErr.message,'error'); btn.disabled=false; btn.innerHTML='Enviar Solicitud'; return; }
-  const { data: urlData } = supa.storage.from('documentos-carnet').getPublicUrl(fileName);
-  const pdfUrl = urlData.publicUrl;
+  btn.disabled=true;
 
   const fd = new FormData(e.target);
+  const nombres    = (fd.get('nombres')||'').trim();
+  const apellidos  = (fd.get('apellidos')||'').trim();
+  const tipo_doc   = (fd.get('tipo_documento')||'').trim();
+  const num_doc    = (fd.get('numero_documento')||'').trim();
+
+  // Nombre del archivo: Nombre_Apellido_TipoDoc_NumDoc.pdf
+  const safeName = `${nombres}_${apellidos}_${tipo_doc}_${num_doc}`
+    .normalize('NFD').replace(/[̀-ͯ]/g,'') // quitar tildes
+    .replace(/[^a-zA-Z0-9_\-]/g,'_');
+  const driveFilename = `${safeName}.pdf`;
+
+  // 1. Convertir PDF a base64
+  btn.innerHTML = '<span class="spinner"></span> Leyendo documento...';
+  let base64pdf;
+  try {
+    base64pdf = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload  = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(_pdfFile);
+    });
+  } catch(err){
+    toast('Error leyendo el PDF: '+err.message,'error');
+    btn.disabled=false; btn.innerHTML='Enviar Solicitud'; return;
+  }
+
+  // 2. Subir PDF a Google Drive via Apps Script
+  btn.innerHTML = '<span class="spinner"></span> Subiendo documento a Drive...';
+  let driveUrl = '';
+  try {
+    const resp = await fetch(CFG.APPS_SCRIPT, {
+      method: 'POST',
+      body: JSON.stringify({action:'uploadDrivePDF', base64:base64pdf, filename:driveFilename})
+    });
+    const result = await resp.json();
+    if(result.status === 'ok'){
+      driveUrl = result.url;
+    } else {
+      throw new Error(result.message || 'Error en Drive');
+    }
+  } catch(err){
+    toast('Error al subir documento a Drive: '+err.message,'error');
+    btn.disabled=false; btn.innerHTML='Enviar Solicitud'; return;
+  }
+
+  // 3. Insertar solicitud en Supabase con la URL de Drive
+  btn.innerHTML = '<span class="spinner"></span> Guardando solicitud...';
   const data = Object.fromEntries(fd.entries());
   delete data.fecha_solicitud_display;
-  data.documento_pdf_url = pdfUrl;
+  data.documento_pdf_url = driveUrl;
   data.fecha_solicitud = new Date().toISOString();
 
   const {error} = await supa.from('mm_solicitudes_carnet').insert([data]);
   if(error){ toast('Error: '+error.message,'error'); btn.disabled=false; btn.innerHTML='Enviar Solicitud'; return; }
+
+  // 4. Sincronizar con Google Sheets (fire and forget)
+  try {
+    await fetch(CFG.APPS_SCRIPT, {method:'POST', mode:'no-cors', body:JSON.stringify({
+      action: 'uploadCard',
+      nombre: `${nombres} ${apellidos}`,
+      documento: `${tipo_doc} ${num_doc}`,
+      perfil: data.perfil_profesion,
+      cargo: data.cargo,
+      municipio: data.municipio,
+      ips: data.ips,
+      email: data.correo,
+      telefono: data.telefono,
+      fecha_nacimiento: data.fecha_nacimiento,
+      sexo: data.sexo,
+      vinculacion: data.vinculacion,
+      rh: data.grupo_sanguineo,
+      estatura: data.estatura,
+      responsable: data.responsable_solicitud
+    })});
+  } catch(e){ console.warn('Sheet sync (carnet submit):', e); }
+
   toast('Solicitud enviada. Recibirás un correo cuando sea autorizada.','success',6000);
   e.target.reset();
   _pdfFile = null;
@@ -3544,7 +3605,7 @@ async function loadCarnets(){
 async function autorizarCarnet(id){
   // Leer datos frescos desde Supabase para evitar problemas de escaping en onclick
   const {data:reg, error:fetchErr} = await supa.from('mm_solicitudes_carnet')
-    .select('correo,nombres,apellidos').eq('id',id).single();
+    .select('correo,nombres,apellidos,tipo_documento,numero_documento').eq('id',id).single();
   if(fetchErr){ toast('Error leyendo solicitud: '+fetchErr.message,'error'); return; }
 
   const correo = (reg.correo||'').trim();
@@ -3559,6 +3620,17 @@ async function autorizarCarnet(id){
     .update({estado:'autorizado', numero_carnet:num, fecha_autorizacion:new Date().toISOString()})
     .eq('id',id);
   if(error){ toast('Error: '+error.message,'error'); return; }
+
+  // Actualizar estado en Google Sheets
+  try {
+    await fetch(CFG.APPS_SCRIPT, {method:'POST', mode:'no-cors', body:JSON.stringify({
+      action: 'updateStatus',
+      type: 'Tarjeta',
+      documento: `${reg.tipo_documento||''} ${reg.numero_documento||''}`.trim(),
+      status: 'Aceptado',
+      numero_carnet: num
+    })});
+  } catch(e){ console.warn('Sheet sync (autorizar carnet):', e); }
 
   await callAppsScript({
     action: 'sendEmail',
@@ -3589,8 +3661,19 @@ async function autorizarCarnet(id){
 
 async function rechazarCarnet(id){
   showConfirm('Rechazar solicitud','¿Estás seguro de rechazar esta solicitud de carnet?',async()=>{
+    const {data:reg} = await supa.from('mm_solicitudes_carnet')
+      .select('tipo_documento,numero_documento').eq('id',id).single();
     const {error} = await supa.from('mm_solicitudes_carnet').update({estado:'rechazado'}).eq('id',id);
     if(error){ toast('Error: '+error.message,'error'); return; }
+    // Actualizar estado en Google Sheets
+    try {
+      await fetch(CFG.APPS_SCRIPT, {method:'POST', mode:'no-cors', body:JSON.stringify({
+        action: 'updateStatus',
+        type: 'Tarjeta',
+        documento: `${reg?.tipo_documento||''} ${reg?.numero_documento||''}`.trim(),
+        status: 'Negado'
+      })});
+    } catch(e){ console.warn('Sheet sync (rechazar carnet):', e); }
     toast('Solicitud rechazada','warn'); loadCarnets();
   },'Rechazar','btn-secondary');
 }

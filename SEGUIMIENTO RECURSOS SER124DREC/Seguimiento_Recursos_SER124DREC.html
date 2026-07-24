@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguimiento de Recursos SER124DREC · PISIS · ESE HRNO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="xlsx.full.min.js"></script>
+<style>
+/* ══ RESET & TOKENS ══ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#eef4fb; --surface:#ffffff; --surface2:#f4f8fd; --surface3:#e9f0f9;
+  --border:rgba(15,76,129,0.12); --border2:rgba(15,76,129,0.28);
+  --text:#0c1b33; --text2:#4a6a8a; --text3:#1e3a5f;
+  --primary:#0f4c81; --primary2:#1565c0;
+  --teal:#0891B2; --green:#059669; --yellow:#b45309; --orange:#c2410c; --red:#dc2626; --purple:#7c3aed;
+  --r:12px; --rs:8px;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',Arial,sans-serif;min-height:100vh}
+h1,h2,h3,h4{font-family:'Lora',Georgia,serif}
+a{color:inherit}
+::selection{background:rgba(21,101,192,.2)}
+*::-webkit-scrollbar{height:10px;width:10px}
+*::-webkit-scrollbar-thumb{background:var(--border2);border-radius:20px}
+*::-webkit-scrollbar-track{background:transparent}
+
+/* ══ HEADER ══ */
+.header{background:var(--surface);border-bottom:3px solid var(--primary);padding:0 22px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(15,76,129,.10)}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(15,76,129,.30);flex-shrink:0}
+.logo-text h1{font-size:15px;font-weight:700;color:var(--primary);letter-spacing:-.2px;line-height:1.1}
+.logo-text p{font-size:9.5px;color:var(--text2);margin-top:2px;letter-spacing:.6px;text-transform:uppercase;font-weight:600}
+.header-right{display:flex;align-items:center;gap:10px}
+.pill{font-size:11px;font-weight:700;padding:5px 11px;border-radius:6px;letter-spacing:.3px;display:inline-flex;align-items:center;gap:6px}
+.pill.blue{background:rgba(15,76,129,.08);border:1px solid rgba(15,76,129,.25);color:var(--primary)}
+.pill.blue:hover{background:rgba(15,76,129,.16)}
+.pill.saved{background:rgba(5,150,105,.10);border:1px solid rgba(5,150,105,.30);color:var(--green)}
+a.pill{text-decoration:none;transition:all .2s}
+
+/* ══ HERO ══ */
+.hero{background:linear-gradient(135deg,#0f4c81 0%,#1565c0 55%,#1976d2 100%);padding:26px 22px 22px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.hero-inner{max-width:1180px;margin:0 auto;position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.30);border-radius:20px;padding:4px 13px;font-size:10px;font-weight:700;color:#fff;letter-spacing:1px;text-transform:uppercase;margin-bottom:11px}
+.hero h2{font-size:23px;font-weight:700;color:#fff;line-height:1.15}
+.hero h2 span{color:#7dd3fc}
+.hero p{font-size:12px;color:rgba(255,255,255,.82);max-width:600px;margin-top:7px;line-height:1.6}
+.hero-stats{display:flex;gap:14px;flex-wrap:wrap}
+.hstat{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);border-radius:10px;padding:9px 15px;text-align:center;min-width:74px}
+.hstat .v{font-size:20px;font-weight:800;color:#fff;line-height:1;font-variant-numeric:tabular-nums}
+.hstat .l{font-size:9px;color:rgba(255,255,255,.72);margin-top:5px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+
+/* ══ TABS ══ */
+.tabbar{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:62px;z-index:150;box-shadow:0 2px 8px rgba(15,76,129,.05)}
+.tabbar-inner{max-width:1180px;margin:0 auto;display:flex;gap:2px;padding:0 14px;overflow-x:auto}
+.tab{border:none;background:none;padding:14px 15px;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;position:relative;white-space:nowrap;display:flex;align-items:center;gap:8px;font-family:inherit;transition:color .2s}
+.tab:hover{color:var(--primary)}
+.tab.active{color:var(--primary)}
+.tab.active::after{content:'';position:absolute;left:12px;right:12px;bottom:0;height:3px;background:var(--primary);border-radius:3px 3px 0 0}
+.tab .tnum{width:20px;height:20px;border-radius:50%;background:var(--surface3);color:var(--text3);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tab.active .tnum{background:var(--primary);color:#fff}
+.tab .cnt{background:rgba(21,101,192,.12);color:var(--primary2);font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;min-width:18px;text-align:center}
+
+/* ══ LAYOUT ══ */
+.main{max-width:1180px;margin:0 auto;padding:26px 22px 60px}
+.panel{display:none;animation:fade .25s ease}
+.panel.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 1px 4px rgba(15,76,129,.06);margin-bottom:18px;overflow:hidden}
+.card-head{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.card-head .ttl{display:flex;align-items:center;gap:10px}
+.card-head h3{font-size:14.5px;color:var(--primary);font-weight:700}
+.card-head .sub{font-size:11px;color:var(--text2);margin-top:2px}
+.card-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.card-body{padding:20px}
+.section-note{font-size:11.5px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--primary2);border-radius:var(--rs);padding:10px 14px;line-height:1.6;margin-bottom:16px}
+.section-note b{color:var(--text3)}
+.section-note a{color:var(--primary2);font-weight:600}
+
+/* ══ FORM ══ */
+.grid{display:grid;gap:14px 16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field.col-2{grid-column:span 2}
+.field.col-3{grid-column:span 3}
+.field.full{grid-column:1/-1}
+label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.2px;display:flex;align-items:center;gap:5px}
+label .req{color:var(--red);font-weight:800}
+label .max{margin-left:auto;font-size:9.5px;color:var(--text2);font-weight:500;font-variant-numeric:tabular-nums}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--rs);font-size:13px;font-family:inherit;color:var(--text);background:var(--surface);transition:border-color .15s,box-shadow .15s}
+textarea{resize:vertical;min-height:64px;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary2);box-shadow:0 0 0 3px rgba(21,101,192,.14)}
+input:disabled,select:disabled,textarea:disabled{background:var(--surface3);color:var(--text2);cursor:not-allowed}
+input.err,select.err,textarea.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+.hint{font-size:10px;color:var(--text2);line-height:1.4}
+.uppercase{text-transform:uppercase}
+.cond-wrap{transition:opacity .2s}
+.cond-wrap.off{opacity:.45}
+
+/* ══ BUTTONS ══ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:var(--rs);padding:10px 16px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;letter-spacing:.2px;white-space:nowrap}
+.btn svg{width:15px;height:15px;flex-shrink:0}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 3px 10px rgba(15,76,129,.28)}
+.btn-primary:hover:not(:disabled){background:var(--primary2);transform:translateY(-1px);box-shadow:0 5px 16px rgba(15,76,129,.35)}
+.btn-green{background:var(--green);color:#fff;box-shadow:0 3px 10px rgba(5,150,105,.25)}
+.btn-green:hover:not(:disabled){background:#047a53;transform:translateY(-1px)}
+.btn-ghost{background:var(--surface2);color:var(--primary);border:1px solid var(--border2)}
+.btn-ghost:hover:not(:disabled){background:var(--surface3)}
+.btn-danger{background:rgba(220,38,38,.10);color:var(--red);border:1px solid rgba(220,38,38,.25)}
+.btn-danger:hover:not(:disabled){background:rgba(220,38,38,.18)}
+.btn-sm{padding:6px 11px;font-size:11px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══ TABLE ══ */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--rs)}
+table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+thead th{background:var(--surface3);color:var(--text3);font-weight:700;text-align:left;padding:9px 11px;border-bottom:1px solid var(--border2);position:sticky;top:0;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}
+tbody td{padding:8px 11px;border-bottom:1px solid var(--border);color:var(--text)}
+tbody tr:hover{background:var(--surface2)}
+tbody tr:last-child td{border-bottom:none}
+.t-empty{text-align:center;color:var(--text2);padding:26px;font-size:12px}
+.tag{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:5px;letter-spacing:.3px}
+.tag.I{background:rgba(5,150,105,.12);color:var(--green)}
+.tag.A{background:rgba(21,101,192,.12);color:var(--primary2)}
+.tag.E{background:rgba(220,38,38,.12);color:var(--red)}
+.tag.NA{background:var(--surface3);color:var(--text2)}
+.rowact{display:flex;gap:5px}
+.iconbtn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.iconbtn:hover{background:var(--surface3);color:var(--primary)}
+.iconbtn.del:hover{background:rgba(220,38,38,.12);color:var(--red);border-color:rgba(220,38,38,.3)}
+.iconbtn svg{width:14px;height:14px}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+
+/* ══ VALIDATION / PREVIEW ══ */
+.valbox{display:flex;gap:11px;padding:13px 15px;border-radius:var(--rs);font-size:12px;line-height:1.55;margin-bottom:12px;align-items:flex-start}
+.valbox svg{width:18px;height:18px;flex-shrink:0;margin-top:1px}
+.valbox ul{margin:5px 0 0 4px;padding-left:16px}
+.valbox.ok{background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.28);color:#046048}
+.valbox.bad{background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.26);color:#a01818}
+.valbox.warn{background:rgba(180,83,9,.08);border:1px solid rgba(180,83,9,.26);color:#8a4a08}
+.filebox{font-family:'Consolas','SF Mono',monospace;font-size:12.5px;background:var(--surface3);border:1px dashed var(--border2);border-radius:var(--rs);padding:12px 14px;color:var(--primary);display:flex;align-items:center;gap:9px;word-break:break-all;font-weight:600;margin-bottom:14px}
+.filebox svg{flex-shrink:0}
+.chip{font-size:10px;font-weight:700;background:rgba(15,76,129,.1);color:var(--primary);padding:2px 8px;border-radius:5px;white-space:nowrap}
+.preview{font-family:'Consolas','SF Mono',monospace;font-size:11.5px;background:#0c1b33;color:#cfe3f7;border-radius:var(--rs);padding:14px;overflow-x:auto;line-height:1.7;max-height:340px;overflow-y:auto;white-space:pre}
+.preview .t1{color:#7dd3fc;font-weight:700}
+.preview .t2{color:#86efac}
+.preview .t3{color:#fca5a5}
+.preview .t4{color:#fcd34d}
+.preview .t5{color:#c4b5fd}
+.preview .t6{color:#f9a8d4}
+.preview .t7{color:#5eead4}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:13px;text-align:center}
+.stat .v{font-size:22px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;line-height:1}
+.stat .l{font-size:10px;color:var(--text2);margin-top:6px;text-transform:uppercase;letter-spacing:.3px;font-weight:600}
+.stat.green .v{color:var(--green)} .stat.teal .v{color:var(--teal)} .stat.orange .v{color:var(--orange)} .stat.purple .v{color:var(--purple)}
+
+/* ══ TOAST / MODAL ══ */
+#toasts{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:9px}
+.toast{background:var(--surface);border:1px solid var(--border2);border-left:4px solid var(--primary);border-radius:var(--rs);padding:12px 15px;font-size:12.5px;font-weight:600;color:var(--text);box-shadow:0 8px 26px rgba(15,76,129,.2);min-width:250px;max-width:360px;animation:slideIn .25s ease;display:flex;gap:9px;align-items:flex-start}
+.toast svg{width:17px;height:17px;flex-shrink:0;margin-top:1px}
+.toast.ok{border-left-color:var(--green)} .toast.ok svg{color:var(--green)}
+.toast.err{border-left-color:var(--red)} .toast.err svg{color:var(--red)}
+.toast.info{border-left-color:var(--primary2)} .toast.info svg{color:var(--primary2)}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+.modal-bg{position:fixed;inset:0;background:rgba(12,27,51,.55);z-index:900;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--r);max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden;animation:fade .2s}
+.modal-h{padding:18px 20px 0;font-size:15px;font-weight:700;color:var(--primary);font-family:'Lora',serif}
+.modal-b{padding:12px 20px 18px;font-size:12.5px;color:var(--text2);line-height:1.6}
+.modal-f{padding:0 20px 18px;display:flex;gap:10px;justify-content:flex-end}
+
+.footer{text-align:center;font-size:10.5px;color:var(--text2);padding:22px;line-height:1.7}
+
+@media(max-width:820px){
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .field.col-2,.field.col-3{grid-column:1/-1}
+  .hero-inner{flex-direction:column;align-items:flex-start}
+  .header{padding:0 14px} .main{padding:20px 14px 50px}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a class="logo" href="#" onclick="return false">
+    <span class="logo-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><path d="M5 5l14 14M19 5L5 19" opacity=".35"/></svg>
+    </span>
+    <span class="logo-text">
+      <h1>Seguimiento de Recursos · SER124DREC</h1>
+      <p>PISIS · SISPRO · ESE Hospital Regional Noroccidental</p>
+    </span>
+  </a>
+  <div class="header-right">
+    <span class="pill saved" id="savePill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Guardado local</span>
+    <a class="pill blue" href="https://web.sispro.gov.co" target="_blank" rel="noopener">web.sispro.gov.co ↗</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <span class="hero-badge">Archivo plano complementario · Resolución 2361 de 2016</span>
+      <h2>Reporte de ejecución de <span>recursos de transferencias</span></h2>
+      <p>Genera el archivo plano <b>SER124DREC</b> (.TXT) para PISIS: registro de control y los seis registros de detalle (incorporación, contratos, pólizas, seguimiento y reintegros). Diligencia uno a uno o carga desde Excel. Respaldo opcional en Google Sheets.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="v" id="hs_det">0</div><div class="l">Detalles</div></div>
+      <div class="hstat"><div class="v" id="hs_val">$0</div><div class="l">Valor contratado</div></div>
+      <div class="hstat"><div class="v" id="hs_estado">—</div><div class="l">Estructura</div></div>
+    </div>
+  </div>
+</section>
+
+<nav class="tabbar"><div class="tabbar-inner" id="tabbar">
+  <button class="tab active" data-tab="entidad"><span class="tnum">1</span> Entidad y período</button>
+  <button class="tab" data-tab="t2"><span class="tnum">2</span> Incorporación <span class="cnt" id="c_2">0</span></button>
+  <button class="tab" data-tab="t3"><span class="tnum">3</span> Contratos <span class="cnt" id="c_3">0</span></button>
+  <button class="tab" data-tab="t4"><span class="tnum">4</span> Pólizas <span class="cnt" id="c_4">0</span></button>
+  <button class="tab" data-tab="t5"><span class="tnum">5</span> Seguimiento <span class="cnt" id="c_5">0</span></button>
+  <button class="tab" data-tab="t6"><span class="tnum">6</span> Reint. recursos <span class="cnt" id="c_6">0</span></button>
+  <button class="tab" data-tab="t7"><span class="tnum">7</span> Reint. rendim. <span class="cnt" id="c_7">0</span></button>
+  <button class="tab" data-tab="excel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg> Excel</button>
+  <button class="tab" data-tab="generar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Generar y enviar</button>
+  <button class="tab" data-tab="ajustes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Ajustes</button>
+</div></nav>
+
+<main class="main">
+
+  <!-- ════ TAB 1: ENTIDAD Y PERÍODO (Tipo 1) ════ -->
+  <section class="panel active" id="p-entidad">
+    <div class="card">
+      <div class="card-head">
+        <div class="ttl"><span class="card-ico" style="background:var(--primary)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg></span>
+        <div><h3>Registro de Control (Tipo 1)</h3><div class="sub">Identifica a la entidad reportadora y el período. Se diligencia una sola vez por archivo.</div></div></div>
+      </div>
+      <div class="card-body">
+        <div class="section-note">El nombre del archivo y el registro de control se arman con estos datos. El número de identificación va <b>sin ceros de relleno</b> en el registro, pero <b>con ceros a la izquierda</b> en el nombre del archivo (lo hace el aplicativo). El <b>ID Recurso</b> se consulta en <a href="https://web.sispro.gov.co" target="_blank" rel="noopener">web.sispro.gov.co → Tablas de referencia → SERIDRecurso</a>. Cada archivo corresponde a <b>un solo ID Recurso</b>.</div>
+
+        <div class="grid g3">
+          <div class="field">
+            <label>Tipo de identificación de la entidad <span class="req">*</span> <span class="max">2</span></label>
+            <select id="e_tipoId"></select>
+            <span class="hint">DE Departamento · DI Distrito · MU Municipio · NI NIT (beneficiaria)</span>
+          </div>
+          <div class="field">
+            <label>Número de identificación <span class="req">*</span> <span class="max">12</span></label>
+            <input id="e_numId" class="uppercase" inputmode="numeric" placeholder="Ej: 800000000 (NIT sin dígito verif.)">
+            <span class="hint">DANE para entes territoriales; NIT sin dígito de verificación para beneficiarias.</span>
+          </div>
+          <div class="field">
+            <label>ID Recurso <span class="req">*</span> <span class="max">12</span></label>
+            <input id="e_idRecurso" class="uppercase" maxlength="12" placeholder="Ej: ID0000000123">
+            <span class="hint">Tabla SERIDRecurso. Se usa en el nombre del archivo.</span>
+          </div>
+          <div class="field">
+            <label>NIT de la entidad beneficiaria <span class="req">*</span> <span class="max">9</span></label>
+            <input id="e_nitBenef" class="uppercase" inputmode="numeric" maxlength="9" placeholder="NIT que recibe los recursos">
+            <span class="hint">Se usa como valor por defecto en los registros de detalle (campo 3).</span>
+          </div>
+          <div class="field">
+            <label>Fecha inicial del período <span class="req">*</span></label>
+            <input id="e_fechaIni" type="date">
+            <span class="hint">Primer día del mes reportado.</span>
+          </div>
+          <div class="field">
+            <label>Fecha final del período / corte <span class="req">*</span></label>
+            <input id="e_fechaFin" type="date">
+            <span class="hint">Último día del mes. Define la fecha de corte del nombre del archivo.</span>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:18px">
+          <button class="btn btn-primary" onclick="guardarEntidad()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg> Guardar entidad y período</button>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost btn-sm" onclick="go('t2')">Continuar a Incorporación →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ DETAIL TABS (2..7) generated ════ -->
+  <section class="panel" id="p-t2"></section>
+  <section class="panel" id="p-t3"></section>
+  <section class="panel" id="p-t4"></section>
+  <section class="panel" id="p-t5"></section>
+  <section class="panel" id="p-t6"></section>
+  <section class="panel" id="p-t7"></section>
+
+  <!-- ════ TAB EXCEL ════ -->
+  <section class="panel" id="p-excel">
+    <div class="card">
+      <div class="card-head"><div class="ttl"><span class="card-ico" style="background:var(--green)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg></span>
+      <div><h3>Cargue masivo desde Excel</h3><div class="sub">Descarga la plantilla, diligénciala y cárgala. Un libro con una hoja por tipo de registro.</div></div></div></div>
+      <div class="card-body">
+        <div class="section-note">La plantilla trae una hoja por cada registro (INCORPORACION, CONTRATOS, POLIZAS, SEGUIMIENTO, REINT_RECURSOS, REINT_RENDIM) más una hoja de INSTRUCCIONES con ejemplos. <b>No cambies los encabezados ni el orden de las columnas.</b> Todo se convierte a MAYÚSCULAS sin tildes al cargar. Las fechas pueden ir como AAAA-MM-DD o como fecha de Excel.</div>
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="descargarPlantilla()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Descargar plantilla Excel</button>
+          <label class="btn btn-primary" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> Cargar Excel diligenciado
+            <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importarExcel(this)"></label>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost" onclick="exportarDatos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg> Exportar datos actuales</button>
+        </div>
+        <div class="statgrid" style="margin-top:20px" id="excelStats"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ TAB GENERAR ════ -->
+  <section class="panel" id="p-generar">
+    <div class="card">
+      <div class="card-head"><div class="ttl"><span class="card-ico" style="background:var(--purple)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg></span>
+      <div><h3>Generar archivo plano y enviar</h3><div class="sub">Valida la estructura, revisa la vista previa y descarga el .TXT.</div></div></div></div>
+      <div class="card-body">
+        <div class="statgrid" id="genStats"></div>
+        <div id="valResults"></div>
+        <label style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;display:block">Nombre del archivo</label>
+        <div class="filebox" id="fileNameBox">Completa los datos de la entidad para ver el nombre.</div>
+        <label style="font-size:11px;font-weight:600;color:var(--text3);margin:4px 0 6px;display:block">Vista previa del contenido</label>
+        <div class="preview" id="planoPreview">Diligencia los datos para ver la vista previa.</div>
+        <div class="btn-row" style="margin-top:18px">
+          <button class="btn btn-primary" id="btnDownload" onclick="descargarTxt()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Descargar .TXT</button>
+          <button class="btn btn-ghost" id="btnCopy" onclick="copiarPlano()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar contenido</button>
+          <div class="spacer"></div>
+          <button class="btn btn-green" id="btnSheet" onclick="enviarSheets()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Registrar envío en Google Sheets</button>
+        </div>
+        <div class="section-note" style="margin-top:16px;border-left-color:var(--yellow)"><b>Importante:</b> antes de subir el archivo a PISIS debe <b>firmarse digitalmente</b> con un certificado de una entidad certificadora aprobada. Este aplicativo genera el .TXT; la firma se hace aparte.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ TAB AJUSTES ════ -->
+  <section class="panel" id="p-ajustes">
+    <div class="card">
+      <div class="card-head"><div class="ttl"><span class="card-ico" style="background:var(--teal)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg></span>
+      <div><h3>Conexión con Google Sheets</h3><div class="sub">Backend opcional para llevar la bitácora de envíos.</div></div></div></div>
+      <div class="card-body">
+        <div class="section-note">Pega la URL <b>/exec</b> del despliegue de Apps Script (ver <b>LEEME.md</b>). El token es opcional; si lo defines en el script, ponlo igual aquí.</div>
+        <div class="grid g2">
+          <div class="field col-2"><label>URL del Web App (…/exec)</label><input id="cfg_url" placeholder="https://script.google.com/macros/s/…/exec"></div>
+          <div class="field"><label>Token (opcional)</label><input id="cfg_token" placeholder="Clave secreta, si la definiste"></div>
+        </div>
+        <div class="btn-row" style="margin-top:16px">
+          <button class="btn btn-primary" onclick="guardarConfig()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg> Guardar conexión</button>
+          <button class="btn btn-ghost" onclick="probarConexion()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> Probar conexión</button>
+          <span id="cfg_status" style="display:none;font-size:12px;font-weight:700;align-self:center"></span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="ttl"><span class="card-ico" style="background:var(--text3)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.7 1 6.3 2.6L21 8"/><path d="M21 3v5h-5"/></svg></span>
+      <div><h3>Respaldo y datos locales</h3><div class="sub">Todo se guarda en este equipo (localStorage).</div></div></div></div>
+      <div class="card-body"><div class="btn-row">
+        <button class="btn btn-ghost" onclick="exportarBackup()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Exportar respaldo (.json)</button>
+        <label class="btn btn-ghost" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> Importar respaldo<input type="file" accept=".json" style="display:none" onchange="importarBackup(this)"></label>
+        <div class="spacer"></div>
+        <button class="btn btn-danger" onclick="borrarTodo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Borrar todos los datos</button>
+      </div></div>
+    </div>
+  </section>
+
+</main>
+
+<div id="toasts"></div>
+<div class="modal-bg" id="modalBg"><div class="modal">
+  <div class="modal-h" id="modalTitle"></div><div class="modal-b" id="modalBody"></div>
+  <div class="modal-f"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancelar</button><button class="btn btn-danger btn-sm" id="modalOk">Confirmar</button></div>
+</div></div>
+
+<footer class="footer">
+  Aplicativo local · Salud Pública ESE HRNO · Anexo Técnico CVSF05 v02 (07/02/2020) · Fuente SER124DREC<br>
+  Los datos se guardan solo en este navegador. El archivo debe firmarse digitalmente antes de cargarlo en PISIS.
+</footer>
+
+<script>
+/* ══════════════════════ CATÁLOGOS ══════════════════════ */
+const TIPO_ENTIDAD=[['NI','NI · NIT (entidad beneficiaria)'],['DE','DE · Departamento'],['DI','DI · Distrito'],['MU','MU · Municipio']];
+const IND=[['','— selecciona —'],['I','I · Insertar (nuevo)'],['A','A · Actualizar (corrige uno previo)'],['E','E · Anular (elimina uno previo)'],['NA','NA · No aplica (omite el registro)']];
+const ACTO_INCORP=[['','—'],['1','1 · Ordenanza'],['2','2 · Acuerdo'],['3','3 · Decreto'],['4','4 · Resolución'],['5','5 · Acta']];
+const ACTO_EJEC=[['','—'],['1','1 · Contrato'],['2','2 · Convenio'],['3','3 · Nómina'],['4','4 · Resolución'],['5','5 · Oficio'],['6','6 · Acta'],['7','7 · Factura']];
+const TIPO_ACTA=[['','—'],['1','1 · Acta parcial de ejecución'],['2','2 · Acta final de ejecución'],['3','3 · Acta de liquidación']];
+const ID_CONTRATISTA=[['','—'],['CC','CC · Cédula de ciudadanía'],['NI','NI · NIT'],['DE','DE · Documento extranjero'],['CE','CE · Cédula de extranjería'],['PE','PE · Permiso especial'],['PT','PT · Protección temporal']];
+const ID_SUPERVISOR=[['','—'],['CC','CC · Cédula de ciudadanía'],['DE','DE · Documento extranjero'],['CE','CE · Cédula de extranjería'],['PE','PE · Permiso especial'],['PT','PT · Protección temporal']];
+const ENT_REINT=[['','—'],['1','1 · Crédito Público y Tesoro Nacional'],['2','2 · ADRES']];
+const PORTAFOLIO=[['','—'],['403','403 · Tesoro Nacional (MinHacienda)'],['496','496 · ADRES']];
+
+/* ══════════════════════ ESQUEMA DE REGISTROS DE DETALLE ══════════════════════
+   Campos comunes (todos): 2 idRecurso · 3 nit · 4 indicador (se agregan por código).
+   'fields' = campos 5+ del registro, en orden exacto del anexo técnico.
+   kind: text|num|dec|date|area|select   req(cuando ind≠NA): hard|soft
+=================================================================================*/
+const ORDER=[2,3,4,5,6,7];
+const SCHEMA={
+  2:{ name:'Incorporación', num:2, color:'var(--green)', indLabel:'Código del indicador de incorporación',
+    desc:'Detalle de la incorporación de los recursos al presupuesto de la entidad.',
+    key:['idRecurso','nit','tipoActo','numActo','fecha'],
+    fields:[
+      {k:'tipoActo',label:'Tipo de acto administrativo',len:1,kind:'select',opts:ACTO_INCORP,req:'hard'},
+      {k:'numActo',label:'Número de acto administrativo',len:20,kind:'text',req:'hard',hint:'Ej: ORD-123256'},
+      {k:'fecha',label:'Fecha de incorporación',len:10,kind:'date',req:'hard'},
+      {k:'valor',label:'Valor incorporado',len:17,kind:'dec',req:'hard',span:2,hint:'Mayor que 0 · máx. 2 decimales · sin separador de miles'},
+    ]},
+  3:{ name:'Contratos y actos', num:3, color:'var(--red)', indLabel:'Indicador de actualización de actos administrativos',
+    desc:'Detalle de los contratos y actos administrativos ejecutados con recursos de transferencias.',
+    key:['idRecurso','nit','tipoActo','numActo'],
+    fields:[
+      {k:'tipoActo',label:'Tipo de contrato / acto',len:1,kind:'select',opts:ACTO_EJEC,req:'hard'},
+      {k:'numActo',label:'Número de contrato / acto',len:20,kind:'text',req:'hard',hint:'Ej: CPS-000123'},
+      {k:'fecha',label:'Fecha del contrato / acto',len:10,kind:'date',req:'hard'},
+      {k:'fechaFin',label:'Fecha de terminación',len:10,kind:'date',req:'soft',hint:'Si no aplica: 1900-01-01. Debe ser mayor a la fecha del contrato.'},
+      {k:'objeto',label:'Objeto',len:500,kind:'area',req:'soft',span:'full',hint:'Descripción del objeto del contrato / acto.'},
+      {k:'valor',label:'Valor del acto / contrato',len:17,kind:'dec',req:'hard',hint:'Mayor que 0 · no puede superar el valor incorporado.'},
+      {k:'tipoIdContratista',label:'Tipo id. contratista',len:2,kind:'select',opts:ID_CONTRATISTA,req:'soft'},
+      {k:'numIdContratista',label:'N.° id. contratista',len:17,kind:'text',req:'soft'},
+      {k:'nomContratista',label:'Nombre / razón social del contratista',len:100,kind:'text',req:'soft',span:2},
+      {k:'tipoIdSuperv',label:'Tipo id. supervisor',len:2,kind:'select',opts:ID_SUPERVISOR,req:'soft'},
+      {k:'numIdSuperv',label:'N.° id. supervisor',len:17,kind:'text',req:'soft'},
+      {k:'nomSuperv',label:'Nombre del supervisor / interventor',len:100,kind:'text',req:'soft',span:2},
+    ]},
+  4:{ name:'Pólizas', num:4, color:'var(--yellow)', indLabel:'Código del indicador de pólizas',
+    desc:'Detalle de las pólizas que respaldan el cumplimiento de los actos administrativos.',
+    key:['idRecurso','nit','tipoActo','numActo','numPoliza'],
+    fields:[
+      {k:'tipoActo',label:'Tipo de contrato / acto',len:1,kind:'select',opts:ACTO_EJEC,req:'hard'},
+      {k:'numActo',label:'Número de contrato / acto',len:20,kind:'text',req:'hard',hint:'Debe ser un contrato ya reportado. Ej: CPS-000123'},
+      {k:'numPoliza',label:'Número de póliza',len:20,kind:'text',req:'hard'},
+      {k:'fecha',label:'Fecha de la póliza',len:10,kind:'date',req:'soft'},
+    ]},
+  5:{ name:'Seguimiento', num:5, color:'var(--purple)', indLabel:'Código del indicador de seguimiento',
+    desc:'Detalle del seguimiento técnico y financiero, parciales y finales.',
+    key:['idRecurso','nit','tipoActo','numActo','tipoActa','noActa','fecha'],
+    fields:[
+      {k:'tipoActo',label:'Tipo de contrato / acto',len:1,kind:'select',opts:ACTO_EJEC,req:'hard'},
+      {k:'numActo',label:'Número de contrato / acto',len:20,kind:'text',req:'hard',hint:'Ej: CPS-000123'},
+      {k:'tipoActa',label:'Tipo de acta',len:1,kind:'select',opts:TIPO_ACTA,req:'hard'},
+      {k:'noActa',label:'N.° de acta',len:20,kind:'text',req:'hard'},
+      {k:'fecha',label:'Fecha del acta',len:10,kind:'date',req:'soft',hint:'Si no aplica: 1900-01-01.'},
+      {k:'valorObligado',label:'Valor obligado en el período',len:17,kind:'dec',req:'hard',hint:'No acumulado · no puede superar el valor del contrato.'},
+      {k:'valorPagado',label:'Valor pagado en el período',len:17,kind:'dec',req:'hard',hint:'No acumulado · máx. 2 decimales.'},
+      {k:'pctTecnica',label:'% de ejecución técnica',len:5,kind:'dec',req:'soft',hint:'0 a 100 · acumulado · sin el carácter %.'},
+      {k:'conclusiones',label:'Conclusiones del acta',len:500,kind:'area',req:'soft',span:'full'},
+    ]},
+  6:{ name:'Reintegro de recursos no ejecutados', num:6, color:'var(--orange)', indLabel:'Código del indicador de reintegro de recursos no ejecutados',
+    desc:'Detalle del reintegro de recursos no ejecutados a la Nación.',
+    key:['idRecurso','nit','tipoActo','numActo','fecha'],
+    fields:[
+      {k:'tipoActo',label:'Tipo de acto administrativo',len:1,kind:'select',opts:ACTO_INCORP,req:'soft'},
+      {k:'numActo',label:'Número de acto administrativo',len:20,kind:'text',req:'soft',hint:'Ej: RES-000123'},
+      {k:'fecha',label:'Fecha del acto administrativo',len:10,kind:'date',req:'soft'},
+      {k:'codEntidad',label:'Entidad a la que se reintegra',len:1,kind:'select',opts:ENT_REINT,req:'hard'},
+      {k:'nitBanco',label:'NIT del banco',len:9,kind:'num',req:'soft',hint:'Sin dígito de verificación. Tabla SERIDBancos.'},
+      {k:'numCuenta',label:'Número de cuenta bancaria',len:12,kind:'num',req:'soft'},
+      {k:'valor',label:'Valor total reintegrado',len:17,kind:'dec',req:'hard',hint:'Por consignación (no acumulado) · máx. 2 decimales.'},
+      {k:'fechaConsig',label:'Fecha de la consignación',len:10,kind:'date',req:'hard'},
+      {k:'portafolio',label:'Portafolio',len:3,kind:'select',opts:PORTAFOLIO,req:'soft'},
+    ]},
+  7:{ name:'Reintegro de rendimientos financieros', num:7, color:'var(--teal)', indLabel:'Código del indicador de reintegro de rendimientos financieros',
+    desc:'Detalle del reintegro de rendimientos financieros.',
+    key:['idRecurso','nit','tipoActo','numActo','fecha'],
+    fields:[
+      {k:'tipoActo',label:'Tipo de acto administrativo',len:1,kind:'select',opts:ACTO_INCORP,req:'soft'},
+      {k:'numActo',label:'Número de acto administrativo',len:20,kind:'text',req:'soft',hint:'Ej: RES-000123'},
+      {k:'fecha',label:'Fecha del acto administrativo',len:10,kind:'date',req:'soft'},
+      {k:'codEntidad',label:'Entidad a la que se reintegra',len:1,kind:'select',opts:ENT_REINT,req:'hard'},
+      {k:'nitBanco',label:'NIT del banco',len:9,kind:'num',req:'soft',hint:'Sin dígito de verificación. Tabla SERIDBancos.'},
+      {k:'numCuenta',label:'Número de cuenta bancaria',len:12,kind:'num',req:'soft'},
+      {k:'valor',label:'Valor total de rendimientos reintegrados',len:17,kind:'dec',req:'hard',hint:'Por consignación (no acumulado) · máx. 2 decimales.'},
+      {k:'fechaConsig',label:'Fecha de la consignación',len:10,kind:'date',req:'hard'},
+      {k:'portafolio',label:'Portafolio',len:3,kind:'select',opts:PORTAFOLIO,req:'soft'},
+    ]},
+};
+// Columnas Excel por tipo (orden): ID_RECURSO, NIT, INDICADOR, ...extras
+function excelCols(t){ return ['ID_RECURSO','NIT_ENTIDAD','INDICADOR', ...SCHEMA[t].fields.map(f=>f.k.toUpperCase())]; }
+
+/* ══════════════════════ UTILIDADES ══════════════════════ */
+const LS={ent:'ser124_entidad',data:'ser124_data',cfg:'ser124_config'};
+function up(s){ // MAYUSCULAS sin tildes (conserva N-tilde), sin pipe
+  return String(s==null?'':s)
+    .replace(/ñ/g,'').replace(/Ñ/g,'')   // protege la N-tilde
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')          // quita tildes/diacriticos
+    .replace(//g,'ñ').replace(//g,'Ñ')   // restaura la N-tilde
+    .replace(/\|/g,' ')                                        // el pipe esta prohibido en los datos
+    .toUpperCase().trim();
+}
+function norm(s){ return up(s); }
+function normNum(s){ return String(s==null?'':s).replace(/[^\d]/g,''); }
+function normDec(s){ // deja dígitos y un punto; máx 2 decimales
+  let v=String(s==null?'':s).replace(/\s/g,'').replace(/,/g,'.').replace(/[^\d.]/g,'');
+  const p=v.split('.'); if(p.length>2) v=p[0]+'.'+p.slice(1).join('');
+  const parts=v.split('.'); if(parts[1]!==undefined) v=parts[0]+'.'+parts[1].slice(0,2);
+  return v;
+}
+function p2(n){ return String(n).padStart(2,'0'); }
+function normFecha(v){
+  if(v==null||v==='') return '';
+  if(typeof v==='number'){ const d=new Date(Math.round((v-25569)*86400000)); return isNaN(d)?'':d.toISOString().slice(0,10); }
+  let s=String(v).trim();
+  let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/); if(m) return `${m[1]}-${p2(m[2])}-${p2(m[3])}`;
+  m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); if(m) return `${m[3]}-${p2(m[2])}-${p2(m[1])}`;
+  return s.slice(0,10);
+}
+function fmtDec(v){ const n=normDec(v); if(n==='') return ''; const f=parseFloat(n); return isNaN(f)?'':String(f); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function money(n){ return '$'+(n||0).toLocaleString('es-CO'); }
+function save(k,v){ localStorage.setItem(k,JSON.stringify(v)); flashSaved(); }
+function load(k,def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+let savedTmr; function flashSaved(){ const p=document.getElementById('savePill'); p.style.opacity='1'; clearTimeout(savedTmr); savedTmr=setTimeout(()=>p.style.opacity='.55',900); }
+
+function toast(msg,type='info'){
+  const box=document.getElementById('toasts'); const el=document.createElement('div'); el.className='toast '+type;
+  const ic={ok:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',err:'<circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>',info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>'}[type];
+  el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ic}</svg><span>${esc(msg)}</span>`;
+  box.appendChild(el); setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(30px)';el.style.transition='.3s';setTimeout(()=>el.remove(),300)},3800);
+}
+let modalCb=null;
+function confirmModal(title,body,cb){ document.getElementById('modalTitle').textContent=title; document.getElementById('modalBody').textContent=body; modalCb=cb; document.getElementById('modalBg').classList.add('show'); }
+function closeModal(){ document.getElementById('modalBg').classList.remove('show'); modalCb=null; }
+document.getElementById('modalOk').addEventListener('click',()=>{ if(modalCb)modalCb(); closeModal(); });
+document.getElementById('modalBg').addEventListener('click',e=>{ if(e.target.id==='modalBg')closeModal(); });
+
+/* ══════════════════════ ESTADO ══════════════════════ */
+let entidad=load(LS.ent,{});
+let store=load(LS.data,{2:[],3:[],4:[],5:[],6:[],7:[]});
+[2,3,4,5,6,7].forEach(t=>{ if(!Array.isArray(store[t])) store[t]=[]; });
+let config=load(LS.cfg,{url:'',token:''});
+let edit={2:-1,3:-1,4:-1,5:-1,6:-1,7:-1};
+
+/* ══════════════════════ NAVEGACIÓN ══════════════════════ */
+function go(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('p-'+tab).classList.add('active');
+  if(tab==='generar') refrescarGenerar();
+  if(tab==='excel') pintarExcelStats();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.getElementById('tabbar').addEventListener('click',e=>{ const b=e.target.closest('.tab'); if(b) go(b.dataset.tab); });
+
+/* ══════════════════════ SELECT HELPER ══════════════════════ */
+function optionsHtml(opts,sel){ return opts.map(o=>`<option value="${o[0]}" ${o[0]===sel?'selected':''}>${o[1]}</option>`).join(''); }
+
+/* ══════════════════════ ENTIDAD (TIPO 1) ══════════════════════ */
+function fillEntidadSelect(){ document.getElementById('e_tipoId').innerHTML=optionsHtml(TIPO_ENTIDAD,entidad.tipoId||'NI'); }
+function pintarEntidad(){
+  const e=entidad, set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v||'';};
+  fillEntidadSelect();
+  set('e_numId',e.numId); set('e_idRecurso',e.idRecurso); set('e_nitBenef',e.nitBenef);
+  set('e_fechaIni',e.fechaIni||new Date().toISOString().slice(0,8)+'01');
+  set('e_fechaFin',e.fechaFin);
+}
+function guardarEntidad(){
+  const g=id=>document.getElementById(id).value;
+  entidad={ tipoId:g('e_tipoId'), numId:normNum(g('e_numId')), idRecurso:up(g('e_idRecurso')),
+    nitBenef:normNum(g('e_nitBenef')), fechaIni:g('e_fechaIni'), fechaFin:g('e_fechaFin') };
+  const errs=[];
+  if(!entidad.numId) errs.push('número de identificación');
+  if(!entidad.idRecurso) errs.push('ID Recurso');
+  if(!entidad.nitBenef) errs.push('NIT beneficiaria');
+  if(!entidad.fechaIni) errs.push('fecha inicial');
+  if(!entidad.fechaFin) errs.push('fecha final');
+  if(entidad.fechaIni&&entidad.fechaFin&&entidad.fechaFin<entidad.fechaIni) errs.push('la fecha final no puede ser anterior a la inicial');
+  if(errs.length){ toast('Revisa: '+errs.join(', '),'err'); return; }
+  save(LS.ent,entidad); pintarEntidad(); toast('Entidad y período guardados','ok'); updateAll();
+}
+
+/* ══════════════════════ RENDER DE PESTAÑAS DE DETALLE ══════════════════════ */
+function fieldHtml(t,f){
+  const span=f.span==='full'?'full':f.span===2?'col-2':f.span===3?'col-3':'';
+  const id=`f${t}_${f.k}`;
+  const reqMark=f.req==='hard'?'<span class="req">*</span>':'';
+  let ctrl;
+  if(f.kind==='select') ctrl=`<select id="${id}" class="cond">${optionsHtml(f.opts,'')}</select>`;
+  else if(f.kind==='area') ctrl=`<textarea id="${id}" class="cond uppercase" maxlength="${f.len}" placeholder="${f.hint?esc(f.hint):''}"></textarea>`;
+  else{
+    const im=f.kind==='num'?'inputmode="numeric"':f.kind==='dec'?'inputmode="decimal"':'';
+    const cls=(f.kind==='text')?'cond uppercase':'cond';
+    const type=f.kind==='date'?'date':'text';
+    const ml=f.kind==='date'?'':`maxlength="${f.len}"`;
+    ctrl=`<input id="${id}" type="${type}" class="${cls}" ${im} ${ml} placeholder="${f.kind!=='date'&&f.hint?'':''}">`;
+  }
+  const hint=f.hint&&f.kind!=='area'?`<span class="hint">${esc(f.hint)}</span>`:'';
+  const maxTag=f.kind!=='date'&&f.kind!=='select'?`<span class="max">${f.len}</span>`:'';
+  return `<div class="field ${span}"><label>${esc(f.label)} ${reqMark} ${maxTag}</label>${ctrl}${hint}</div>`;
+}
+function buildDetailPanel(t){
+  const s=SCHEMA[t];
+  const panel=document.getElementById('p-t'+t);
+  const extra=s.fields.map(f=>fieldHtml(t,f)).join('');
+  panel.innerHTML=`
+  <div class="card">
+    <div class="card-head">
+      <div class="ttl"><span class="card-ico" style="background:${s.color}"><b style="font-family:Inter;font-weight:800">${t}</b></span>
+      <div><h3 id="ft_${t}">Agregar registro — ${esc(s.name)} (Tipo ${t})</h3><div class="sub">${esc(s.desc)}</div></div></div>
+      <button class="btn btn-ghost btn-sm" onclick="prefillHeader(${t})" title="Copiar ID Recurso y NIT del encabezado">Usar datos del encabezado</button>
+    </div>
+    <div class="card-body">
+      <div class="grid g3">
+        <div class="field"><label>ID Recurso <span class="req">*</span> <span class="max">12</span></label><input id="f${t}_idRecurso" class="uppercase" maxlength="12" placeholder="ID0000000123"><span class="hint">Debe coincidir con el ID del archivo.</span></div>
+        <div class="field"><label>NIT entidad beneficiaria <span class="req">*</span> <span class="max">9</span></label><input id="f${t}_nit" inputmode="numeric" maxlength="9" placeholder="NIT sin dígito verif."></div>
+        <div class="field"><label>${esc(s.indLabel)} <span class="req">*</span></label><select id="f${t}_indicador" onchange="toggleCond(${t})">${optionsHtml(IND,'')}</select><span class="hint">Con NA los demás campos van vacíos.</span></div>
+      </div>
+      <div class="cond-wrap" id="cw_${t}" style="margin-top:14px"><div class="grid g3">${extra}</div></div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn btn-primary" id="fadd_${t}" onclick="addRecord(${t})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Agregar registro</button>
+        <button class="btn btn-ghost" id="fcancel_${t}" style="display:none" onclick="cancelEdit(${t})">Cancelar edición</button>
+        <div class="spacer"></div>
+        <button class="btn btn-danger btn-sm" onclick="clearAll(${t})">Vaciar tabla</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="ttl"><div><h3>Registros cargados</h3><div class="sub"><span id="cnt_${t}">0</span> registro(s) · Tipo ${t}</div></div></div></div>
+    <div class="card-body" style="padding:0"><div id="tbl_${t}"></div></div>
+  </div>`;
+}
+function prefillHeader(t){
+  if(!entidad.idRecurso&&!entidad.nitBenef){ toast('Primero guarda la entidad y el período','err'); return; }
+  document.getElementById(`f${t}_idRecurso`).value=entidad.idRecurso||'';
+  document.getElementById(`f${t}_nit`).value=entidad.nitBenef||'';
+  toast('Datos del encabezado copiados','ok');
+}
+function toggleCond(t){
+  const na=document.getElementById(`f${t}_indicador`).value==='NA';
+  const cw=document.getElementById(`cw_${t}`);
+  cw.classList.toggle('off',na);
+  cw.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=na);
+}
+function readForm(t){
+  const s=SCHEMA[t], g=k=>{const el=document.getElementById(`f${t}_${k}`); return el?el.value:'';};
+  const r={ idRecurso:up(g('idRecurso')), nit:normNum(g('nit')), indicador:g('indicador') };
+  s.fields.forEach(f=>{
+    let v=g(f.k);
+    if(r.indicador==='NA'){ r[f.k]=''; return; }
+    if(f.kind==='num') v=normNum(v);
+    else if(f.kind==='dec') v=normDec(v);
+    else if(f.kind==='date') v=v||'';
+    else v=up(v);
+    r[f.k]=v;
+  });
+  return r;
+}
+function validateRecord(t,r){
+  const s=SCHEMA[t], errs=[];
+  if(!r.idRecurso) errs.push('ID Recurso');
+  if(!r.nit) errs.push('NIT entidad');
+  if(!r.indicador) errs.push(SCHEMA[t].indLabel);
+  if(r.indicador && r.indicador!=='NA'){
+    s.fields.forEach(f=>{
+      if(f.req==='hard' && !String(r[f.k]).trim()) errs.push(f.label);
+    });
+    // reglas de valor > 0
+    s.fields.filter(f=>f.kind==='dec' && f.req==='hard').forEach(f=>{
+      const n=parseFloat(r[f.k]); if(r[f.k]!=='' && (isNaN(n)||n<=0) && f.k!=='pctTecnica') errs.push(f.label+' debe ser mayor que 0');
+    });
+  }
+  return errs;
+}
+function addRecord(t){
+  const r=readForm(t);
+  const errs=validateRecord(t,r);
+  if(errs.length){ toast('Faltan datos: '+errs.slice(0,4).join(', ')+(errs.length>4?'…':''),'err'); return; }
+  if(edit[t]>=0){ store[t][edit[t]]=r; toast('Registro actualizado','ok'); cancelEdit(t,true); }
+  else{ store[t].push(r); toast('Registro Tipo '+t+' agregado','ok'); }
+  save(LS.data,store); clearForm(t); renderTable(t); updateAll();
+}
+function clearForm(t){
+  const s=SCHEMA[t];
+  ['idRecurso','nit'].forEach(k=>{const el=document.getElementById(`f${t}_${k}`); if(el)el.value='';});
+  document.getElementById(`f${t}_indicador`).value='';
+  s.fields.forEach(f=>{const el=document.getElementById(`f${t}_${f.k}`); if(el)el.value='';});
+  toggleCond(t);
+}
+function editRecord(t,i){
+  const r=store[t][i], s=SCHEMA[t];
+  document.getElementById(`f${t}_idRecurso`).value=r.idRecurso||'';
+  document.getElementById(`f${t}_nit`).value=r.nit||'';
+  document.getElementById(`f${t}_indicador`).value=r.indicador||'';
+  s.fields.forEach(f=>{const el=document.getElementById(`f${t}_${f.k}`); if(el)el.value=r[f.k]||'';});
+  toggleCond(t);
+  edit[t]=i;
+  document.getElementById(`ft_${t}`).textContent=`Editando registro #${i+1} — ${s.name} (Tipo ${t})`;
+  document.getElementById(`fadd_${t}`).innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Guardar cambios';
+  document.getElementById(`fcancel_${t}`).style.display='inline-flex';
+  go('t'+t);
+}
+function cancelEdit(t,silent){
+  edit[t]=-1;
+  const s=SCHEMA[t];
+  document.getElementById(`ft_${t}`).textContent=`Agregar registro — ${s.name} (Tipo ${t})`;
+  document.getElementById(`fadd_${t}`).innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Agregar registro';
+  document.getElementById(`fcancel_${t}`).style.display='none';
+  if(!silent) clearForm(t);
+}
+function delRecord(t,i){
+  confirmModal('Eliminar registro','¿Eliminar el registro #'+(i+1)+' del Tipo '+t+'?',()=>{
+    store[t].splice(i,1); save(LS.data,store); renderTable(t); updateAll(); toast('Registro eliminado','info');
+  });
+}
+function clearAll(t){
+  if(!store[t].length){ toast('No hay registros','info'); return; }
+  confirmModal('Vaciar tabla','Se eliminarán los '+store[t].length+' registros del Tipo '+t+'. ¿Continuar?',()=>{
+    store[t]=[]; save(LS.data,store); renderTable(t); updateAll(); toast('Tabla vaciada','info');
+  });
+}
+function renderTable(t){
+  const s=SCHEMA[t], rows=store[t], cont=document.getElementById(`tbl_${t}`);
+  document.getElementById(`cnt_${t}`).textContent=rows.length;
+  if(!rows.length){ cont.innerHTML='<div class="t-empty">Aún no has agregado registros de este tipo.</div>'; return; }
+  // columnas resumidas: #, IDRecurso, NIT, Indicador, primeros 3 campos con dato, acciones
+  const showFields=s.fields.slice(0,3);
+  const head=['#','ID Recurso','NIT','Ind.',...showFields.map(f=>f.label.replace(/ .*/,'')),'Acciones'];
+  let html='<div class="tbl-wrap"><table><thead><tr>'+head.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr></thead><tbody>';
+  rows.forEach((r,i)=>{
+    html+=`<tr><td class="num">${i+1}</td><td>${esc(r.idRecurso)}</td><td>${esc(r.nit)}</td><td><span class="tag ${r.indicador||'NA'}">${esc(r.indicador||'—')}</span></td>`;
+    showFields.forEach(f=>{ let v=r[f.k]||''; if(f.kind==='dec'&&v) v=money(parseFloat(v)); html+=`<td>${esc(String(v).slice(0,26))}</td>`; });
+    html+=`<td><div class="rowact">
+      <button class="iconbtn" onclick="editRecord(${t},${i})" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+      <button class="iconbtn del" onclick="delRecord(${t},${i})" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+    </div></td></tr>`;
+  });
+  html+='</tbody></table></div>';
+  cont.innerHTML=html;
+}
+
+/* ══════════════════════ CONTADORES / STATS ══════════════════════ */
+function totalDetalle(){ return ORDER.reduce((a,t)=>a+store[t].length,0); }
+function valorContratado(){ return store[3].reduce((a,r)=> a+(r.indicador&&r.indicador!=='NA'?(parseFloat(r.valor)||0):0),0); }
+function updateAll(){
+  ORDER.forEach(t=>{ document.getElementById('c_'+t).textContent=store[t].length; });
+  document.getElementById('hs_det').textContent=totalDetalle();
+  document.getElementById('hs_val').textContent=money(valorContratado());
+  const {errs}=validar();
+  document.getElementById('hs_estado').textContent=errs.length?'✗':'✓';
+  document.getElementById('hs_estado').style.color=errs.length?'#fca5a5':'#86efac';
+  if(document.getElementById('p-generar').classList.contains('active')) refrescarGenerar();
+  if(document.getElementById('p-excel').classList.contains('active')) pintarExcelStats();
+}
+
+/* ══════════════════════ VALIDACIÓN GLOBAL ══════════════════════ */
+function validar(){
+  const errs=[], warns=[];
+  if(!entidad.numId||!entidad.idRecurso||!entidad.fechaFin||!entidad.fechaIni) errs.push('Completa los datos de la entidad y el período (pestaña 1).');
+  if(!entidad.nitBenef) warns.push('No has definido el NIT de la entidad beneficiaria.');
+  if(totalDetalle()===0) errs.push('Agrega al menos un registro de detalle (Tipo 2 a 7).');
+  // registros con ID Recurso distinto al del archivo
+  let distinto=0;
+  ORDER.forEach(t=> store[t].forEach(r=>{ if(entidad.idRecurso && r.idRecurso && r.idRecurso!==entidad.idRecurso) distinto++; }));
+  if(distinto) warns.push(distinto+' registro(s) tienen un ID Recurso distinto al del encabezado (cada archivo es de un solo recurso).');
+  // duplicados por clave
+  ORDER.forEach(t=>{
+    const seen=new Set();
+    store[t].forEach((r,i)=>{
+      if(r.indicador==='NA') return;
+      const key=SCHEMA[t].key.map(k=>r[k]||'').join('¬');
+      if(seen.has(key)) warns.push(`Tipo ${t}: el registro #${i+1} está duplicado según su clave única.`);
+      seen.add(key);
+    });
+  });
+  // suma contratos vs incorporado (aviso)
+  const inc=store[2].reduce((a,r)=>a+(r.indicador!=='NA'?(parseFloat(r.valor)||0):0),0);
+  if(inc>0 && valorContratado()>inc) warns.push('La suma de contratos (Tipo 3) supera el valor incorporado (Tipo 2).');
+  if(!config.url) warns.push('No has configurado Google Sheets (Ajustes). Podrás descargar el .TXT igual.');
+  return {errs,warns};
+}
+
+/* ══════════════════════ ARCHIVO PLANO ══════════════════════ */
+function buildFileName(){
+  const e=entidad;
+  if(!e.tipoId||!e.numId||!e.fechaFin||!e.idRecurso) return '';
+  const corte=(e.fechaFin||'').replace(/-/g,'');
+  const numPad=String(normNum(e.numId)).padStart(12,'0').slice(-12);
+  const idRec=up(e.idRecurso).slice(0,12);
+  return ('SER124DREC'+corte+e.tipoId+numPad+idRec+'.TXT').toUpperCase();
+}
+function recordLine(t,r,cons){
+  const s=SCHEMA[t];
+  const base=[String(t),String(cons),up(r.idRecurso).slice(0,12),normNum(r.nit).slice(0,9),r.indicador];
+  let extras;
+  if(r.indicador==='NA') extras=s.fields.map(()=> '');
+  else extras=s.fields.map(f=>{
+    let v=r[f.k]||'';
+    if(f.kind==='dec') v=fmtDec(v);
+    else if(f.kind==='num') v=normNum(v);
+    else if(f.kind==='date') v=v;
+    else v=up(v);
+    return String(v).slice(0,f.len);
+  });
+  return [...base,...extras].join('|');
+}
+function buildPlano(){
+  const e=entidad, P='|';
+  const detail=[]; let cons=0;
+  ORDER.forEach(t=> store[t].forEach(r=>{ cons++; detail.push(recordLine(t,r,cons)); }));
+  const r1=['1',e.tipoId||'',normNum(e.numId),e.fechaIni||'',e.fechaFin||'',String(detail.length)].join(P);
+  return [r1,...detail].join('\r\n')+'\r\n';
+}
+function refrescarGenerar(){
+  updateCounts();
+  const {errs,warns}=validar();
+  const vr=document.getElementById('valResults'); let html='';
+  if(errs.length){
+    html+=`<div class="valbox bad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg><div><b>No se puede generar todavía (${errs.length}):</b><ul>${errs.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div>`;
+  }else{
+    html+=`<div class="valbox ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg><div><b>Estructura válida.</b> Archivo listo para generar y descargar.</div></div>`;
+  }
+  if(warns.length){
+    html+=`<div class="valbox warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><b>Avisos:</b><ul>${warns.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div>`;
+  }
+  vr.innerHTML=html;
+  const fn=buildFileName();
+  document.getElementById('fileNameBox').innerHTML = fn? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>${fn} <span class="chip" style="margin-left:auto">${fn.length} car.</span>` : 'Completa los datos de la entidad para ver el nombre.';
+  const ok=!errs.length;
+  document.getElementById('btnDownload').disabled=!ok;
+  document.getElementById('btnSheet').disabled=!ok;
+  if(ok){
+    const plano=buildPlano();
+    const colored=plano.split('\r\n').filter(Boolean).map(l=>`<span class="t${l[0]}">${esc(l)}</span>`).join('\n');
+    document.getElementById('planoPreview').innerHTML=colored;
+  }else{
+    document.getElementById('planoPreview').textContent='Corrige los errores para ver la vista previa.';
+  }
+}
+function updateCounts(){
+  document.getElementById('genStats').innerHTML=
+    ORDER.map(t=>`<div class="stat"><div class="v">${store[t].length}</div><div class="l">Tipo ${t} · ${SCHEMA[t].name.split(' ')[0]}</div></div>`).join('')+
+    `<div class="stat purple"><div class="v">${totalDetalle()}</div><div class="l">Total detalle</div></div>`;
+}
+function descargarTxt(){
+  const {errs}=validar(); if(errs.length){ toast('Corrige los errores antes de descargar','err'); return; }
+  const fn=buildFileName(), plano=buildPlano();
+  const bytes=new Uint8Array(plano.length);
+  for(let i=0;i<plano.length;i++){ const c=plano.charCodeAt(i); bytes[i]=c<256?c:63; }
+  const blob=new Blob([bytes],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn; a.click(); URL.revokeObjectURL(a.href);
+  toast('Archivo '+fn+' descargado','ok');
+}
+function copiarPlano(){
+  const {errs}=validar(); if(errs.length){ toast('Corrige los errores primero','err'); return; }
+  navigator.clipboard.writeText(buildPlano()).then(()=>toast('Contenido copiado','ok'),()=>toast('No se pudo copiar','err'));
+}
+
+/* ══════════════════════ EXCEL ══════════════════════ */
+const SHEET_NAME={2:'INCORPORACION',3:'CONTRATOS',4:'POLIZAS',5:'SEGUIMIENTO',6:'REINT_RECURSOS',7:'REINT_RENDIM'};
+function descargarPlantilla(){
+  const wb=XLSX.utils.book_new();
+  const inst=[
+    ['PLANTILLA — SEGUIMIENTO DE RECURSOS DE TRANSFERENCIAS (SER124DREC)'],[''],
+    ['Una hoja por cada registro de detalle. No cambies encabezados ni el orden de columnas.'],
+    ['INDICADOR: I (insertar) · A (actualizar) · E (anular) · NA (no aplica; deja los demás campos vacíos).'],
+    ['Fechas en formato AAAA-MM-DD (ej: 2026-07-31) o como fecha de Excel.'],
+    ['Valores: sin separador de miles, punto como decimal, máximo 2 decimales, mayores que 0.'],
+    ['ID_RECURSO y NIT_ENTIDAD se consultan en web.sispro.gov.co (tablas de referencia).'],
+    ['Todo se convierte a MAYÚSCULAS sin tildes al cargar.'],[''],
+    ['Hoja','Registro'],
+    ...ORDER.map(t=>[SHEET_NAME[t],'Tipo '+t+' · '+SCHEMA[t].name]),
+  ];
+  const wsI=XLSX.utils.aoa_to_sheet(inst); wsI['!cols']=[{wch:70},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,wsI,'INSTRUCCIONES');
+  // ejemplos por tipo
+  const ejemplos={
+    2:['ID0000000123','800000000','I','4','RES-000045','2026-07-05','150000000'],
+    3:['ID0000000123','800000000','I','1','CPS-000123','2026-07-10','2026-12-31','PRESTACION DE SERVICIOS DE SALUD','120000000','CC','1090000001','JUAN PEREZ','CC','52000000','MARIA GOMEZ'],
+    4:['ID0000000123','800000000','I','1','CPS-000123','POL-998877','2026-07-12'],
+    5:['ID0000000123','800000000','I','1','CPS-000123','1','ACT-01','2026-07-31','40000000','40000000','35','AVANCE CONFORME AL CRONOGRAMA'],
+    6:['ID0000000123','800000000','NA','','','','','','','','','',''],
+    7:['ID0000000123','800000000','NA','','','','','','','','','',''],
+  };
+  ORDER.forEach(t=>{
+    const cols=excelCols(t);
+    const ws=XLSX.utils.aoa_to_sheet([cols, ejemplos[t]]);
+    ws['!cols']=cols.map(c=>({wch:Math.max(13,Math.min(30,c.length+2))}));
+    XLSX.utils.book_append_sheet(wb,ws,SHEET_NAME[t]);
+  });
+  XLSX.writeFile(wb,'Plantilla_SER124DREC.xlsx');
+  toast('Plantilla descargada','ok');
+}
+function importarExcel(input){
+  const f=input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      let totalAdd=0, skip=0;
+      ORDER.forEach(t=>{
+        const sh=wb.Sheets[SHEET_NAME[t]]||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()===SHEET_NAME[t])];
+        if(!sh) return;
+        const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:''}).slice(1);
+        const s=SCHEMA[t];
+        rows.forEach(row=>{
+          if(!row||row.every(c=>String(c).trim()==='')) return;
+          const r={ idRecurso:up(row[0]), nit:normNum(row[1]), indicador:up(row[2]) };
+          if(!r.idRecurso||!r.nit){ skip++; return; }
+          if(!['I','A','E','NA'].includes(r.indicador)) r.indicador='I';
+          s.fields.forEach((fdef,j)=>{
+            let v=row[3+j];
+            if(r.indicador==='NA'){ r[fdef.k]=''; return; }
+            if(fdef.kind==='num') v=normNum(v);
+            else if(fdef.kind==='dec') v=normDec(v);
+            else if(fdef.kind==='date') v=normFecha(v);
+            else v=up(v);
+            r[fdef.k]=v;
+          });
+          store[t].push(r); totalAdd++;
+        });
+      });
+      save(LS.data,store);
+      ORDER.forEach(t=>renderTable(t)); updateAll();
+      toast(`Cargados ${totalAdd} registro(s)${skip?' · '+skip+' fila(s) omitida(s)':''}`,'ok');
+    }catch(err){ toast('Error al leer el archivo: '+err.message,'err'); }
+    input.value='';
+  };
+  rd.readAsArrayBuffer(f);
+}
+function exportarDatos(){
+  if(totalDetalle()===0){ toast('No hay datos para exportar','err'); return; }
+  const wb=XLSX.utils.book_new();
+  ORDER.forEach(t=>{
+    const cols=excelCols(t);
+    const data=[cols,...store[t].map(r=>[r.idRecurso,r.nit,r.indicador,...SCHEMA[t].fields.map(f=>r[f.k]||'')])];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),SHEET_NAME[t]);
+  });
+  XLSX.writeFile(wb,'Datos_SER124DREC_actuales.xlsx');
+  toast('Datos exportados','ok');
+}
+function pintarExcelStats(){
+  document.getElementById('excelStats').innerHTML=
+    ORDER.map(t=>`<div class="stat"><div class="v">${store[t].length}</div><div class="l">${esc(SHEET_NAME[t])}</div></div>`).join('');
+}
+
+/* ══════════════════════ GOOGLE SHEETS ══════════════════════ */
+function pintarConfig(){ document.getElementById('cfg_url').value=config.url||''; document.getElementById('cfg_token').value=config.token||''; }
+function guardarConfig(){
+  config.url=document.getElementById('cfg_url').value.trim();
+  config.token=document.getElementById('cfg_token').value.trim();
+  save(LS.cfg,config); toast('Conexión guardada','ok'); updateAll();
+}
+async function postSheet(payload){
+  payload.token=config.token||'';
+  const res=await fetch(config.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow'});
+  const txt=await res.text(); try{ return JSON.parse(txt); }catch(e){ return {ok:false,raw:txt}; }
+}
+async function probarConexion(){
+  if(!config.url){ toast('Primero pega la URL del Web App','err'); return; }
+  const st=document.getElementById('cfg_status'); st.style.display='inline-block'; st.textContent='Probando…'; st.style.color='var(--text2)';
+  try{ const res=await postSheet({action:'ping'});
+    if(res&&res.ok){ st.textContent='✓ Conectado'; st.style.color='var(--green)'; toast('Conexión exitosa','ok'); }
+    else{ st.textContent='Respuesta inesperada'; st.style.color='var(--yellow)'; toast('Respondió: '+JSON.stringify(res).slice(0,120),'info'); }
+  }catch(e){ st.textContent='✗ Sin conexión'; st.style.color='var(--red)'; toast('No se pudo conectar: '+e.message,'err'); }
+}
+async function enviarSheets(){
+  const {errs}=validar(); if(errs.length){ toast('Corrige los errores antes de enviar','err'); return; }
+  if(!config.url){ toast('Configura la URL en Ajustes','err'); go('ajustes'); return; }
+  const btn=document.getElementById('btnSheet'), original=btn.innerHTML;
+  btn.disabled=true; btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Enviando…';
+  try{
+    let cons=0; const registros=[];
+    ORDER.forEach(t=> store[t].forEach(r=>{ cons++; registros.push(Object.assign({tipo:t,consecutivo:cons},r)); }));
+    const payload={ action:'guardarEnvio', archivo:buildFileName(),
+      entidad:{tipoId:entidad.tipoId,numId:entidad.numId,idRecurso:entidad.idRecurso,nitBenef:entidad.nitBenef,fechaIni:entidad.fechaIni,fechaFin:entidad.fechaFin},
+      registros, plano:buildPlano() };
+    const res=await postSheet(payload);
+    if(res&&res.ok){ toast('Envío registrado en Google Sheets ('+(res.filas||registros.length)+' filas)','ok'); }
+    else{ toast('El script respondió: '+JSON.stringify(res).slice(0,120),'info'); }
+  }catch(e){ toast('Error al enviar: '+e.message,'err'); }
+  finally{ btn.disabled=false; btn.innerHTML=original; }
+}
+
+/* ══════════════════════ BACKUP / RESET ══════════════════════ */
+function exportarBackup(){
+  const data={entidad,store,config,fecha:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='respaldo_ser124drec.json'; a.click();
+  toast('Respaldo exportado','ok');
+}
+function importarBackup(input){
+  const f=input.files[0]; if(!f)return; const rd=new FileReader();
+  rd.onload=ev=>{ try{ const d=JSON.parse(ev.target.result);
+    if(d.entidad)entidad=d.entidad; if(d.store){ store=d.store; [2,3,4,5,6,7].forEach(t=>{if(!Array.isArray(store[t]))store[t]=[];}); } if(d.config)config=d.config;
+    save(LS.ent,entidad); save(LS.data,store); save(LS.cfg,config);
+    pintarEntidad(); pintarConfig(); ORDER.forEach(t=>renderTable(t)); updateAll();
+    toast('Respaldo importado','ok');
+  }catch(e){ toast('Archivo inválido','err'); } input.value=''; };
+  rd.readAsText(f);
+}
+function borrarTodo(){
+  confirmModal('Borrar todos los datos','Se eliminarán entidad, registros y configuración de este equipo. No se puede deshacer.',()=>{
+    [LS.ent,LS.data,LS.cfg].forEach(k=>localStorage.removeItem(k));
+    entidad={}; store={2:[],3:[],4:[],5:[],6:[],7:[]}; config={url:'',token:''};
+    pintarEntidad(); pintarConfig(); ORDER.forEach(t=>renderTable(t)); updateAll(); toast('Datos borrados','info');
+  });
+}
+
+/* ══════════════════════ INIT ══════════════════════ */
+ORDER.forEach(t=>buildDetailPanel(t));
+pintarEntidad(); pintarConfig();
+ORDER.forEach(t=>{ renderTable(t); toggleCond(t); });
+updateAll();
+</script>
+</body>
+</html>

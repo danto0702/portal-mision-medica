@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usuarios Institucionales SISPRO · SEG500USIN · ESE HRNO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="xlsx.full.min.js"></script>
+<style>
+/* ══ RESET & TOKENS ══ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#eef4fb; --surface:#ffffff; --surface2:#f4f8fd; --surface3:#e9f0f9;
+  --border:rgba(15,76,129,0.12); --border2:rgba(15,76,129,0.28);
+  --text:#0c1b33; --text2:#4a6a8a; --text3:#1e3a5f;
+  --primary:#0f4c81; --primary2:#1565c0;
+  --teal:#0891B2; --green:#059669; --yellow:#b45309; --orange:#c2410c; --red:#dc2626;
+  --r:12px; --rs:8px;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',Arial,sans-serif;min-height:100vh}
+h1,h2,h3,h4{font-family:'Lora',Georgia,serif}
+a{color:inherit}
+::selection{background:rgba(21,101,192,.2)}
+/* scrollbar */
+*::-webkit-scrollbar{height:10px;width:10px}
+*::-webkit-scrollbar-thumb{background:var(--border2);border-radius:20px}
+*::-webkit-scrollbar-track{background:transparent}
+
+/* ══ HEADER ══ */
+.header{background:var(--surface);border-bottom:3px solid var(--primary);padding:0 22px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(15,76,129,.10)}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(15,76,129,.30);flex-shrink:0}
+.logo-text h1{font-size:15px;font-weight:700;color:var(--primary);letter-spacing:-.2px;line-height:1.1}
+.logo-text p{font-size:9.5px;color:var(--text2);margin-top:2px;letter-spacing:.6px;text-transform:uppercase;font-weight:600}
+.header-right{display:flex;align-items:center;gap:10px}
+.pill{font-size:11px;font-weight:700;padding:5px 11px;border-radius:6px;letter-spacing:.3px;display:inline-flex;align-items:center;gap:6px}
+.pill.blue{background:rgba(15,76,129,.08);border:1px solid rgba(15,76,129,.25);color:var(--primary)}
+.pill.blue:hover{background:rgba(15,76,129,.16)}
+.pill.saved{background:rgba(5,150,105,.10);border:1px solid rgba(5,150,105,.30);color:var(--green)}
+a.pill{text-decoration:none;transition:all .2s}
+
+/* ══ HERO ══ */
+.hero{background:linear-gradient(135deg,#0f4c81 0%,#1565c0 55%,#1976d2 100%);padding:26px 22px 22px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.hero-inner{max-width:1180px;margin:0 auto;position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.30);border-radius:20px;padding:4px 13px;font-size:10px;font-weight:700;color:#fff;letter-spacing:1px;text-transform:uppercase;margin-bottom:11px}
+.hero h2{font-size:23px;font-weight:700;color:#fff;line-height:1.15}
+.hero h2 span{color:#7dd3fc}
+.hero p{font-size:12px;color:rgba(255,255,255,.82);max-width:560px;margin-top:7px;line-height:1.6}
+.hero-stats{display:flex;gap:18px;flex-wrap:wrap}
+.hstat{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);border-radius:10px;padding:9px 15px;text-align:center;min-width:78px}
+.hstat .v{font-size:20px;font-weight:800;color:#fff;line-height:1;font-variant-numeric:tabular-nums}
+.hstat .l{font-size:9px;color:rgba(255,255,255,.72);margin-top:5px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+
+/* ══ TABS ══ */
+.tabbar{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:62px;z-index:150;box-shadow:0 2px 8px rgba(15,76,129,.05)}
+.tabbar-inner{max-width:1180px;margin:0 auto;display:flex;gap:2px;padding:0 14px;overflow-x:auto}
+.tab{border:none;background:none;padding:14px 16px;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;position:relative;white-space:nowrap;display:flex;align-items:center;gap:8px;font-family:inherit;transition:color .2s}
+.tab:hover{color:var(--primary)}
+.tab.active{color:var(--primary)}
+.tab.active::after{content:'';position:absolute;left:12px;right:12px;bottom:0;height:3px;background:var(--primary);border-radius:3px 3px 0 0}
+.tab .tnum{width:20px;height:20px;border-radius:50%;background:var(--surface3);color:var(--text3);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tab.active .tnum{background:var(--primary);color:#fff}
+.tab .cnt{background:rgba(21,101,192,.12);color:var(--primary2);font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;min-width:18px;text-align:center}
+
+/* ══ LAYOUT ══ */
+.main{max-width:1180px;margin:0 auto;padding:26px 22px 60px}
+.panel{display:none;animation:fade .25s ease}
+.panel.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 1px 4px rgba(15,76,129,.06);margin-bottom:18px;overflow:hidden}
+.card-head{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.card-head .ttl{display:flex;align-items:center;gap:10px}
+.card-head h3{font-size:14.5px;color:var(--primary);font-weight:700}
+.card-head .sub{font-size:11px;color:var(--text2);margin-top:2px}
+.card-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.card-body{padding:20px}
+.section-note{font-size:11.5px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--primary2);border-radius:var(--rs);padding:10px 14px;line-height:1.6;margin-bottom:16px}
+.section-note b{color:var(--text3)}
+
+/* ══ FORM ══ */
+.grid{display:grid;gap:14px 16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field.col-2{grid-column:span 2}
+.field.full{grid-column:1/-1}
+label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.2px;display:flex;align-items:center;gap:5px}
+label .req{color:var(--red);font-weight:800}
+label .max{margin-left:auto;font-size:9.5px;color:var(--text2);font-weight:500;font-variant-numeric:tabular-nums}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--rs);font-size:13px;font-family:inherit;color:var(--text);background:var(--surface);transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary2);box-shadow:0 0 0 3px rgba(21,101,192,.14)}
+input:disabled,select:disabled{background:var(--surface3);color:var(--text2);cursor:not-allowed}
+input.err,select.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+.hint{font-size:10px;color:var(--text2);line-height:1.4}
+.uppercase{text-transform:uppercase}
+
+/* ══ BUTTONS ══ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:var(--rs);padding:10px 16px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;letter-spacing:.2px;white-space:nowrap}
+.btn svg{width:15px;height:15px;flex-shrink:0}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 3px 10px rgba(15,76,129,.28)}
+.btn-primary:hover:not(:disabled){background:var(--primary2);transform:translateY(-1px);box-shadow:0 5px 16px rgba(15,76,129,.35)}
+.btn-green{background:var(--green);color:#fff;box-shadow:0 3px 10px rgba(5,150,105,.25)}
+.btn-green:hover:not(:disabled){background:#047a53;transform:translateY(-1px)}
+.btn-ghost{background:var(--surface2);color:var(--primary);border:1px solid var(--border2)}
+.btn-ghost:hover:not(:disabled){background:var(--surface3)}
+.btn-danger{background:rgba(220,38,38,.10);color:var(--red);border:1px solid rgba(220,38,38,.25)}
+.btn-danger:hover:not(:disabled){background:rgba(220,38,38,.18)}
+.btn-sm{padding:6px 11px;font-size:11px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+
+/* ══ TABLE ══ */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--rs)}
+table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+thead th{background:var(--surface3);color:var(--text3);font-weight:700;text-align:left;padding:10px 12px;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border2);position:sticky;top:0}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tbody tr:hover{background:var(--surface2)}
+tbody tr:last-child td{border-bottom:none}
+td .mono,.mono{font-family:'Fira Code','Consolas',monospace;font-variant-numeric:tabular-nums}
+.tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block}
+.tag.v{background:rgba(5,150,105,.12);color:var(--green)}
+.tag.o{background:rgba(194,65,12,.12);color:var(--orange)}
+.tag.a{background:rgba(21,101,192,.12);color:var(--primary2)}
+.tag.r{background:rgba(180,83,9,.14);color:var(--yellow)}
+.tbl-actions{display:flex;gap:5px}
+.icon-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:all .15s}
+.icon-btn:hover{color:var(--primary);border-color:var(--primary2);background:var(--surface2)}
+.icon-btn.del:hover{color:var(--red);border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.06)}
+.icon-btn svg{width:14px;height:14px}
+.empty{text-align:center;padding:38px 20px;color:var(--text2)}
+.empty svg{width:42px;height:42px;color:var(--border2);margin-bottom:10px}
+.empty p{font-size:12.5px}
+
+/* ══ VALIDATION / PREVIEW ══ */
+.valbox{border-radius:var(--rs);padding:13px 16px;font-size:12.5px;line-height:1.6;margin-bottom:14px;display:flex;gap:11px;align-items:flex-start}
+.valbox svg{width:19px;height:19px;flex-shrink:0;margin-top:1px}
+.valbox.ok{background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.3);color:#065f46}
+.valbox.bad{background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.3);color:#991b1b}
+.valbox.warn{background:rgba(180,83,9,.07);border:1px solid rgba(180,83,9,.3);color:#92400e}
+.valbox ul{margin:6px 0 0;padding-left:18px}
+.valbox li{margin-bottom:3px}
+.fname{font-family:'Fira Code','Consolas',monospace;font-size:13px;background:var(--surface3);border:1px dashed var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--primary);word-break:break-all;display:flex;align-items:center;gap:10px;font-weight:600}
+.plano{background:#0c1b33;color:#cfe4f7;font-family:'Fira Code','Consolas',monospace;font-size:11.5px;padding:15px;border-radius:var(--rs);overflow-x:auto;line-height:1.7;white-space:pre;max-height:340px;overflow-y:auto}
+.plano .t1{color:#7dd3fc}.plano .t2{color:#86efac}.plano .t3{color:#fcd34d}
+
+/* ══ MISC ══ */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;box-shadow:0 1px 4px rgba(15,76,129,.06)}
+.stat .v{font-size:24px;font-weight:800;color:var(--primary);line-height:1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:10.5px;color:var(--text2);margin-top:6px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.stat.green .v{color:var(--green)} .stat.orange .v{color:var(--orange)} .stat.teal .v{color:var(--teal)}
+.divider{height:1px;background:var(--border);margin:18px 0}
+.mini-title{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:1px;margin:4px 0 12px;display:flex;align-items:center;gap:8px}
+.mini-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.chip{font-size:10.5px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;color:var(--text3);font-weight:600}
+
+/* ══ TOAST ══ */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--text);color:#fff;padding:12px 20px;border-radius:10px;font-size:12.5px;font-weight:600;z-index:1000;box-shadow:0 8px 30px rgba(0,0,0,.3);display:flex;align-items:center;gap:10px;transition:transform .3s cubic-bezier(.2,.8,.2,1);max-width:90vw}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast svg{width:17px;height:17px;flex-shrink:0}
+#toast.ok{background:#065f46}#toast.err{background:#991b1b}#toast.info{background:var(--primary)}
+
+/* ══ MODAL ══ */
+.overlay{position:fixed;inset:0;background:rgba(12,27,51,.55);backdrop-filter:blur(2px);z-index:900;display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--r);max-width:560px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-size:15px;color:var(--primary)}
+.modal-body{padding:20px}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+
+@media(max-width:820px){
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .field.col-2{grid-column:span 1}
+  .hero-inner{align-items:flex-start}
+  .hero h2{font-size:20px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <a class="logo" href="../index_Principal_Salud_Publica.html" title="Volver al Portal">
+    <div class="logo-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <div class="logo-text">
+      <h1>Usuarios Institucionales SISPRO</h1>
+      <p>SEG500USIN · PISIS · ESE HRNO</p>
+    </div>
+  </a>
+  <div class="header-right">
+    <span id="saveState" class="pill saved" title="Los datos se guardan en este equipo">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+      Guardado local
+    </span>
+    <a class="pill blue" href="../index_Principal_Salud_Publica.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      Portal
+    </a>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div>
+      <span class="hero-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Reporte de Información · Anexo Técnico CVSF05
+      </span>
+      <h2>Reporte de <span>Usuarios Institucionales</span></h2>
+      <p>Registra y actualiza los usuarios que ingresan a los sistemas del Ministerio en representación de la ESE. Genera el archivo plano <b>.TXT</b> con la estructura exacta para cargar en <b>PISIS</b>, con respaldo en Google Sheets.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="v" id="hs-v">0</div><div class="l">Vincular</div></div>
+      <div class="hstat"><div class="v" id="hs-o">0</div><div class="l">Desvincular</div></div>
+      <div class="hstat"><div class="v" id="hs-p">0</div><div class="l">Perfiles</div></div>
+      <div class="hstat"><div class="v" id="hs-t">0</div><div class="l">Registros</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<nav class="tabbar">
+  <div class="tabbar-inner" id="tabbar">
+    <button class="tab active" data-tab="entidad"><span class="tnum">1</span> Entidad</button>
+    <button class="tab" data-tab="usuarios"><span class="tnum">2</span> Usuarios <span class="cnt" id="cnt-u">0</span></button>
+    <button class="tab" data-tab="perfiles"><span class="tnum">3</span> Perfiles <span class="cnt" id="cnt-p">0</span></button>
+    <button class="tab" data-tab="generar"><span class="tnum">4</span> Generar y Enviar</button>
+    <button class="tab" data-tab="ajustes">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Ajustes
+    </button>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- ═══════════ PANEL 1: ENTIDAD (REGISTRO TIPO 1) ═══════════ -->
+<section class="panel active" id="p-entidad">
+  <div class="card">
+    <div class="card-head">
+      <div class="ttl">
+        <div class="card-ico" style="background:linear-gradient(135deg,#0f4c81,#1565c0)">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+        </div>
+        <div><h3>Configuración de la Entidad — Registro de Control (Tipo 1)</h3><div class="sub">Datos de la entidad reportadora. Se guardan una sola vez en este equipo.</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="section-note">
+        Estos datos identifican a la ESE ante SISPRO y forman el <b>nombre del archivo</b> y el primer registro. Deben coincidir con lo registrado en <b>web.sispro.gov.co</b>. El representante legal y el contacto deben estar en <b>miseguridadsocial.gov.co</b> con nombres y apellidos idénticos.
+      </div>
+
+      <div class="mini-title">Identificación de la entidad</div>
+      <div class="grid g4">
+        <div class="field">
+          <label>Tipo ID entidad <span class="req">*</span><span class="max">2</span></label>
+          <select id="e_tipoId"><option value="NI">NI · NIT</option><option value="CC">CC</option><option value="CE">CE</option></select>
+          <span class="hint">Tabla TipoIdentificacionPJ</span>
+        </div>
+        <div class="field">
+          <label>Número ID entidad <span class="req">*</span><span class="max">12</span></label>
+          <input id="e_numId" class="mono" maxlength="12" inputmode="numeric" placeholder="Sin dígito de verificación">
+          <span class="hint">NIT sin puntos, guiones ni DV</span>
+        </div>
+        <div class="field col-2">
+          <label>Razón Social <span class="req">*</span><span class="max">500</span></label>
+          <input id="e_razon" class="uppercase" maxlength="500" placeholder="ESE HOSPITAL REGIONAL NOROCCIDENTAL">
+        </div>
+        <div class="field full" id="wrap_alterna" style="display:none">
+          <label>Número ID Alterna (NIT) <span class="req">*</span><span class="max">12</span></label>
+          <input id="e_alterna" class="mono" maxlength="12" inputmode="numeric" placeholder="Obligatorio cuando el tipo ID no es NI">
+          <span class="hint">Corresponde al NIT de la entidad. Requerido si el Tipo ID es diferente de NI.</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="mini-title">Representante legal principal</div>
+      <div class="grid g4">
+        <div class="field">
+          <label>Tipo ID <span class="req">*</span><span class="max">2</span></label>
+          <select id="rl_tipo"></select>
+        </div>
+        <div class="field">
+          <label>Número ID <span class="req">*</span><span class="max">17</span></label>
+          <input id="rl_num" class="mono" maxlength="17" placeholder="Registrado en miseguridadsocial">
+        </div>
+        <div class="field">
+          <label>Primer Nombre <span class="req">*</span><span class="max">60</span></label>
+          <input id="rl_nom" class="uppercase" maxlength="60">
+        </div>
+        <div class="field">
+          <label>Primer Apellido <span class="req">*</span><span class="max">60</span></label>
+          <input id="rl_ape" class="uppercase" maxlength="60">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="mini-title">Persona de contacto de la entidad</div>
+      <div class="grid g4">
+        <div class="field">
+          <label>Tipo ID <span class="req">*</span><span class="max">2</span></label>
+          <select id="ct_tipo"></select>
+        </div>
+        <div class="field">
+          <label>Número ID <span class="req">*</span><span class="max">17</span></label>
+          <input id="ct_num" class="mono" maxlength="17">
+        </div>
+        <div class="field">
+          <label>Primer Nombre <span class="req">*</span><span class="max">60</span></label>
+          <input id="ct_nom" class="uppercase" maxlength="60">
+        </div>
+        <div class="field">
+          <label>Primer Apellido <span class="req">*</span><span class="max">60</span></label>
+          <input id="ct_ape" class="uppercase" maxlength="60">
+        </div>
+        <div class="field col-2">
+          <label>Correo institucional del contacto <span class="req">*</span><span class="max">101</span></label>
+          <input id="ct_correo" type="email" maxlength="101" placeholder="contacto@esehrno.gov.co">
+          <span class="hint">A este correo llegan las notificaciones de PISIS/SISPRO.</span>
+        </div>
+        <div class="field col-2">
+          <label>Fecha de corte del reporte <span class="req">*</span><span class="max">AAAA-MM-DD</span></label>
+          <input id="e_fecha" type="date">
+          <span class="hint">Fecha de generación/corte. Se usa en el nombre del archivo (AAAAMMDD).</span>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:20px">
+        <button class="btn btn-primary" onclick="guardarEntidad()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          Guardar configuración
+        </button>
+        <div class="spacer"></div>
+        <button class="btn btn-ghost btn-sm" onclick="go('usuarios')">Continuar a Usuarios →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PANEL 2: USUARIOS (REGISTRO TIPO 2) ═══════════ -->
+<section class="panel" id="p-usuarios">
+  <div class="card">
+    <div class="card-head">
+      <div class="ttl">
+        <div class="card-ico" style="background:linear-gradient(135deg,#0891B2,#059669)">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div><h3 id="u_formTitle">Agregar usuario — Registro de Detalle (Tipo 2)</h3><div class="sub">Vincula (V) o desvincula (O) usuarios de la entidad.</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="grid g4">
+        <div class="field">
+          <label>Acción <span class="req">*</span></label>
+          <select id="u_accion" onchange="toggleUserCond()">
+            <option value="V">V · Vincular</option>
+            <option value="O">O · Desvincular</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tipo ID usuario <span class="req">*</span><span class="max">2</span></label>
+          <select id="u_tipo"></select>
+        </div>
+        <div class="field">
+          <label>Número ID usuario <span class="req">*</span><span class="max">17</span></label>
+          <input id="u_num" class="mono" maxlength="17">
+        </div>
+        <div class="field"></div>
+        <div class="field">
+          <label>Primer Nombre <span class="req">*</span><span class="max">60</span></label>
+          <input id="u_nom" class="uppercase" maxlength="60">
+        </div>
+        <div class="field">
+          <label>Primer Apellido <span class="req">*</span><span class="max">60</span></label>
+          <input id="u_ape" class="uppercase" maxlength="60">
+        </div>
+        <div class="field cond">
+          <label>Teléfono institucional <span class="reqc req">*</span><span class="max">26</span></label>
+          <input id="u_tel" class="mono" maxlength="26" inputmode="numeric">
+        </div>
+        <div class="field cond">
+          <label>Correo institucional <span class="reqc req">*</span><span class="max">101</span></label>
+          <input id="u_correo" type="email" maxlength="101">
+        </div>
+        <div class="field col-2 cond">
+          <label>Cargo <span class="reqc req">*</span><span class="max">100</span></label>
+          <input id="u_cargo" class="uppercase" maxlength="100">
+        </div>
+        <div class="field cond">
+          <label>¿Contrato a término indefinido? <span class="reqc req">*</span></label>
+          <select id="u_indef" onchange="toggleFechaFin()">
+            <option value="1">Sí — Indefinido</option>
+            <option value="0">No — Tiene fecha fin</option>
+          </select>
+        </div>
+        <div class="field cond" id="wrap_fechaFin">
+          <label>Fecha finalización contrato <span class="reqc req">*</span><span class="max">AAAA-MM-DD</span></label>
+          <input id="u_fechaFin" type="date">
+          <span class="hint">Obligatoria si NO es indefinido. Debe ser futura.</span>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn btn-primary" id="u_addBtn" onclick="addUsuario()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar usuario
+        </button>
+        <button class="btn btn-ghost" id="u_cancelBtn" onclick="cancelUserEdit()" style="display:none">Cancelar edición</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Carga masiva -->
+  <div class="card">
+    <div class="card-head">
+      <div class="ttl">
+        <div class="card-ico" style="background:linear-gradient(135deg,#b45309,#c2410c)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+        </div>
+        <div><h3>Carga masiva desde Excel</h3><div class="sub">Descarga la plantilla, diligénciala y cárgala para agregar muchos usuarios de una vez.</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="descargarPlantilla()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+          Descargar plantilla .xlsx
+        </button>
+        <label class="btn btn-ghost" style="cursor:pointer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>
+          Cargar archivo (.xlsx / .csv)
+          <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcel(this)">
+        </label>
+        <div class="spacer"></div>
+        <button class="btn btn-ghost btn-sm" onclick="exportarUsuarios()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          Exportar actuales
+        </button>
+      </div>
+      <div class="section-note" style="margin:14px 0 0">
+        La plantilla incluye la hoja <b>USUARIOS</b> (Tipo 2) y <b>PERFILES</b> (Tipo 3), con una hoja de <b>INSTRUCCIONES</b>. Respeta los encabezados. Acción: <span class="chip">V</span> vincular · <span class="chip">O</span> desvincular. Contrato indefinido: <span class="chip">SI</span> / <span class="chip">NO</span>.
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla usuarios -->
+  <div class="card">
+    <div class="card-head">
+      <div class="ttl"><h3 style="font-size:13px">Usuarios cargados <span class="cnt" id="cnt-u2" style="background:rgba(21,101,192,.12);color:var(--primary2);font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:4px">0</span></h3></div>
+      <button class="btn btn-danger btn-sm" onclick="limpiarUsuarios()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Vaciar
+      </button>
+    </div>
+    <div class="card-body" style="padding:0" id="u_tableWrap"></div>
+  </div>
+</section>
+
+<!-- ═══════════ PANEL 3: PERFILES (REGISTRO TIPO 3) ═══════════ -->
+<section class="panel" id="p-perfiles">
+  <div class="card">
+    <div class="card-head">
+      <div class="ttl">
+        <div class="card-ico" style="background:linear-gradient(135deg,#7c3aed,#1565c0)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c-1 0-3-1-3-3s2-3 3-3-3-2-3-2-1-3-3-3-3 2-3 2-2-2-3-2-3 3-3 3-2-2-3 2 3 3 3 3-2 3-3 3 3 2 3 2 1 3 3 3 3-2 3-2 2 2 3 2 3-3 3-3z"/></svg>
+        </div>
+        <div><h3>Perfiles por aplicación — Registro de Detalle (Tipo 3)</h3><div class="sub">Opcional. Cada usuario vinculado ya recibe el perfil PISIS Cliente Neo por defecto.</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="section-note">
+        Solo para <b>usuarios vinculados (V)</b>. Los códigos de <b>Aplicación</b> y <b>Perfil</b> provienen de la tabla <b>PerfilPorAplicacion</b> en web.sispro.gov.co. Un usuario solo puede tener <b>un perfil por aplicación</b>.
+      </div>
+      <div class="grid g4">
+        <div class="field col-2">
+          <label>Usuario vinculado <span class="req">*</span></label>
+          <select id="pf_user"><option value="">— Seleccione —</option></select>
+          <span class="hint">Lista tomada de los usuarios con acción V.</span>
+        </div>
+        <div class="field">
+          <label>Acción <span class="req">*</span></label>
+          <select id="pf_accion" onchange="togglePerfilCond()">
+            <option value="A">A · Asignar</option>
+            <option value="R">R · Retirar</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Aplicación <span class="req">*</span><span class="max">3</span></label>
+          <input id="pf_app" class="mono" maxlength="3" inputmode="numeric" placeholder="Ej: 155">
+        </div>
+        <div class="field cond-pf">
+          <label>Código de Perfil <span class="reqc req">*</span><span class="max">4</span></label>
+          <input id="pf_perfil" class="mono" maxlength="4" inputmode="numeric" placeholder="Ej: 1234">
+          <span class="hint">Obligatorio al Asignar (A).</span>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn btn-primary" id="pf_addBtn" onclick="addPerfil()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar perfil
+        </button>
+        <button class="btn btn-ghost" id="pf_cancelBtn" onclick="cancelPerfilEdit()" style="display:none">Cancelar edición</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="ttl"><h3 style="font-size:13px">Perfiles cargados <span class="cnt" id="cnt-p2" style="background:rgba(21,101,192,.12);color:var(--primary2);font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:4px">0</span></h3></div>
+      <button class="btn btn-danger btn-sm" onclick="limpiarPerfiles()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Vaciar
+      </button>
+    </div>
+    <div class="card-body" style="padding:0" id="pf_tableWrap"></div>
+  </div>
+</section>
+
+<!-- ═══════════ PANEL 4: GENERAR Y ENVIAR ═══════════ -->
+<section class="panel" id="p-generar">
+  <div class="stat-row" id="genStats"></div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="ttl">
+        <div class="card-ico" style="background:linear-gradient(135deg,#0f4c81,#0891B2)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        </div>
+        <div><h3>Generación del archivo plano</h3><div class="sub">Validación, nombre normalizado y vista previa del .TXT para PISIS.</div></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="refrescarGenerar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Revalidar
+      </button>
+    </div>
+    <div class="card-body">
+      <div id="valResults"></div>
+      <div class="mini-title">Nombre del archivo</div>
+      <div class="fname" id="fileNameBox">—</div>
+      <div class="mini-title" style="margin-top:18px">Vista previa del archivo plano</div>
+      <div class="plano" id="planoPreview">—</div>
+
+      <div class="btn-row" style="margin-top:20px">
+        <button class="btn btn-primary" id="btnDownload" onclick="descargarTxt()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+          Descargar archivo .TXT
+        </button>
+        <button class="btn btn-green" id="btnSheet" onclick="enviarSheets()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M8 12l3 3 5-6"/></svg>
+          Registrar envío en Google Sheets
+        </button>
+        <div class="spacer"></div>
+        <button class="btn btn-ghost btn-sm" onclick="copiarPlano()">Copiar contenido</button>
+      </div>
+      <div class="section-note" style="margin-top:16px">
+        <b>Recuerde:</b> el archivo debe <b>firmarse digitalmente</b> antes de enviarlo por PISIS (certificado de una entidad certificadora aprobada). Este aplicativo genera el .TXT en formato ANSI con las reglas del anexo; la firma digital se realiza aparte.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PANEL 5: AJUSTES ═══════════ -->
+<section class="panel" id="p-ajustes">
+  <div class="card">
+    <div class="card-head">
+      <div class="ttl">
+        <div class="card-ico" style="background:linear-gradient(135deg,#059669,#0891B2)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
+        </div>
+        <div><h3>Conexión con Google Sheets (Apps Script)</h3><div class="sub">Backend para respaldar cada envío en la hoja de cálculo.</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field full">
+        <label>URL del Web App de Apps Script</label>
+        <input id="cfg_url" placeholder="https://script.google.com/macros/s/XXXXX/exec">
+        <span class="hint">Pega aquí la URL que obtienes al desplegar el script como Aplicación web (ver instrucciones abajo).</span>
+      </div>
+      <div class="field full" style="margin-top:14px">
+        <label>Token de seguridad (opcional)</label>
+        <input id="cfg_token" class="mono" placeholder="Clave compartida entre el app y el script">
+        <span class="hint">Si defines un token en el script, escríbelo aquí para autorizar los envíos.</span>
+      </div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn btn-primary" onclick="guardarConfig()">Guardar conexión</button>
+        <button class="btn btn-ghost" onclick="probarConexion()">Probar conexión</button>
+        <span id="cfg_status" class="chip" style="display:none"></span>
+      </div>
+
+      <div class="divider"></div>
+      <div class="mini-title">Datos de la hoja creada</div>
+      <div class="section-note" style="border-left-color:var(--green)">
+        Hoja de respaldo ya creada en tu Google Drive:<br>
+        <b>SEG500USIN - Backend Usuarios Institucionales SISPRO (HRNO)</b><br>
+        <a href="https://docs.google.com/spreadsheets/d/1nWrZAMhOdGugiPxFiNSc75oeyBuVvCgym47kUY9BKBg/edit" target="_blank" class="mono" style="color:var(--primary2);word-break:break-all">docs.google.com/spreadsheets/d/1nWrZAMhOdGugiPxFiNSc75oeyBuVvCgym47kUY9BKBg</a>
+      </div>
+      <div class="mini-title" style="margin-top:18px">Pasos para activar el backend</div>
+      <ol style="font-size:12.5px;color:var(--text3);line-height:1.9;padding-left:20px">
+        <li>Abre la hoja de arriba → menú <b>Extensiones → Apps Script</b>.</li>
+        <li>Borra el contenido y pega el código del archivo <b>Apps_Script_Backend.gs</b> (está en esta misma carpeta).</li>
+        <li>Guarda (💾). Luego <b>Implementar → Nueva implementación → Aplicación web</b>.</li>
+        <li>En "Ejecutar como": <b>Yo</b>. En "Quién tiene acceso": <b>Cualquier usuario</b>.</li>
+        <li>Copia la <b>URL /exec</b> y pégala arriba. (Opcional) define el mismo token que en el script.</li>
+        <li>Usa <b>Probar conexión</b> para verificar.</li>
+      </ol>
+
+      <div class="divider"></div>
+      <div class="mini-title">Datos locales</div>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" onclick="exportarBackup()">Exportar respaldo (JSON)</button>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer">Importar respaldo<input type="file" accept=".json" style="display:none" onchange="importarBackup(this)"></label>
+        <button class="btn btn-danger btn-sm" onclick="borrarTodo()">Borrar todos los datos</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div id="toast"></div>
+
+<!-- MODAL confirm -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head"><h3 id="mTitle">Confirmar</h3></div>
+    <div class="modal-body" id="mBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" id="mOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════ ESTADO ══════════════════════ */
+const LS = {ent:'usin_entidad', usr:'usin_usuarios', prf:'usin_perfiles', cfg:'usin_config'};
+let entidad = load(LS.ent, {});
+let usuarios = load(LS.usr, []);
+let perfiles = load(LS.prf, []);
+let config = load(LS.cfg, {url:'', token:''});
+let editUser = -1, editPerfil = -1;
+const TIPO_ID_PERSONA = [['CC','CC · Cédula de ciudadanía'],['CE','CE · Cédula de extranjería'],['CD','CD · Carné diplomático'],['PA','PA · Pasaporte']];
+
+function load(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+/* ══════════════════════ UTILIDADES ══════════════════════ */
+// Normaliza a MAYÚSCULAS sin tildes (conserva Ñ), sin pipe/comillas/control, colapsa espacios
+function norm(v){
+  if(v==null) return '';
+  // MAYUSCULAS, sin tildes (conserva la enie). Quita pipe/comillas y colapsa espacios (incl. saltos de linea).
+  let s = String(v).toUpperCase();
+  s = s.replace(/[ÁÀÂÄÃ]/g,'A').replace(/[ÉÈÊË]/g,'E').replace(/[ÍÌÎÏ]/g,'I').replace(/[ÓÒÔÖÕ]/g,'O').replace(/[ÚÙÛÜ]/g,'U').replace(/Ç/g,'C');
+  s = s.replace(/[|"`]/g,' ');
+  return s.replace(/\s+/g,' ').trim();
+}
+function normNum(v){ return String(v==null?'':v).replace(/[^0-9]/g,''); }
+function normFecha(v){ // -> AAAA-MM-DD
+  if(!v) return '';
+  if(v instanceof Date) return v.toISOString().slice(0,10);
+  let s=String(v).trim();
+  let m=s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m=s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/); // DD/MM/AAAA
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return s;
+}
+function fechaCompact(iso){ return iso? iso.replace(/-/g,'') : ''; }
+function esFuturo(iso){ if(!iso) return false; const t=new Date().toISOString().slice(0,10); return iso>t; }
+function esEmail(v){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v); }
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ══════════════════════ NAVEGACIÓN ══════════════════════ */
+function go(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('p-'+tab).classList.add('active');
+  if(tab==='perfiles') refreshUserSelect();
+  if(tab==='generar') refrescarGenerar();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.getElementById('tabbar').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)go(b.dataset.tab)});
+
+/* ══════════════════════ ENTIDAD (TIPO 1) ══════════════════════ */
+function fillTipoSelect(sel){ sel.innerHTML=TIPO_ID_PERSONA.map(t=>`<option value="${t[0]}">${t[1]}</option>`).join(''); }
+['rl_tipo','ct_tipo','u_tipo'].forEach(id=>fillTipoSelect(document.getElementById(id)));
+
+document.getElementById('e_tipoId').addEventListener('change',e=>{
+  document.getElementById('wrap_alterna').style.display = e.target.value!=='NI'?'flex':'none';
+});
+
+function pintarEntidad(){
+  const e=entidad;
+  const set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v||'';};
+  set('e_tipoId',e.tipoId||'NI'); set('e_numId',e.numId); set('e_razon',e.razon||'ESE HOSPITAL REGIONAL NOROCCIDENTAL');
+  set('e_alterna',e.alterna); set('e_fecha',e.fecha||new Date().toISOString().slice(0,10));
+  set('rl_tipo',e.rlTipo||'CC'); set('rl_num',e.rlNum); set('rl_nom',e.rlNom); set('rl_ape',e.rlApe);
+  set('ct_tipo',e.ctTipo||'CC'); set('ct_num',e.ctNum); set('ct_nom',e.ctNom); set('ct_ape',e.ctApe); set('ct_correo',e.ctCorreo);
+  document.getElementById('wrap_alterna').style.display = (e.tipoId&&e.tipoId!=='NI')?'flex':'none';
+}
+function guardarEntidad(){
+  const g=id=>document.getElementById(id).value;
+  entidad={
+    tipoId:norm(g('e_tipoId')), numId:normNum(g('e_numId')), razon:norm(g('e_razon')),
+    alterna:normNum(g('e_alterna')), fecha:g('e_fecha'),
+    rlTipo:g('rl_tipo'), rlNum:norm(g('rl_num')), rlNom:norm(g('rl_nom')), rlApe:norm(g('rl_ape')),
+    ctTipo:g('ct_tipo'), ctNum:norm(g('ct_num')), ctNom:norm(g('ct_nom')), ctApe:norm(g('ct_ape')), ctCorreo:norm(g('ct_correo'))
+  };
+  save(LS.ent,entidad);
+  toast('Configuración de la entidad guardada','ok');
+  refrescarGenerar();
+}
+
+/* ══════════════════════ USUARIOS (TIPO 2) ══════════════════════ */
+function toggleUserCond(){
+  const v=document.getElementById('u_accion').value==='V';
+  document.querySelectorAll('#p-usuarios .cond').forEach(el=>el.style.opacity=v?'1':'.5');
+  document.querySelectorAll('#p-usuarios .cond input,#p-usuarios .cond select').forEach(el=>el.disabled=!v);
+  document.querySelectorAll('#p-usuarios .reqc').forEach(el=>el.style.display=v?'inline':'none');
+  if(v) toggleFechaFin();
+}
+function toggleFechaFin(){
+  const show=document.getElementById('u_indef').value==='0' && document.getElementById('u_accion').value==='V';
+  document.getElementById('wrap_fechaFin').style.display=show?'flex':'none';
+}
+function addUsuario(){
+  const g=id=>document.getElementById(id).value;
+  const accion=g('u_accion');
+  const u={
+    accion, tipo:g('u_tipo'), num:norm(g('u_num')), nom:norm(g('u_nom')), ape:norm(g('u_ape')),
+    tel:'', cargo:'', indef:'', fechaFin:'', correo:''
+  };
+  const errs=[];
+  if(!u.num) errs.push('Número de identificación');
+  if(!u.nom) errs.push('Primer nombre');
+  if(!u.ape) errs.push('Primer apellido');
+  if(accion==='V'){
+    u.tel=normNum(g('u_tel')); u.cargo=norm(g('u_cargo')); u.indef=g('u_indef');
+    u.correo=norm(g('u_correo')); u.fechaFin = u.indef==='0'? g('u_fechaFin'):'';
+    if(!u.tel) errs.push('Teléfono institucional');
+    if(!u.cargo) errs.push('Cargo');
+    if(!u.correo) errs.push('Correo institucional');
+    if(u.correo && !esEmail(u.correo)) errs.push('Correo con formato válido');
+    if(u.indef==='0'){
+      if(!u.fechaFin) errs.push('Fecha fin de contrato');
+      else if(!esFuturo(u.fechaFin)) errs.push('Fecha fin debe ser futura');
+    }
+  }
+  if(errs.length){ toast('Faltan datos: '+errs.join(', '),'err'); return; }
+  // duplicado por tipo+num
+  const dupIdx=usuarios.findIndex((x,i)=>x.tipo===u.tipo&&x.num===u.num&&i!==editUser);
+  if(dupIdx>=0){ toast('Ya existe un usuario con ese tipo y número de identificación','err'); return; }
+
+  if(editUser>=0){ usuarios[editUser]=u; editUser=-1; document.getElementById('u_cancelBtn').style.display='none'; document.getElementById('u_addBtn').innerHTML=addSvg('Agregar usuario'); document.getElementById('u_formTitle').textContent='Agregar usuario — Registro de Detalle (Tipo 2)'; toast('Usuario actualizado','ok'); }
+  else { usuarios.push(u); toast('Usuario agregado','ok'); }
+  save(LS.usr,usuarios); limpiarFormUsuario(); renderUsuarios();
+}
+function addSvg(txt){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>${txt}`;}
+function limpiarFormUsuario(){
+  ['u_num','u_nom','u_ape','u_tel','u_cargo','u_correo','u_fechaFin'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('u_accion').value='V'; document.getElementById('u_indef').value='1'; toggleUserCond();
+}
+function editUsuario(i){
+  const u=usuarios[i]; editUser=i;
+  const s=(id,v)=>document.getElementById(id).value=v;
+  s('u_accion',u.accion); toggleUserCond();
+  s('u_tipo',u.tipo); s('u_num',u.num); s('u_nom',u.nom); s('u_ape',u.ape);
+  s('u_tel',u.tel); s('u_cargo',u.cargo); s('u_indef',u.indef||'1'); s('u_correo',u.correo);
+  toggleFechaFin(); s('u_fechaFin',u.fechaFin);
+  document.getElementById('u_cancelBtn').style.display='inline-flex';
+  document.getElementById('u_addBtn').innerHTML=addSvg('Guardar cambios');
+  document.getElementById('u_formTitle').textContent='Editando usuario';
+  go('usuarios'); window.scrollTo({top:0,behavior:'smooth'});
+}
+function cancelUserEdit(){ editUser=-1; document.getElementById('u_cancelBtn').style.display='none'; document.getElementById('u_addBtn').innerHTML=addSvg('Agregar usuario'); document.getElementById('u_formTitle').textContent='Agregar usuario — Registro de Detalle (Tipo 2)'; limpiarFormUsuario(); }
+function delUsuario(i){ usuarios.splice(i,1); save(LS.usr,usuarios); renderUsuarios(); toast('Usuario eliminado','info'); }
+function limpiarUsuarios(){ if(!usuarios.length)return; confirmModal('Vaciar usuarios','Se eliminarán los '+usuarios.length+' usuarios cargados. ¿Continuar?',()=>{usuarios=[];save(LS.usr,usuarios);renderUsuarios();toast('Usuarios eliminados','info')}); }
+
+function renderUsuarios(){
+  const w=document.getElementById('u_tableWrap');
+  if(!usuarios.length){ w.innerHTML=emptyState('No hay usuarios cargados','Agrega usuarios con el formulario o carga la plantilla de Excel.'); }
+  else{
+    let rows=usuarios.map((u,i)=>`<tr>
+      <td class="mono">${i+1}</td>
+      <td><span class="tag ${u.accion==='V'?'v':'o'}">${u.accion==='V'?'Vincular':'Desvincular'}</span></td>
+      <td class="mono">${esc(u.tipo)} ${esc(u.num)}</td>
+      <td>${esc(u.nom)} ${esc(u.ape)}</td>
+      <td>${u.accion==='V'?esc(u.cargo||'—'):'—'}</td>
+      <td>${u.accion==='V'?(u.indef==='1'?'<span class="chip">Indefinido</span>':esc(u.fechaFin||'—')):'—'}</td>
+      <td>${u.accion==='V'?esc(u.correo||'—'):'—'}</td>
+      <td><div class="tbl-actions">
+        <button class="icon-btn" title="Editar" onclick="editUsuario(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+        <button class="icon-btn del" title="Eliminar" onclick="delUsuario(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      </div></td></tr>`).join('');
+    w.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Acción</th><th>Identificación</th><th>Nombre</th><th>Cargo</th><th>Contrato</th><th>Correo</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  updateCounts();
+}
+
+/* ══════════════════════ PERFILES (TIPO 3) ══════════════════════ */
+function togglePerfilCond(){
+  const a=document.getElementById('pf_accion').value==='A';
+  document.querySelectorAll('#p-perfiles .cond-pf').forEach(el=>el.style.opacity=a?'1':'.5');
+  document.getElementById('pf_perfil').disabled=!a;
+  document.querySelectorAll('#p-perfiles .reqc').forEach(el=>el.style.display=a?'inline':'none');
+}
+function refreshUserSelect(){
+  const sel=document.getElementById('pf_user');
+  const vinc=usuarios.filter(u=>u.accion==='V');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Seleccione —</option>'+vinc.map(u=>`<option value="${u.tipo}|${u.num}">${esc(u.tipo)} ${esc(u.num)} · ${esc(u.nom)} ${esc(u.ape)}</option>`).join('');
+  sel.value=cur;
+  if(!vinc.length) sel.innerHTML='<option value="">No hay usuarios vinculados (V)</option>';
+}
+function addPerfil(){
+  const g=id=>document.getElementById(id).value;
+  const uv=g('pf_user'); if(!uv){ toast('Selecciona un usuario vinculado','err'); return; }
+  const [tipo,num]=uv.split('|');
+  const accion=g('pf_accion'), app=normNum(g('pf_app'));
+  const perfil=accion==='A'?normNum(g('pf_perfil')):'';
+  if(!app){ toast('Falta el código de Aplicación','err'); return; }
+  if(accion==='A' && !perfil){ toast('Al Asignar, el Código de Perfil es obligatorio','err'); return; }
+  const dup=perfiles.findIndex((p,i)=>p.tipo===tipo&&p.num===num&&p.app===app&&i!==editPerfil);
+  if(dup>=0){ toast('Ese usuario ya tiene un perfil para esa aplicación','err'); return; }
+  const p={tipo,num,app,accion,perfil};
+  if(editPerfil>=0){ perfiles[editPerfil]=p; editPerfil=-1; document.getElementById('pf_cancelBtn').style.display='none'; document.getElementById('pf_addBtn').innerHTML=addSvg('Agregar perfil'); toast('Perfil actualizado','ok'); }
+  else { perfiles.push(p); toast('Perfil agregado','ok'); }
+  save(LS.prf,perfiles); document.getElementById('pf_app').value=''; document.getElementById('pf_perfil').value=''; renderPerfiles();
+}
+function editPerfil_(i){
+  const p=perfiles[i]; editPerfil=i; refreshUserSelect();
+  document.getElementById('pf_user').value=p.tipo+'|'+p.num;
+  document.getElementById('pf_accion').value=p.accion; togglePerfilCond();
+  document.getElementById('pf_app').value=p.app; document.getElementById('pf_perfil').value=p.perfil;
+  document.getElementById('pf_cancelBtn').style.display='inline-flex';
+  document.getElementById('pf_addBtn').innerHTML=addSvg('Guardar cambios');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function cancelPerfilEdit(){ editPerfil=-1; document.getElementById('pf_cancelBtn').style.display='none'; document.getElementById('pf_addBtn').innerHTML=addSvg('Agregar perfil'); document.getElementById('pf_app').value=''; document.getElementById('pf_perfil').value=''; }
+function delPerfil(i){ perfiles.splice(i,1); save(LS.prf,perfiles); renderPerfiles(); toast('Perfil eliminado','info'); }
+function limpiarPerfiles(){ if(!perfiles.length)return; confirmModal('Vaciar perfiles','Se eliminarán los '+perfiles.length+' perfiles cargados. ¿Continuar?',()=>{perfiles=[];save(LS.prf,perfiles);renderPerfiles();toast('Perfiles eliminados','info')}); }
+function renderPerfiles(){
+  const w=document.getElementById('pf_tableWrap');
+  if(!perfiles.length){ w.innerHTML=emptyState('No hay perfiles cargados','Los perfiles son opcionales. Cada usuario vinculado ya tiene PISIS Cliente Neo.'); }
+  else{
+    const uname=(t,n)=>{const u=usuarios.find(x=>x.tipo===t&&x.num===n);return u?`${esc(u.nom)} ${esc(u.ape)}`:'<span style="color:var(--red)">Usuario no vinculado</span>';};
+    let rows=perfiles.map((p,i)=>`<tr>
+      <td class="mono">${esc(p.tipo)} ${esc(p.num)}</td>
+      <td>${uname(p.tipo,p.num)}</td>
+      <td class="mono">${esc(p.app)}</td>
+      <td><span class="tag ${p.accion==='A'?'a':'r'}">${p.accion==='A'?'Asignar':'Retirar'}</span></td>
+      <td class="mono">${esc(p.perfil||'—')}</td>
+      <td><div class="tbl-actions">
+        <button class="icon-btn" title="Editar" onclick="editPerfil_(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+        <button class="icon-btn del" title="Eliminar" onclick="delPerfil(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+      </div></td></tr>`).join('');
+    w.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Identificación</th><th>Usuario</th><th>Aplicación</th><th>Acción</th><th>Perfil</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  updateCounts();
+}
+function emptyState(t,s){return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><p><b>${t}</b></p><p style="font-size:11.5px;margin-top:4px">${s}</p></div>`;}
+
+/* ══════════════════════ CONTADORES / STATS ══════════════════════ */
+function updateCounts(){
+  const nV=usuarios.filter(u=>u.accion==='V').length, nO=usuarios.filter(u=>u.accion==='O').length;
+  const nP=perfiles.length, tot=usuarios.length+perfiles.length;
+  document.getElementById('hs-v').textContent=nV;
+  document.getElementById('hs-o').textContent=nO;
+  document.getElementById('hs-p').textContent=nP;
+  document.getElementById('hs-t').textContent=tot;
+  document.getElementById('cnt-u').textContent=usuarios.length;
+  document.getElementById('cnt-p').textContent=nP;
+  const c2=document.getElementById('cnt-u2'), p2=document.getElementById('cnt-p2');
+  if(c2)c2.textContent=usuarios.length; if(p2)p2.textContent=nP;
+}
+
+/* ══════════════════════ GENERAR ARCHIVO PLANO ══════════════════════ */
+function buildFileName(){
+  const e=entidad;
+  if(!e.tipoId||!e.numId||!e.fecha) return null;
+  const num12=e.numId.slice(0,12).padStart(12,'0');
+  return `SEG500USIN${fechaCompact(e.fecha)}${e.tipoId}${num12}.TXT`;
+}
+function validar(){
+  const errs=[], warns=[]; const e=entidad;
+  if(!e.tipoId) errs.push('Falta configurar el Tipo ID de la entidad (pestaña Entidad).');
+  if(!e.numId) errs.push('Falta el Número ID de la entidad.');
+  if(!e.fecha) errs.push('Falta la fecha de corte.');
+  if(!e.razon) errs.push('Falta la Razón Social.');
+  if(e.tipoId && e.tipoId!=='NI' && !e.alterna) errs.push('El Tipo ID no es NI: se requiere Número ID Alterna (NIT).');
+  ['rlNum','rlNom','rlApe'].forEach(k=>{if(!e[k])errs.push('Datos del representante legal incompletos.');});
+  ['ctNum','ctNom','ctApe','ctCorreo'].forEach(k=>{if(!e[k])errs.push('Datos de la persona de contacto incompletos.');});
+  if(e.ctCorreo && !esEmail(e.ctCorreo)) errs.push('El correo del contacto no tiene formato válido.');
+  if(!usuarios.length) errs.push('No hay usuarios cargados (se requiere al menos un registro Tipo 2).');
+  // usuarios
+  usuarios.forEach((u,i)=>{
+    const et=`Usuario #${i+1} (${u.num||'?'})`;
+    if(!u.num||!u.nom||!u.ape) errs.push(`${et}: identificación/nombre incompletos.`);
+    if(u.accion==='V'){
+      if(!u.tel||!u.cargo||!u.correo) errs.push(`${et}: al vincular, teléfono, cargo y correo son obligatorios.`);
+      if(u.correo && !esEmail(u.correo)) errs.push(`${et}: correo inválido.`);
+      if(u.indef==='0'){ if(!u.fechaFin) errs.push(`${et}: falta fecha fin de contrato.`); else if(!esFuturo(u.fechaFin)) errs.push(`${et}: la fecha fin debe ser futura.`);}
+    }
+  });
+  // perfiles: usuario debe estar vinculado
+  perfiles.forEach((p,i)=>{
+    const ok=usuarios.some(u=>u.tipo===p.tipo&&u.num===p.num&&u.accion==='V');
+    if(!ok) errs.push(`Perfil #${i+1}: el usuario ${p.tipo} ${p.num} debe estar reportado como Vinculado (V).`);
+    if(p.accion==='A'&&!p.perfil) errs.push(`Perfil #${i+1}: falta el código de perfil.`);
+  });
+  if(!config.url) warns.push('No has configurado la URL de Google Sheets (pestaña Ajustes). Podrás descargar el .TXT igual.');
+  return {errs,warns};
+}
+function buildPlano(){
+  const e=entidad;
+  const P='|';
+  const total=usuarios.length+perfiles.length;
+  // Registro Tipo 1
+  const r1=['1',e.tipoId||'',e.numId||'',e.fecha||'',String(total),e.razon||'',
+    (e.tipoId!=='NI'?(e.alterna||''):''),
+    e.rlTipo||'',e.rlNum||'',e.rlNom||'',e.rlApe||'',
+    e.ctTipo||'',e.ctNum||'',e.ctNom||'',e.ctApe||'',e.ctCorreo||''].join(P);
+  const lines=[r1];
+  let cons=0;
+  // Tipo 2
+  usuarios.forEach(u=>{
+    cons++;
+    if(u.accion==='V'){
+      lines.push(['2',String(cons),u.tipo,u.num,u.nom,u.ape,'V',u.tel||'',u.cargo||'',(u.indef??''),(u.indef==='0'?(u.fechaFin||''):''),u.correo||''].join(P));
+    }else{
+      lines.push(['2',String(cons),u.tipo,u.num,u.nom,u.ape,'O','','','','',''].join(P));
+    }
+  });
+  // Tipo 3
+  perfiles.forEach(p=>{
+    cons++;
+    lines.push(['3',String(cons),p.tipo,p.num,p.app,p.accion,(p.accion==='A'?(p.perfil||''):'')].join(P));
+  });
+  return lines.join('\r\n')+'\r\n';
+}
+function refrescarGenerar(){
+  updateCounts();
+  const {errs,warns}=validar();
+  const vr=document.getElementById('valResults');
+  let html='';
+  if(errs.length){
+    html+=`<div class="valbox bad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg><div><b>No se puede generar todavía (${errs.length}):</b><ul>${errs.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div>`;
+  }else{
+    html+=`<div class="valbox ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg><div><b>Estructura válida.</b> Archivo listo para generar y descargar.</div></div>`;
+  }
+  if(warns.length){
+    html+=`<div class="valbox warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><b>Avisos:</b><ul>${warns.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div>`;
+  }
+  vr.innerHTML=html;
+  const fn=buildFileName();
+  document.getElementById('fileNameBox').innerHTML = fn? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>${fn} <span class="chip" style="margin-left:auto">${fn.length} car.</span>` : 'Completa los datos de la entidad para ver el nombre.';
+  // preview
+  const okStruct=!errs.length;
+  const btnD=document.getElementById('btnDownload'), btnS=document.getElementById('btnSheet');
+  btnD.disabled=!okStruct; btnS.disabled=!okStruct;
+  if(okStruct){
+    const plano=buildPlano();
+    const colored=plano.split('\r\n').filter(Boolean).map(l=>{
+      const c=l[0]==='1'?'t1':l[0]==='2'?'t2':'t3'; return `<span class="${c}">${esc(l)}</span>`;
+    }).join('\n');
+    document.getElementById('planoPreview').innerHTML=colored;
+  }else{
+    document.getElementById('planoPreview').textContent='Corrige los errores para ver la vista previa.';
+  }
+  // stats
+  const nV=usuarios.filter(u=>u.accion==='V').length, nO=usuarios.filter(u=>u.accion==='O').length;
+  document.getElementById('genStats').innerHTML=`
+    <div class="stat"><div class="v">${usuarios.length}</div><div class="l">Registros Tipo 2</div></div>
+    <div class="stat green"><div class="v">${nV}</div><div class="l">Vinculaciones</div></div>
+    <div class="stat orange"><div class="v">${nO}</div><div class="l">Desvinculaciones</div></div>
+    <div class="stat teal"><div class="v">${perfiles.length}</div><div class="l">Registros Tipo 3</div></div>
+    <div class="stat"><div class="v">${usuarios.length+perfiles.length}</div><div class="l">Total detalle</div></div>`;
+}
+function descargarTxt(){
+  const {errs}=validar(); if(errs.length){ toast('Corrige los errores antes de descargar','err'); return; }
+  const fn=buildFileName(), plano=buildPlano();
+  // ANSI (Windows-1252 / Latin-1): 1 byte por caracter (<256)
+  const bytes=new Uint8Array(plano.length);
+  for(let i=0;i<plano.length;i++){ let c=plano.charCodeAt(i); bytes[i]=c<256?c:63; }
+  const blob=new Blob([bytes],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn; a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Archivo '+fn+' descargado','ok');
+}
+function copiarPlano(){
+  const {errs}=validar(); if(errs.length){ toast('Corrige los errores primero','err'); return; }
+  navigator.clipboard.writeText(buildPlano()).then(()=>toast('Contenido copiado','ok'),()=>toast('No se pudo copiar','err'));
+}
+
+/* ══════════════════════ EXCEL (plantilla / import / export) ══════════════════════ */
+const COLS_U=['TIPO_ID','NUMERO_ID','PRIMER_NOMBRE','PRIMER_APELLIDO','ACCION_V_O','TELEFONO','CARGO','CONTRATO_INDEFINIDO_SI_NO','FECHA_FIN_CONTRATO_AAAA_MM_DD','CORREO_INSTITUCIONAL'];
+const COLS_P=['TIPO_ID','NUMERO_ID','APLICACION','ACCION_A_R','CODIGO_PERFIL'];
+function descargarPlantilla(){
+  const wb=XLSX.utils.book_new();
+  const inst=[
+    ['PLANTILLA — REPORTE DE USUARIOS INSTITUCIONALES (SEG500USIN)'],[''],
+    ['Hoja USUARIOS = Registro Tipo 2 (vincular/desvincular).'],
+    ['Hoja PERFILES = Registro Tipo 3 (opcional, solo usuarios vinculados).'],[''],
+    ['REGLAS:'],
+    ['- No cambies los encabezados ni el orden de las columnas.'],
+    ['- ACCION_V_O: escribe V (vincular) u O (desvincular).'],
+    ['- Al desvincular (O) solo se necesitan TIPO_ID, NUMERO_ID, nombre y apellido.'],
+    ['- CONTRATO_INDEFINIDO_SI_NO: escribe SI o NO. Si NO, llena FECHA_FIN (futura).'],
+    ['- Fechas en formato AAAA-MM-DD (ej: 2026-12-31).'],
+    ['- Todo se convierte a MAYÚSCULAS sin tildes automáticamente al cargar.'],
+    ['- ACCION_A_R (perfiles): A asignar / R retirar. Al asignar, llena CODIGO_PERFIL.'],
+    ['- Los códigos de APLICACION y PERFIL provienen de web.sispro.gov.co (PerfilPorAplicacion).'],
+  ];
+  const ejU=['CC','1090000001','JUAN','PEREZ','V','3150000000','MEDICO GENERAL','SI','','JUAN.PEREZ@ESEHRNO.GOV.CO'];
+  const ejU2=['CC','1090000002','MARIA','GOMEZ','V','3160000000','ENFERMERA','NO','2026-12-31','MARIA.GOMEZ@ESEHRNO.GOV.CO'];
+  const ejU3=['CC','1090000003','PEDRO','RUIZ','O','','','','',''];
+  const wsU=XLSX.utils.aoa_to_sheet([COLS_U,ejU,ejU2,ejU3]);
+  const wsP=XLSX.utils.aoa_to_sheet([COLS_P,['CC','1090000001','155','A','1001']]);
+  const wsI=XLSX.utils.aoa_to_sheet(inst);
+  wsU['!cols']=COLS_U.map(c=>({wch:Math.max(14,c.length)}));
+  wsP['!cols']=COLS_P.map(c=>({wch:Math.max(14,c.length)}));
+  wsI['!cols']=[{wch:90}];
+  XLSX.utils.book_append_sheet(wb,wsI,'INSTRUCCIONES');
+  XLSX.utils.book_append_sheet(wb,wsU,'USUARIOS');
+  XLSX.utils.book_append_sheet(wb,wsP,'PERFILES');
+  XLSX.writeFile(wb,'Plantilla_Usuarios_Institucionales_SISPRO.xlsx');
+  toast('Plantilla descargada','ok');
+}
+function importarExcel(input){
+  const f=input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      let addU=0,addP=0,skip=0;
+      // USUARIOS
+      const shU=wb.Sheets['USUARIOS']||wb.Sheets[wb.SheetNames.find(n=>/USUARIO/i.test(n))]||wb.Sheets[wb.SheetNames[0]];
+      if(shU){
+        const rows=XLSX.utils.sheet_to_json(shU,{header:1,defval:''}).slice(1);
+        rows.forEach(r=>{
+          if(!r||r.every(c=>String(c).trim()==='')) return;
+          const tipo=norm(r[0])||'CC', num=norm(r[1]);
+          if(!num){skip++;return;}
+          const accion=(norm(r[4])==='O')?'O':'V';
+          const indefRaw=norm(r[7]);
+          const u={accion,tipo,num,nom:norm(r[2]),ape:norm(r[3]),
+            tel:accion==='V'?normNum(r[5]):'', cargo:accion==='V'?norm(r[6]):'',
+            indef:accion==='V'?(/^S/i.test(indefRaw)?'1':'0'):'',
+            fechaFin:accion==='V'&&!/^S/i.test(indefRaw)?normFecha(r[8]):'',
+            correo:accion==='V'?norm(r[9]):''};
+          const dup=usuarios.findIndex(x=>x.tipo===u.tipo&&x.num===u.num);
+          if(dup>=0) usuarios[dup]=u; else usuarios.push(u);
+          addU++;
+        });
+      }
+      // PERFILES
+      const shP=wb.Sheets['PERFILES']||wb.Sheets[wb.SheetNames.find(n=>/PERFIL/i.test(n))];
+      if(shP){
+        const rows=XLSX.utils.sheet_to_json(shP,{header:1,defval:''}).slice(1);
+        rows.forEach(r=>{
+          if(!r||r.every(c=>String(c).trim()==='')) return;
+          const tipo=norm(r[0])||'CC', num=norm(r[1]), app=normNum(r[2]);
+          if(!num||!app) return;
+          const accion=(norm(r[3])==='R')?'R':'A';
+          const p={tipo,num,app,accion,perfil:accion==='A'?normNum(r[4]):''};
+          const dup=perfiles.findIndex(x=>x.tipo===tipo&&x.num===num&&x.app===app);
+          if(dup>=0) perfiles[dup]=p; else perfiles.push(p);
+          addP++;
+        });
+      }
+      save(LS.usr,usuarios); save(LS.prf,perfiles);
+      renderUsuarios(); renderPerfiles(); refreshUserSelect();
+      toast(`Cargados: ${addU} usuarios, ${addP} perfiles${skip?' · '+skip+' filas omitidas':''}`,'ok');
+    }catch(err){ toast('Error al leer el archivo: '+err.message,'err'); }
+    input.value='';
+  };
+  rd.readAsArrayBuffer(f);
+}
+function exportarUsuarios(){
+  if(!usuarios.length){ toast('No hay usuarios para exportar','err'); return; }
+  const wb=XLSX.utils.book_new();
+  const dataU=[COLS_U,...usuarios.map(u=>[u.tipo,u.num,u.nom,u.ape,u.accion,u.tel,u.cargo,u.indef==='1'?'SI':(u.indef==='0'?'NO':''),u.fechaFin,u.correo])];
+  const dataP=[COLS_P,...perfiles.map(p=>[p.tipo,p.num,p.app,p.accion,p.perfil])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(dataU),'USUARIOS');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(dataP),'PERFILES');
+  XLSX.writeFile(wb,'Usuarios_Institucionales_actuales.xlsx');
+  toast('Exportado','ok');
+}
+
+/* ══════════════════════ GOOGLE SHEETS / APPS SCRIPT ══════════════════════ */
+function pintarConfig(){ document.getElementById('cfg_url').value=config.url||''; document.getElementById('cfg_token').value=config.token||''; }
+function guardarConfig(){
+  config.url=document.getElementById('cfg_url').value.trim();
+  config.token=document.getElementById('cfg_token').value.trim();
+  save(LS.cfg,config); toast('Conexión guardada','ok'); refrescarGenerar();
+}
+async function probarConexion(){
+  if(!config.url){ toast('Primero pega la URL del Web App','err'); return; }
+  const st=document.getElementById('cfg_status'); st.style.display='inline-block'; st.textContent='Probando…';
+  try{
+    const res=await postSheet({action:'ping'});
+    if(res && res.ok){ st.textContent='✓ Conectado'; st.style.color='var(--green)'; toast('Conexión exitosa con Google Sheets','ok'); }
+    else{ st.textContent='Respuesta inesperada'; st.style.color='var(--yellow)'; toast('Conectó pero respondió: '+JSON.stringify(res),'info'); }
+  }catch(e){ st.textContent='✗ Sin conexión'; st.style.color='var(--red)'; toast('No se pudo conectar: '+e.message,'err'); }
+}
+async function postSheet(payload){
+  payload.token=config.token||'';
+  const res=await fetch(config.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow'});
+  const txt=await res.text();
+  try{ return JSON.parse(txt); }catch(e){ return {ok:false,raw:txt}; }
+}
+async function enviarSheets(){
+  const {errs}=validar(); if(errs.length){ toast('Corrige los errores antes de enviar','err'); return; }
+  if(!config.url){ toast('Configura la URL de Google Sheets en Ajustes','err'); go('ajustes'); return; }
+  const btn=document.getElementById('btnSheet'); const original=btn.innerHTML;
+  btn.disabled=true; btn.innerHTML='<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Enviando…';
+  try{
+    const payload={action:'guardarEnvio', archivo:buildFileName(), fechaCorte:entidad.fecha,
+      entidad:{tipoId:entidad.tipoId,numId:entidad.numId,razon:entidad.razon},
+      usuarios:usuariosConConsecutivo(), perfiles:perfilesConConsecutivo(),
+      plano:buildPlano()};
+    const res=await postSheet(payload);
+    if(res && res.ok){ toast('Envío registrado en Google Sheets ('+ (res.filas||'') +' filas)','ok'); }
+    else{ toast('El script respondió: '+JSON.stringify(res).slice(0,120),'info'); }
+  }catch(e){ toast('Error al enviar: '+e.message+'. Revisa la URL/despliegue.','err'); }
+  finally{ btn.disabled=false; btn.innerHTML=original; }
+}
+function usuariosConConsecutivo(){ let c=0; return usuarios.map(u=>({consecutivo:++c,...u})); }
+function perfilesConConsecutivo(){ let c=usuarios.length; return perfiles.map(p=>({consecutivo:++c,...p})); }
+
+/* ══════════════════════ BACKUP / RESET ══════════════════════ */
+function exportarBackup(){
+  const data={entidad,usuarios,perfiles,config,fecha:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='respaldo_usuarios_institucionales.json'; a.click();
+  toast('Respaldo exportado','ok');
+}
+function importarBackup(input){
+  const f=input.files[0]; if(!f)return; const rd=new FileReader();
+  rd.onload=ev=>{try{const d=JSON.parse(ev.target.result);
+    if(d.entidad)entidad=d.entidad; if(d.usuarios)usuarios=d.usuarios; if(d.perfiles)perfiles=d.perfiles; if(d.config)config=d.config;
+    save(LS.ent,entidad);save(LS.usr,usuarios);save(LS.prf,perfiles);save(LS.cfg,config);
+    pintarEntidad();renderUsuarios();renderPerfiles();pintarConfig();refreshUserSelect();
+    toast('Respaldo importado','ok');
+  }catch(e){toast('Archivo inválido','err')} input.value='';};
+  rd.readAsText(f);
+}
+function borrarTodo(){ confirmModal('Borrar todos los datos','Se eliminarán entidad, usuarios, perfiles y configuración de este equipo. Esta acción no se puede deshacer.',()=>{
+  [LS.ent,LS.usr,LS.prf,LS.cfg].forEach(k=>localStorage.removeItem(k));
+  entidad={};usuarios=[];perfiles=[];config={url:'',token:''};
+  pintarEntidad();renderUsuarios();renderPerfiles();pintarConfig();refrescarGenerar();
+  toast('Datos borrados','info');
+});}
+
+/* ══════════════════════ MODAL / TOAST ══════════════════════ */
+let modalCb=null;
+function confirmModal(t,b,cb){ document.getElementById('mTitle').textContent=t; document.getElementById('mBody').textContent=b; modalCb=cb; document.getElementById('overlay').classList.add('show'); }
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); modalCb=null; }
+document.getElementById('mOk').addEventListener('click',()=>{ if(modalCb)modalCb(); closeModal(); });
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal()});
+let toastT;
+function toast(msg,type='info'){
+  const el=document.getElementById('toast'); clearTimeout(toastT);
+  const ic=type==='ok'?'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>':type==='err'?'<circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>':'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>';
+  el.className=type; el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ic}</svg>${esc(msg)}`;
+  el.classList.add('show'); toastT=setTimeout(()=>el.classList.remove('show'),3800);
+}
+const style=document.createElement('style'); style.textContent='@keyframes spin{to{transform:rotate(360deg)}}'; document.head.appendChild(style);
+
+/* ══════════════════════ INIT ══════════════════════ */
+pintarEntidad(); pintarConfig(); toggleUserCond(); togglePerfilCond(); renderUsuarios(); renderPerfiles(); updateCounts();
+</script>
+</body>
+</html>

@@ -50,6 +50,11 @@ Generador CUPS/search_pwa.png
 Generador CUPS/sitio_web.png
 
 # ──────────────────────────────────────────────
+# Dependencias de Node (solo para obtener librerías; no van al sitio)
+# ──────────────────────────────────────────────
+node_modules/
+
+# ──────────────────────────────────────────────
 # Sistema operativo
 # ──────────────────────────────────────────────
 Thumbs.db

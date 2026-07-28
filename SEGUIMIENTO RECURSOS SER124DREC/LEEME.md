@@ -25,11 +25,28 @@ Aplicativo local (offline) para generar el archivo plano `.TXT` complementario d
    - El **Indicador** de cada registro: **I** insertar (nuevo), **A** actualizar (corrige uno previo), **E** anular (elimina uno previo), **NA** no aplica (omite el registro; los demás campos van vacíos).
    - El botón **"Usar datos del encabezado"** copia el ID Recurso y el NIT de la pestaña 1.
 3. **Excel (pestaña).** Descarga la plantilla, diligénciala (una hoja por tipo) y cárgala. También puedes **exportar** los datos actuales.
-4. **Generar y enviar (pestaña).** Valida la estructura, muestra el **nombre del archivo** y la **vista previa** con colores por tipo de registro. Descarga el `.TXT` y/o registra el envío en Google Sheets.
+4. **Generar y enviar (pestaña).** Valida la estructura, muestra el **nombre del archivo** y la **vista previa** con colores por tipo de registro. Descarga el `.TXT`, firma y sube a PISIS y, cuando la validación de PISIS sea exitosa, pulsa **Confirmar carga** para marcar esos registros como CARGADO (ver sección "Sincronización y estados").
 
 > **Importante:** antes de subir el archivo a PISIS debe **firmarse digitalmente** con un certificado de una entidad certificadora aprobada. Este aplicativo genera el `.TXT`; la firma se hace aparte.
 
 ---
+
+## Sincronización y estados (borrador → cargado)
+
+Google Sheets es la **fuente de verdad**. Cada registro tiene un estado:
+
+- **BORRADOR:** en proceso. Se puede editar, se incluye en la generación del `.TXT` y se puede guardar en la nube para no perder el avance.
+- **CARGADO:** ya reportado a PISIS. Queda **bloqueado** (no editable) y **se excluye** de los archivos que generes después, para no volver a cargar la misma información.
+
+Botones (en **Generar y enviar** y en **Ajustes**):
+
+- **Guardar avance en la nube:** sube todos los registros (borradores y cargados) a la hoja. Puedes cerrar y seguir después, incluso desde otro equipo.
+- **Descargar de la nube:** trae los registros de la hoja y los fusiona con los de este equipo (por identificador único; un CARGADO siempre gana; si no, gana el más reciente).
+- **Confirmar carga:** disponible solo cuando la estructura es válida. Marca los borradores como **CARGADO** (local y en la nube). Hazlo **después** de subir y validar el archivo en PISIS.
+
+**Antiduplicados:** dos registros son "el mismo" si comparten la clave única del anexo **y el mismo período (fecha de corte)**. Así puedes volver a reportar el mismo contrato en meses distintos (seguimiento mensual), pero no duplicar uno ya cargado del mismo período. Al cargar por Excel o desde la nube, los que coincidan con un CARGADO del mismo período se omiten.
+
+En **Ajustes** puedes activar **"Descargar automáticamente al abrir"** para que el aplicativo se sincronice solo al iniciar.
 
 ## Backend en Google Sheets (Apps Script)
 
@@ -48,7 +65,9 @@ Pasos para activarlo:
 5. Autoriza los permisos y copia la **URL /exec**.
 6. En el aplicativo → pestaña **Ajustes** → pega la URL → **Guardar** → **Probar conexión**.
 
-El script crea automáticamente la hoja `ENVIOS` (bitácora) y una hoja por cada tipo de registro que envíes (`INCORPORACION`, `CONTRATOS`, `POLIZAS`, `SEGUIMIENTO`, `REINT_RECURSOS`, `REINT_RENDIM`).
+> **Si ya tenías una versión anterior desplegada** (la primera versión del backend), debes publicar la nueva: **Implementar → Gestionar implementaciones → (editar, ícono lápiz) → Versión: Nueva versión → Implementar**. Si no, el aplicativo seguirá usando el código viejo y fallarán "Descargar/Confirmar".
+
+El script crea automáticamente: `ENVIOS` (bitácora de cargas) y una hoja por cada tipo de registro (`INCORPORACION`, `CONTRATOS`, `POLIZAS`, `SEGUIMIENTO`, `REINT_RECURSOS`, `REINT_RENDIM`), cada una con columnas de control (`uid`, `estado`, `periodo`, `updatedAt`) más los campos del anexo.
 
 ---
 

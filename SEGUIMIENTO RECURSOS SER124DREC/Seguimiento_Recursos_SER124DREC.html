@@ -133,6 +133,9 @@ tbody tr:last-child td{border-bottom:none}
 .tag.A{background:rgba(21,101,192,.12);color:var(--primary2)}
 .tag.E{background:rgba(220,38,38,.12);color:var(--red)}
 .tag.NA{background:var(--surface3);color:var(--text2)}
+.tag.BORRADOR{background:rgba(180,83,9,.12);color:var(--yellow)}
+.tag.CARGADO{background:rgba(5,150,105,.14);color:var(--green)}
+.lockbadge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:var(--green);background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.25);border-radius:5px;padding:3px 8px}
 .rowact{display:flex;gap:5px}
 .iconbtn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
 .iconbtn:hover{background:var(--surface3);color:var(--primary)}
@@ -330,10 +333,12 @@ tbody tr:last-child td{border-bottom:none}
         <div class="btn-row" style="margin-top:18px">
           <button class="btn btn-primary" id="btnDownload" onclick="descargarTxt()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Descargar .TXT</button>
           <button class="btn btn-ghost" id="btnCopy" onclick="copiarPlano()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar contenido</button>
+          <button class="btn btn-ghost" data-sync="push" onclick="syncPush()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> Guardar avance en la nube</button>
           <div class="spacer"></div>
-          <button class="btn btn-green" id="btnSheet" onclick="enviarSheets()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Registrar envío en Google Sheets</button>
+          <button class="btn btn-green" id="btnConfirm" onclick="confirmarCarga()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"/></svg> Confirmar carga (marcar CARGADO)</button>
         </div>
-        <div class="section-note" style="margin-top:16px;border-left-color:var(--yellow)"><b>Importante:</b> antes de subir el archivo a PISIS debe <b>firmarse digitalmente</b> con un certificado de una entidad certificadora aprobada. Este aplicativo genera el .TXT; la firma se hace aparte.</div>
+        <div class="section-note" style="margin-top:16px"><b>Flujo:</b> diligencia los borradores → <b>Descarga el .TXT</b> → fírmalo y súbelo a PISIS → cuando la validación de PISIS sea exitosa, pulsa <b>Confirmar carga</b>. Los registros quedarán como <b>CARGADO</b> (bloqueados) y ya no se incluirán en archivos posteriores.</div>
+        <div class="section-note" style="margin-top:10px;border-left-color:var(--yellow)"><b>Importante:</b> antes de subir el archivo a PISIS debe <b>firmarse digitalmente</b> con un certificado de una entidad certificadora aprobada. Este aplicativo genera el .TXT; la firma se hace aparte.</div>
       </div>
     </div>
   </section>
@@ -342,17 +347,26 @@ tbody tr:last-child td{border-bottom:none}
   <section class="panel" id="p-ajustes">
     <div class="card">
       <div class="card-head"><div class="ttl"><span class="card-ico" style="background:var(--teal)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg></span>
-      <div><h3>Conexión con Google Sheets</h3><div class="sub">Backend opcional para llevar la bitácora de envíos.</div></div></div></div>
+      <div><h3>Sincronización con Google Sheets</h3><div class="sub">La hoja es la fuente de verdad: guarda y descarga tus registros y borradores.</div></div></div></div>
       <div class="card-body">
         <div class="section-note">Pega la URL <b>/exec</b> del despliegue de Apps Script (ver <b>LEEME.md</b>). El token es opcional; si lo defines en el script, ponlo igual aquí.</div>
         <div class="grid g2">
           <div class="field col-2"><label>URL del Web App (…/exec)</label><input id="cfg_url" placeholder="https://script.google.com/macros/s/…/exec"></div>
           <div class="field"><label>Token (opcional)</label><input id="cfg_token" placeholder="Clave secreta, si la definiste"></div>
         </div>
+        <label style="display:flex;align-items:center;gap:9px;margin-top:14px;font-size:12px;color:var(--text3);font-weight:600;cursor:pointer">
+          <input type="checkbox" id="cfg_autosync" style="width:auto;margin:0"> Descargar automáticamente de la nube al abrir el aplicativo
+        </label>
         <div class="btn-row" style="margin-top:16px">
           <button class="btn btn-primary" onclick="guardarConfig()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg> Guardar conexión</button>
           <button class="btn btn-ghost" onclick="probarConexion()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> Probar conexión</button>
           <span id="cfg_status" style="display:none;font-size:12px;font-weight:700;align-self:center"></span>
+        </div>
+        <div class="btn-row" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+          <button class="btn btn-green" data-sync="push" onclick="syncPush()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> Guardar avance en la nube</button>
+          <button class="btn btn-ghost" data-sync="pull" onclick="syncPull()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Descargar de la nube</button>
+          <div class="spacer"></div>
+          <span id="syncInfo" style="font-size:11px;color:var(--text2);align-self:center"></span>
         </div>
       </div>
     </div>
@@ -531,8 +545,29 @@ document.getElementById('modalBg').addEventListener('click',e=>{ if(e.target.id=
 let entidad=load(LS.ent,{});
 let store=load(LS.data,{2:[],3:[],4:[],5:[],6:[],7:[]});
 [2,3,4,5,6,7].forEach(t=>{ if(!Array.isArray(store[t])) store[t]=[]; });
-let config=load(LS.cfg,{url:'',token:''});
+let config=load(LS.cfg,{url:'',token:'',autoSync:true});
+if(config.autoSync===undefined) config.autoSync=true;
 let edit={2:-1,3:-1,4:-1,5:-1,6:-1,7:-1};
+
+/* uid + estado + periodo + updatedAt en cada registro (ciclo BORRADOR -> CARGADO) */
+function genUid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function nowISO(){ return new Date().toISOString(); }
+function migrarRegistros(){
+  let cambio=false;
+  ORDER.forEach(t=> store[t].forEach(r=>{
+    if(!r.uid){ r.uid=genUid(); cambio=true; }
+    if(!r.estado){ r.estado='BORRADOR'; cambio=true; }
+    if(r.periodo===undefined){ r.periodo=entidad.fechaFin||''; cambio=true; }
+    if(!r.updatedAt){ r.updatedAt=nowISO(); cambio=true; }
+  }));
+  if(cambio) save(LS.data,store);
+}
+const esCargado=r=>r&&r.estado==='CARGADO';
+function activos(t){ return store[t].filter(r=>!esCargado(r)); }          // los que se generan
+function totalActivos(){ return ORDER.reduce((a,t)=>a+activos(t).length,0); }
+function totalCargados(){ return ORDER.reduce((a,t)=>a+store[t].filter(esCargado).length,0); }
+// clave anti-duplicados: tipo + clave del anexo + periodo (fecha de corte)
+function recordKey(t,r){ return [t, ...SCHEMA[t].key.map(k=>String(r[k]||'').toUpperCase()), r.periodo||''].join('¬'); }
 
 /* ══════════════════════ NAVEGACIÓN ══════════════════════ */
 function go(tab){
@@ -668,8 +703,20 @@ function addRecord(t){
   const r=readForm(t);
   const errs=validateRecord(t,r);
   if(errs.length){ toast('Faltan datos: '+errs.slice(0,4).join(', ')+(errs.length>4?'…':''),'err'); return; }
-  if(edit[t]>=0){ store[t][edit[t]]=r; toast('Registro actualizado','ok'); cancelEdit(t,true); }
-  else{ store[t].push(r); toast('Registro Tipo '+t+' agregado','ok'); }
+  r.periodo=entidad.fechaFin||'';
+  const key=recordKey(t,r);
+  // bloquear si ya existe un registro CARGADO con la misma clave + periodo
+  const yaCargado=store[t].some((x,i)=>i!==edit[t] && esCargado(x) && recordKey(t,x)===key);
+  if(yaCargado){ toast('Ya existe un registro CARGADO con esa misma información en este período. No se puede duplicar.','err'); return; }
+  if(edit[t]>=0){
+    const prev=store[t][edit[t]];
+    if(esCargado(prev)){ toast('Ese registro está CARGADO y no se puede editar.','err'); return; }
+    r.uid=prev.uid; r.estado='BORRADOR'; r.updatedAt=nowISO();
+    store[t][edit[t]]=r; toast('Registro actualizado','ok'); cancelEdit(t,true);
+  }else{
+    r.uid=genUid(); r.estado='BORRADOR'; r.updatedAt=nowISO();
+    store[t].push(r); toast('Registro Tipo '+t+' agregado','ok');
+  }
   save(LS.data,store); clearForm(t); renderTable(t); updateAll();
 }
 function clearForm(t){
@@ -681,6 +728,7 @@ function clearForm(t){
 }
 function editRecord(t,i){
   const r=store[t][i], s=SCHEMA[t];
+  if(esCargado(r)){ toast('Registro CARGADO: bloqueado para edición.','err'); return; }
   document.getElementById(`f${t}_idRecurso`).value=r.idRecurso||'';
   document.getElementById(`f${t}_nit`).value=r.nit||'';
   document.getElementById(`f${t}_indicador`).value=r.indicador||'';
@@ -701,31 +749,43 @@ function cancelEdit(t,silent){
   if(!silent) clearForm(t);
 }
 function delRecord(t,i){
+  if(esCargado(store[t][i])){ toast('Registro CARGADO: bloqueado para eliminación.','err'); return; }
   confirmModal('Eliminar registro','¿Eliminar el registro #'+(i+1)+' del Tipo '+t+'?',()=>{
     store[t].splice(i,1); save(LS.data,store); renderTable(t); updateAll(); toast('Registro eliminado','info');
   });
 }
 function clearAll(t){
-  if(!store[t].length){ toast('No hay registros','info'); return; }
-  confirmModal('Vaciar tabla','Se eliminarán los '+store[t].length+' registros del Tipo '+t+'. ¿Continuar?',()=>{
-    store[t]=[]; save(LS.data,store); renderTable(t); updateAll(); toast('Tabla vaciada','info');
+  const borr=store[t].filter(r=>!esCargado(r)).length;
+  if(!borr){ toast('No hay registros en borrador para vaciar','info'); return; }
+  confirmModal('Vaciar borradores','Se eliminarán los '+borr+' registros en BORRADOR del Tipo '+t+' (los CARGADOS se conservan). ¿Continuar?',()=>{
+    store[t]=store[t].filter(esCargado); save(LS.data,store); renderTable(t); updateAll(); toast('Borradores eliminados','info');
   });
 }
 function renderTable(t){
   const s=SCHEMA[t], rows=store[t], cont=document.getElementById(`tbl_${t}`);
+  const nB=rows.filter(r=>!esCargado(r)).length, nC=rows.filter(esCargado).length;
   document.getElementById(`cnt_${t}`).textContent=rows.length;
   if(!rows.length){ cont.innerHTML='<div class="t-empty">Aún no has agregado registros de este tipo.</div>'; return; }
-  // columnas resumidas: #, IDRecurso, NIT, Indicador, primeros 3 campos con dato, acciones
-  const showFields=s.fields.slice(0,3);
-  const head=['#','ID Recurso','NIT','Ind.',...showFields.map(f=>f.label.replace(/ .*/,'')),'Acciones'];
-  let html='<div class="tbl-wrap"><table><thead><tr>'+head.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr></thead><tbody>';
+  // columnas resumidas: #, Estado, IDRecurso, NIT, Indicador, primeros 2 campos con dato, acciones
+  const showFields=s.fields.slice(0,2);
+  const head=['#','Estado','ID Recurso','NIT','Ind.',...showFields.map(f=>f.label.replace(/ .*/,'')),'Acciones'];
+  let html=`<div style="padding:8px 12px;font-size:11px;color:var(--text2)"><b style="color:var(--text3)">${nB}</b> borrador · <b style="color:var(--green)">${nC}</b> cargado</div>`;
+  html+='<div class="tbl-wrap"><table><thead><tr>'+head.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr></thead><tbody>';
   rows.forEach((r,i)=>{
-    html+=`<tr><td class="num">${i+1}</td><td>${esc(r.idRecurso)}</td><td>${esc(r.nit)}</td><td><span class="tag ${r.indicador||'NA'}">${esc(r.indicador||'—')}</span></td>`;
+    const lk=esCargado(r);
+    html+=`<tr${lk?' style="background:rgba(5,150,105,.05)"':''}><td class="num">${i+1}</td>`;
+    html+=`<td><span class="tag ${lk?'CARGADO':'BORRADOR'}">${lk?'CARGADO':'BORRADOR'}</span></td>`;
+    html+=`<td>${esc(r.idRecurso)}</td><td>${esc(r.nit)}</td><td><span class="tag ${r.indicador||'NA'}">${esc(r.indicador||'—')}</span></td>`;
     showFields.forEach(f=>{ let v=r[f.k]||''; if(f.kind==='dec'&&v) v=money(parseFloat(v)); html+=`<td>${esc(String(v).slice(0,26))}</td>`; });
-    html+=`<td><div class="rowact">
-      <button class="iconbtn" onclick="editRecord(${t},${i})" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
-      <button class="iconbtn del" onclick="delRecord(${t},${i})" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-    </div></td></tr>`;
+    if(lk){
+      html+=`<td><span class="lockbadge" title="Cargado: bloqueado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Bloqueado</span></td>`;
+    }else{
+      html+=`<td><div class="rowact">
+        <button class="iconbtn" onclick="editRecord(${t},${i})" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+        <button class="iconbtn del" onclick="delRecord(${t},${i})" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      </div></td>`;
+    }
+    html+='</tr>';
   });
   html+='</tbody></table></div>';
   cont.innerHTML=html;
@@ -733,10 +793,10 @@ function renderTable(t){
 
 /* ══════════════════════ CONTADORES / STATS ══════════════════════ */
 function totalDetalle(){ return ORDER.reduce((a,t)=>a+store[t].length,0); }
-function valorContratado(){ return store[3].reduce((a,r)=> a+(r.indicador&&r.indicador!=='NA'?(parseFloat(r.valor)||0):0),0); }
+function valorContratado(){ return activos(3).reduce((a,r)=> a+(r.indicador&&r.indicador!=='NA'?(parseFloat(r.valor)||0):0),0); }
 function updateAll(){
   ORDER.forEach(t=>{ document.getElementById('c_'+t).textContent=store[t].length; });
-  document.getElementById('hs_det').textContent=totalDetalle();
+  document.getElementById('hs_det').textContent=totalActivos();
   document.getElementById('hs_val').textContent=money(valorContratado());
   const {errs}=validar();
   document.getElementById('hs_estado').textContent=errs.length?'✗':'✓';
@@ -750,15 +810,15 @@ function validar(){
   const errs=[], warns=[];
   if(!entidad.numId||!entidad.idRecurso||!entidad.fechaFin||!entidad.fechaIni) errs.push('Completa los datos de la entidad y el período (pestaña 1).');
   if(!entidad.nitBenef) warns.push('No has definido el NIT de la entidad beneficiaria.');
-  if(totalDetalle()===0) errs.push('Agrega al menos un registro de detalle (Tipo 2 a 7).');
-  // registros con ID Recurso distinto al del archivo
+  if(totalActivos()===0) errs.push('Agrega al menos un registro en BORRADOR (los CARGADOS no se generan).');
+  // registros con ID Recurso distinto al del archivo (solo los que se generan)
   let distinto=0;
-  ORDER.forEach(t=> store[t].forEach(r=>{ if(entidad.idRecurso && r.idRecurso && r.idRecurso!==entidad.idRecurso) distinto++; }));
+  ORDER.forEach(t=> activos(t).forEach(r=>{ if(entidad.idRecurso && r.idRecurso && r.idRecurso!==entidad.idRecurso) distinto++; }));
   if(distinto) warns.push(distinto+' registro(s) tienen un ID Recurso distinto al del encabezado (cada archivo es de un solo recurso).');
-  // duplicados por clave
+  // duplicados por clave (entre borradores)
   ORDER.forEach(t=>{
     const seen=new Set();
-    store[t].forEach((r,i)=>{
+    activos(t).forEach((r,i)=>{
       if(r.indicador==='NA') return;
       const key=SCHEMA[t].key.map(k=>r[k]||'').join('¬');
       if(seen.has(key)) warns.push(`Tipo ${t}: el registro #${i+1} está duplicado según su clave única.`);
@@ -766,7 +826,7 @@ function validar(){
     });
   });
   // suma contratos vs incorporado (aviso)
-  const inc=store[2].reduce((a,r)=>a+(r.indicador!=='NA'?(parseFloat(r.valor)||0):0),0);
+  const inc=activos(2).reduce((a,r)=>a+(r.indicador!=='NA'?(parseFloat(r.valor)||0):0),0);
   if(inc>0 && valorContratado()>inc) warns.push('La suma de contratos (Tipo 3) supera el valor incorporado (Tipo 2).');
   if(!config.url) warns.push('No has configurado Google Sheets (Ajustes). Podrás descargar el .TXT igual.');
   return {errs,warns};
@@ -799,7 +859,8 @@ function recordLine(t,r,cons){
 function buildPlano(){
   const e=entidad, P='|';
   const detail=[]; let cons=0;
-  ORDER.forEach(t=> store[t].forEach(r=>{ cons++; detail.push(recordLine(t,r,cons)); }));
+  // solo los registros en BORRADOR (los CARGADOS se excluyen de la generación)
+  ORDER.forEach(t=> activos(t).forEach(r=>{ cons++; detail.push(recordLine(t,r,cons)); }));
   const r1=['1',e.tipoId||'',normNum(e.numId),e.fechaIni||'',e.fechaFin||'',String(detail.length)].join(P);
   return [r1,...detail].join('\r\n')+'\r\n';
 }
@@ -820,7 +881,7 @@ function refrescarGenerar(){
   document.getElementById('fileNameBox').innerHTML = fn? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>${fn} <span class="chip" style="margin-left:auto">${fn.length} car.</span>` : 'Completa los datos de la entidad para ver el nombre.';
   const ok=!errs.length;
   document.getElementById('btnDownload').disabled=!ok;
-  document.getElementById('btnSheet').disabled=!ok;
+  document.getElementById('btnConfirm').disabled=!ok;
   if(ok){
     const plano=buildPlano();
     const colored=plano.split('\r\n').filter(Boolean).map(l=>`<span class="t${l[0]}">${esc(l)}</span>`).join('\n');
@@ -831,8 +892,9 @@ function refrescarGenerar(){
 }
 function updateCounts(){
   document.getElementById('genStats').innerHTML=
-    ORDER.map(t=>`<div class="stat"><div class="v">${store[t].length}</div><div class="l">Tipo ${t} · ${SCHEMA[t].name.split(' ')[0]}</div></div>`).join('')+
-    `<div class="stat purple"><div class="v">${totalDetalle()}</div><div class="l">Total detalle</div></div>`;
+    ORDER.map(t=>`<div class="stat"><div class="v">${activos(t).length}</div><div class="l">Tipo ${t} · ${SCHEMA[t].name.split(' ')[0]}</div></div>`).join('')+
+    `<div class="stat purple"><div class="v">${totalActivos()}</div><div class="l">A generar (borrador)</div></div>`+
+    `<div class="stat green"><div class="v">${totalCargados()}</div><div class="l">Ya cargados</div></div>`;
 }
 function descargarTxt(){
   const {errs}=validar(); if(errs.length){ toast('Corrige los errores antes de descargar','err'); return; }
@@ -889,7 +951,8 @@ function importarExcel(input){
   rd.onload=ev=>{
     try{
       const wb=XLSX.read(ev.target.result,{type:'array'});
-      let totalAdd=0, skip=0;
+      let totalAdd=0, skip=0, dupCargado=0;
+      const per=entidad.fechaFin||'';
       ORDER.forEach(t=>{
         const sh=wb.Sheets[SHEET_NAME[t]]||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()===SHEET_NAME[t])];
         if(!sh) return;
@@ -909,12 +972,17 @@ function importarExcel(input){
             else v=up(v);
             r[fdef.k]=v;
           });
+          r.periodo=per;
+          // saltar si ya existe un CARGADO con la misma clave + periodo
+          const key=recordKey(t,r);
+          if(store[t].some(x=>esCargado(x)&&recordKey(t,x)===key)){ dupCargado++; return; }
+          r.uid=genUid(); r.estado='BORRADOR'; r.updatedAt=nowISO();
           store[t].push(r); totalAdd++;
         });
       });
       save(LS.data,store);
       ORDER.forEach(t=>renderTable(t)); updateAll();
-      toast(`Cargados ${totalAdd} registro(s)${skip?' · '+skip+' fila(s) omitida(s)':''}`,'ok');
+      toast(`Cargados ${totalAdd} registro(s)${dupCargado?' · '+dupCargado+' ya cargados (omitidos)':''}${skip?' · '+skip+' fila(s) inválidas':''}`,'ok');
     }catch(err){ toast('Error al leer el archivo: '+err.message,'err'); }
     input.value='';
   };
@@ -924,8 +992,8 @@ function exportarDatos(){
   if(totalDetalle()===0){ toast('No hay datos para exportar','err'); return; }
   const wb=XLSX.utils.book_new();
   ORDER.forEach(t=>{
-    const cols=excelCols(t);
-    const data=[cols,...store[t].map(r=>[r.idRecurso,r.nit,r.indicador,...SCHEMA[t].fields.map(f=>r[f.k]||'')])];
+    const cols=[...excelCols(t),'ESTADO','PERIODO'];
+    const data=[cols,...store[t].map(r=>[r.idRecurso,r.nit,r.indicador,...SCHEMA[t].fields.map(f=>r[f.k]||''),r.estado||'BORRADOR',r.periodo||''])];
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),SHEET_NAME[t]);
   });
   XLSX.writeFile(wb,'Datos_SER124DREC_actuales.xlsx');
@@ -937,10 +1005,15 @@ function pintarExcelStats(){
 }
 
 /* ══════════════════════ GOOGLE SHEETS ══════════════════════ */
-function pintarConfig(){ document.getElementById('cfg_url').value=config.url||''; document.getElementById('cfg_token').value=config.token||''; }
+function pintarConfig(){
+  document.getElementById('cfg_url').value=config.url||'';
+  document.getElementById('cfg_token').value=config.token||'';
+  const a=document.getElementById('cfg_autosync'); if(a) a.checked=config.autoSync!==false;
+}
 function guardarConfig(){
   config.url=document.getElementById('cfg_url').value.trim();
   config.token=document.getElementById('cfg_token').value.trim();
+  const a=document.getElementById('cfg_autosync'); config.autoSync=a?a.checked:true;
   save(LS.cfg,config); toast('Conexión guardada','ok'); updateAll();
 }
 async function postSheet(payload){
@@ -956,22 +1029,116 @@ async function probarConexion(){
     else{ st.textContent='Respuesta inesperada'; st.style.color='var(--yellow)'; toast('Respondió: '+JSON.stringify(res).slice(0,120),'info'); }
   }catch(e){ st.textContent='✗ Sin conexión'; st.style.color='var(--red)'; toast('No se pudo conectar: '+e.message,'err'); }
 }
-async function enviarSheets(){
-  const {errs}=validar(); if(errs.length){ toast('Corrige los errores antes de enviar','err'); return; }
-  if(!config.url){ toast('Configura la URL en Ajustes','err'); go('ajustes'); return; }
-  const btn=document.getElementById('btnSheet'), original=btn.innerHTML;
-  btn.disabled=true; btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Enviando…';
+// Aplana todos los registros (con su tipo) para enviarlos a la nube
+function recolectar(soloBorrador){
+  const out=[];
+  ORDER.forEach(t=> store[t].forEach(r=>{
+    if(soloBorrador && esCargado(r)) return;
+    out.push(Object.assign({tipo:t},r));
+  }));
+  return out;
+}
+function spin(txt){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> '+txt; }
+
+/* GUARDAR AVANCE EN LA NUBE (borradores + cargados, upsert por uid) */
+async function syncPush(silent){
+  if(!config.url){ if(!silent){toast('Configura la URL en Ajustes','err'); go('ajustes');} return false; }
+  const regs=recolectar(false);
+  if(!regs.length){ if(!silent) toast('No hay registros para guardar','info'); return false; }
+  const btns=document.querySelectorAll('[data-sync="push"]'); const orig=[...btns].map(b=>b.innerHTML);
+  btns.forEach(b=>{b.disabled=true; b.innerHTML=spin('Guardando…');});
   try{
-    let cons=0; const registros=[];
-    ORDER.forEach(t=> store[t].forEach(r=>{ cons++; registros.push(Object.assign({tipo:t,consecutivo:cons},r)); }));
-    const payload={ action:'guardarEnvio', archivo:buildFileName(),
-      entidad:{tipoId:entidad.tipoId,numId:entidad.numId,idRecurso:entidad.idRecurso,nitBenef:entidad.nitBenef,fechaIni:entidad.fechaIni,fechaFin:entidad.fechaFin},
-      registros, plano:buildPlano() };
-    const res=await postSheet(payload);
-    if(res&&res.ok){ toast('Envío registrado en Google Sheets ('+(res.filas||registros.length)+' filas)','ok'); }
-    else{ toast('El script respondió: '+JSON.stringify(res).slice(0,120),'info'); }
-  }catch(e){ toast('Error al enviar: '+e.message,'err'); }
-  finally{ btn.disabled=false; btn.innerHTML=original; }
+    const res=await postSheet({action:'push', registros:regs});
+    if(res&&res.ok){ config.lastSync=nowISO(); save(LS.cfg,config); pintarSync(); if(!silent) toast('Avance guardado en la nube ('+(res.filas||regs.length)+' registros)','ok'); return true; }
+    if(!silent) toast('El script respondió: '+JSON.stringify(res).slice(0,120),'info'); return false;
+  }catch(e){ if(!silent) toast('Error al guardar en la nube: '+e.message,'err'); return false; }
+  finally{ btns.forEach((b,i)=>{b.disabled=false; b.innerHTML=orig[i];}); }
+}
+
+/* DESCARGAR DE LA NUBE (pull + merge por uid) */
+async function syncPull(silent){
+  if(!config.url){ if(!silent){toast('Configura la URL en Ajustes','err'); go('ajustes');} return false; }
+  const btns=document.querySelectorAll('[data-sync="pull"]'); const orig=[...btns].map(b=>b.innerHTML);
+  btns.forEach(b=>{b.disabled=true; b.innerHTML=spin('Descargando…');});
+  try{
+    const res=await postSheet({action:'pull'});
+    if(res&&res.ok&&Array.isArray(res.registros)){
+      const {added,updated}=mergeRegistros(res.registros);
+      save(LS.data,store); ORDER.forEach(t=>renderTable(t)); updateAll();
+      config.lastSync=nowISO(); save(LS.cfg,config); pintarSync();
+      if(!silent) toast(`Descarga lista · ${added} nuevos, ${updated} actualizados`,'ok');
+      return true;
+    }
+    if(!silent) toast('Respuesta inesperada de la nube','info'); return false;
+  }catch(e){ if(!silent) toast('Error al descargar: '+e.message,'err'); return false; }
+  finally{ btns.forEach((b,i)=>{b.disabled=false; b.innerHTML=orig[i];}); }
+}
+// Fusiona registros entrantes por uid: gana CARGADO; si no, gana el más reciente (updatedAt)
+function mergeRegistros(incoming){
+  let added=0, updated=0;
+  const idx={}; ORDER.forEach(t=>{ idx[t]={}; store[t].forEach((r,i)=>{ if(r.uid) idx[t][r.uid]=i; }); });
+  incoming.forEach(raw=>{
+    const t=parseInt(raw.tipo,10); if(!SCHEMA[t]) return;
+    const rec=normalizarEntrante(t,raw);
+    if(!rec.uid) rec.uid=genUid();
+    const pos=idx[t][rec.uid];
+    if(pos===undefined){ store[t].push(rec); idx[t][rec.uid]=store[t].length-1; added++; }
+    else{
+      const cur=store[t][pos];
+      const gana = esCargado(rec) || (!esCargado(cur) && String(rec.updatedAt||'')>=String(cur.updatedAt||''));
+      if(gana){ store[t][pos]=rec; updated++; }
+    }
+  });
+  return {added,updated};
+}
+function normalizarEntrante(t,raw){
+  const s=SCHEMA[t];
+  const rec={ uid:raw.uid||'', estado:(raw.estado==='CARGADO'?'CARGADO':'BORRADOR'), periodo:raw.periodo||'',
+    updatedAt:raw.updatedAt||nowISO(), idRecurso:up(raw.idRecurso), nit:normNum(raw.nit), indicador:up(raw.indicador)||'I' };
+  if(!['I','A','E','NA'].includes(rec.indicador)) rec.indicador='I';
+  s.fields.forEach(f=>{
+    let v=raw[f.k];
+    if(rec.indicador==='NA'){ rec[f.k]=''; return; }
+    if(f.kind==='num') v=normNum(v); else if(f.kind==='dec') v=normDec(v);
+    else if(f.kind==='date') v=normFecha(v); else v=up(v);
+    rec[f.k]=v;
+  });
+  return rec;
+}
+
+/* CONFIRMAR CARGA: marca los BORRADOR válidos como CARGADO (local + nube) */
+async function confirmarCarga(){
+  const {errs}=validar();
+  if(errs.length){ toast('Solo puedes confirmar la carga con la estructura válida. Corrige los errores.','err'); return; }
+  const nB=totalActivos();
+  if(!nB){ toast('No hay registros en borrador para confirmar','info'); return; }
+  confirmModal('Confirmar carga a PISIS',
+    `Se marcarán ${nB} registro(s) como CARGADO. Quedarán bloqueados y no se volverán a incluir en el archivo. Hazlo solo después de haber subido y validado el archivo en PISIS. ¿Continuar?`,
+    async ()=>{
+      const per=entidad.fechaFin||'';
+      const marcados=[];
+      ORDER.forEach(t=> store[t].forEach(r=>{ if(!esCargado(r)){ r.estado='CARGADO'; r.periodo=per; r.updatedAt=nowISO(); marcados.push(Object.assign({tipo:t},r)); } }));
+      save(LS.data,store); ORDER.forEach(t=>renderTable(t)); updateAll();
+      toast(`${marcados.length} registro(s) marcados como CARGADO`,'ok');
+      // sincronizar con la nube
+      if(config.url){
+        try{
+          await postSheet({action:'push', registros:marcados});
+          await postSheet({action:'guardarEnvio', archivo:buildFileNameFor(per), periodo:per,
+            entidad:{tipoId:entidad.tipoId,numId:entidad.numId,idRecurso:entidad.idRecurso,nitBenef:entidad.nitBenef,fechaIni:entidad.fechaIni,fechaFin:entidad.fechaFin},
+            total:marcados.length });
+          config.lastSync=nowISO(); save(LS.cfg,config); pintarSync();
+          toast('Carga sincronizada con Google Sheets','ok');
+        }catch(e){ toast('Marcado local hecho, pero falló la sincronización: '+e.message+'. Usa "Guardar en la nube".','err'); }
+      }else{
+        toast('Marcado local. Configura Google Sheets para respaldar la carga.','info');
+      }
+    });
+}
+function buildFileNameFor(){ return buildFileName(); }
+function pintarSync(){
+  const el=document.getElementById('syncInfo'); if(!el) return;
+  el.textContent = config.lastSync? ('Última sincronización: '+new Date(config.lastSync).toLocaleString('es-CO')) : 'Sin sincronizar todavía.';
 }
 
 /* ══════════════════════ BACKUP / RESET ══════════════════════ */
@@ -985,8 +1152,9 @@ function importarBackup(input){
   const f=input.files[0]; if(!f)return; const rd=new FileReader();
   rd.onload=ev=>{ try{ const d=JSON.parse(ev.target.result);
     if(d.entidad)entidad=d.entidad; if(d.store){ store=d.store; [2,3,4,5,6,7].forEach(t=>{if(!Array.isArray(store[t]))store[t]=[];}); } if(d.config)config=d.config;
+    migrarRegistros();
     save(LS.ent,entidad); save(LS.data,store); save(LS.cfg,config);
-    pintarEntidad(); pintarConfig(); ORDER.forEach(t=>renderTable(t)); updateAll();
+    pintarEntidad(); pintarConfig(); pintarSync(); ORDER.forEach(t=>renderTable(t)); updateAll();
     toast('Respaldo importado','ok');
   }catch(e){ toast('Archivo inválido','err'); } input.value=''; };
   rd.readAsText(f);
@@ -1001,9 +1169,12 @@ function borrarTodo(){
 
 /* ══════════════════════ INIT ══════════════════════ */
 ORDER.forEach(t=>buildDetailPanel(t));
-pintarEntidad(); pintarConfig();
+migrarRegistros();
+pintarEntidad(); pintarConfig(); pintarSync();
 ORDER.forEach(t=>{ renderTable(t); toggleCond(t); });
 updateAll();
+// sincronización automática al abrir (si está configurada)
+if(config.url && config.autoSync!==false){ setTimeout(()=>syncPull(true),400); }
 </script>
 </body>
 </html>

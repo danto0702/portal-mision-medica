@@ -3,24 +3,28 @@
  *  BACKEND — SEGUIMIENTO DE RECURSOS DE TRANSFERENCIAS (SER124DREC)
  *  ESE Hospital Regional Noroccidental · PISIS / SISPRO
  * ────────────────────────────────────────────────────────────────────────
- *  Cómo instalar:
- *   1. Abre la hoja de cálculo de respaldo en Google Sheets.
- *   2. Menú  Extensiones → Apps Script.
- *   3. Borra todo y pega ESTE código. Guarda (Ctrl+S).
- *   4. (Opcional) cambia TOKEN por una clave secreta y ponla igual en el app.
- *   5. Implementar → Nueva implementación → Aplicación web:
- *        - Ejecutar como:      Yo (tu cuenta)
+ *  Google Sheets es la FUENTE DE VERDAD de los registros. El aplicativo:
+ *    - push : guarda/actualiza registros por 'uid' (borradores y cargados).
+ *    - pull : descarga todos los registros para trabajar desde varios equipos.
+ *  Cada registro lleva estado BORRADOR o CARGADO. Los CARGADOS quedan
+ *  bloqueados en el aplicativo y no se vuelven a incluir en el archivo plano.
+ * ────────────────────────────────────────────────────────────────────────
+ *  Instalación:
+ *   1. Abre la hoja de respaldo en Google Sheets.
+ *   2. Extensiones → Apps Script. Borra todo y pega ESTE código. Guarda.
+ *   3. (Opcional) cambia TOKEN por una clave secreta (misma en el app).
+ *   4. Implementar → Nueva implementación → Aplicación web:
+ *        - Ejecutar como:      Yo
  *        - Quién tiene acceso:  Cualquier usuario
- *   6. Autoriza los permisos. Copia la URL que termina en /exec.
- *   7. Pega esa URL en la pestaña "Ajustes" del aplicativo → Probar conexión.
+ *   5. Autoriza permisos, copia la URL /exec y pégala en Ajustes del app.
+ *  IMPORTANTE: si ya tenías una versión anterior desplegada, usa
+ *  "Implementar → Gestionar implementaciones → Editar → Nueva versión".
  * ════════════════════════════════════════════════════════════════════════
  */
 
-// Si quieres proteger el endpoint, define un token (misma cadena en el app).
-// Déjalo vacío ('') para no exigir token.
-const TOKEN = '';
+const TOKEN = '';  // '' = sin token
 
-// Orden de campos por tipo de registro (coincide con la plantilla Excel y el aplicativo)
+// Orden de campos por tipo (coincide con el aplicativo y la plantilla Excel)
 const CAMPOS = {
   2: ['idRecurso','nit','indicador','tipoActo','numActo','fecha','valor'],
   3: ['idRecurso','nit','indicador','tipoActo','numActo','fecha','fechaFin','objeto','valor','tipoIdContratista','numIdContratista','nomContratista','tipoIdSuperv','numIdSuperv','nomSuperv'],
@@ -30,54 +34,100 @@ const CAMPOS = {
   7: ['idRecurso','nit','indicador','tipoActo','numActo','fecha','codEntidad','nitBanco','numCuenta','valor','fechaConsig','portafolio']
 };
 const HOJA = { 2:'INCORPORACION', 3:'CONTRATOS', 4:'POLIZAS', 5:'SEGUIMIENTO', 6:'REINT_RECURSOS', 7:'REINT_RENDIM' };
-const H_ENVIOS = ['FechaHora','NombreArchivo','TipoIdEntidad','NumIdEntidad','IDRecurso','NITBeneficiaria','FechaIni','FechaFin','TotalRegistros','Origen'];
+const CTRL = ['uid','estado','periodo','updatedAt'];           // columnas de control (antes de los campos)
+const H_ENVIOS = ['FechaHora','NombreArchivo','Periodo','TipoIdEntidad','NumIdEntidad','IDRecurso','NITBeneficiaria','FechaIni','FechaFin','TotalCargados'];
 
 function doGet(e)  { return json({ ok:true, msg:'API SER124DREC activa', metodo:'GET' }); }
 
 function doPost(e) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(25000);
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (TOKEN && body.token !== TOKEN) return json({ ok:false, error:'Token invalido' });
     switch (body.action) {
-      case 'ping':         return json({ ok:true, msg:'pong', version:'1.0' });
-      case 'guardarEnvio': return guardarEnvio(body);
-      default:             return json({ ok:false, error:'Accion no reconocida: ' + body.action });
+      case 'ping':          return json({ ok:true, msg:'pong', version:'2.0' });
+      case 'push':          return pushRegistros(body);
+      case 'pull':          return pullRegistros(body);
+      case 'guardarEnvio':  return guardarEnvio(body);
+      default:              return json({ ok:false, error:'Accion no reconocida: ' + body.action });
     }
   } catch (err) {
     return json({ ok:false, error:String(err) });
+  } finally {
+    try { lock.releaseLock(); } catch (x) {}
   }
 }
 
-function guardarEnvio(body) {
+// Cabecera completa de la hoja de un tipo
+function headersDe(t){ return CTRL.concat(CAMPOS[t]); }
+
+// Inserta/actualiza registros por uid en su hoja de tipo
+function pushRegistros(body) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ts = new Date();
-  const arc = body.archivo || '';
-  const ent = body.entidad || {};
   const registros = body.registros || [];
-
-  // 1) Bitácora del envío
-  const shE = getSheet(ss, 'ENVIOS', H_ENVIOS);
-  shE.appendRow([ ts, arc, ent.tipoId || '', ent.numId || '', ent.idRecurso || '', ent.nitBenef || '',
-                  ent.fechaIni || '', ent.fechaFin || '', registros.length, 'Aplicativo HTML' ]);
-
-  // 2) Detalle por tipo de registro
+  const ahora = new Date().toISOString();
   const porTipo = {};
-  registros.forEach(function(r){ (porTipo[r.tipo] = porTipo[r.tipo] || []).push(r); });
+  registros.forEach(function(r){ var t = parseInt(r.tipo,10); if (CAMPOS[t]) (porTipo[t] = porTipo[t] || []).push(r); });
 
+  var total = 0;
   Object.keys(porTipo).forEach(function(t){
-    const campos = CAMPOS[t]; if (!campos) return;
-    const headers = ['FechaHora','NombreArchivo','Consecutivo'].concat(campos.map(cap));
+    const headers = headersDe(t);
     const sh = getSheet(ss, HOJA[t], headers);
-    const filas = porTipo[t].map(function(r){
-      return [ ts, arc, r.consecutivo || '' ].concat(campos.map(function(k){ return r[k] != null ? r[k] : ''; }));
+    const last = sh.getLastRow();
+    // mapa uid -> fila
+    const uidCol = last > 1 ? sh.getRange(2,1,last-1,1).getValues().map(function(x){return String(x[0]);}) : [];
+    const idx = {}; uidCol.forEach(function(u,i){ idx[u] = i + 2; });
+    const nuevas = [];
+    porTipo[t].forEach(function(r){
+      const uid = String(r.uid || '');
+      const fila = fila_de(t, r, ahora);
+      if (uid && idx[uid]) {
+        sh.getRange(idx[uid], 1, 1, headers.length).setValues([fila]);
+      } else {
+        nuevas.push(fila);
+      }
+      total++;
     });
-    sh.getRange(sh.getLastRow() + 1, 1, filas.length, headers.length).setValues(filas);
+    if (nuevas.length) sh.getRange(sh.getLastRow()+1, 1, nuevas.length, headers.length).setValues(nuevas);
   });
-
-  return json({ ok:true, filas: registros.length + 1, archivo: arc });
+  return json({ ok:true, filas: total });
 }
 
-// Devuelve la hoja; la crea con encabezados si no existe.
+function fila_de(t, r, ahora){
+  const ctrl = [ r.uid || '', (r.estado === 'CARGADO' ? 'CARGADO' : 'BORRADOR'), r.periodo || '', r.updatedAt || ahora ];
+  return ctrl.concat(CAMPOS[t].map(function(k){ return r[k] != null ? r[k] : ''; }));
+}
+
+// Devuelve todos los registros de todas las hojas de tipo
+function pullRegistros(body) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const out = [];
+  Object.keys(HOJA).forEach(function(t){
+    const sh = ss.getSheetByName(HOJA[t]); if (!sh) return;
+    const last = sh.getLastRow(); if (last < 2) return;
+    const headers = headersDe(t);
+    const vals = sh.getRange(2, 1, last-1, headers.length).getValues();
+    vals.forEach(function(row){
+      if (!String(row[0]).trim()) return;                 // sin uid -> ignora
+      const rec = { tipo: parseInt(t,10) };
+      headers.forEach(function(h, i){ rec[h] = row[i]; });
+      out.push(rec);
+    });
+  });
+  return json({ ok:true, registros: out });
+}
+
+// Bitácora de cargas confirmadas
+function guardarEnvio(body) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ent = body.entidad || {};
+  const sh = getSheet(ss, 'ENVIOS', H_ENVIOS);
+  sh.appendRow([ new Date(), body.archivo || '', body.periodo || '', ent.tipoId || '', ent.numId || '',
+                 ent.idRecurso || '', ent.nitBenef || '', ent.fechaIni || '', ent.fechaFin || '', body.total || 0 ]);
+  return json({ ok:true });
+}
+
 function getSheet(ss, nombre, headers) {
   let sh = ss.getSheetByName(nombre);
   if (!sh) {
@@ -85,11 +135,13 @@ function getSheet(ss, nombre, headers) {
     sh.getRange(1, 1, 1, headers.length).setValues([headers])
       .setFontWeight('bold').setBackground('#0f4c81').setFontColor('#ffffff');
     sh.setFrozenRows(1);
+  } else if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, headers.length).setValues([headers])
+      .setFontWeight('bold').setBackground('#0f4c81').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
   }
   return sh;
 }
-
-function cap(s){ return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
 
 function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))

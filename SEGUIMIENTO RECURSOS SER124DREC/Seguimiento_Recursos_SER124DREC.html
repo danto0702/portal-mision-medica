@@ -436,9 +436,9 @@ const SCHEMA={
       {k:'tipoIdContratista',label:'Tipo id. contratista',len:2,kind:'select',opts:ID_CONTRATISTA,req:'soft'},
       {k:'numIdContratista',label:'N.° id. contratista',len:17,kind:'text',req:'soft'},
       {k:'nomContratista',label:'Nombre / razón social del contratista',len:100,kind:'text',req:'soft',span:2},
-      {k:'tipoIdSuperv',label:'Tipo id. supervisor',len:2,kind:'select',opts:ID_SUPERVISOR,req:'soft'},
-      {k:'numIdSuperv',label:'N.° id. supervisor',len:17,kind:'text',req:'soft'},
-      {k:'nomSuperv',label:'Nombre del supervisor / interventor',len:100,kind:'text',req:'soft',span:2},
+      {k:'tipoIdSuperv',label:'Tipo id. supervisor',len:2,kind:'select',opts:ID_SUPERVISOR,req:'soft',global:true},
+      {k:'numIdSuperv',label:'N.° id. supervisor',len:17,kind:'text',req:'soft',global:true},
+      {k:'nomSuperv',label:'Nombre del supervisor / interventor',len:100,kind:'text',req:'soft',span:2,global:true},
     ]},
   4:{ name:'Pólizas', num:4, color:'var(--yellow)', indLabel:'Código del indicador de pólizas',
     desc:'Detalle de las pólizas que respaldan el cumplimiento de los actos administrativos.',
@@ -492,11 +492,13 @@ const SCHEMA={
       {k:'portafolio',label:'Portafolio',len:3,kind:'select',opts:PORTAFOLIO,req:'soft'},
     ]},
 };
-// Columnas Excel por tipo (orden): ID_RECURSO, NIT, INDICADOR, ...extras
-function excelCols(t){ return ['ID_RECURSO','NIT_ENTIDAD','INDICADOR', ...SCHEMA[t].fields.map(f=>f.k.toUpperCase())]; }
+// Campos que se piden por registro en el formulario y en Excel (excluye los globales, como el supervisor)
+function excelFields(t){ return SCHEMA[t].fields.filter(f=>!f.global); }
+// Columnas Excel por tipo (orden): ID_RECURSO, NIT, INDICADOR, ...extras (sin campos globales)
+function excelCols(t){ return ['ID_RECURSO','NIT_ENTIDAD','INDICADOR', ...excelFields(t).map(f=>f.k.toUpperCase())]; }
 
 /* ══════════════════════ UTILIDADES ══════════════════════ */
-const LS={ent:'ser124_entidad',data:'ser124_data',cfg:'ser124_config'};
+const LS={ent:'ser124_entidad',data:'ser124_data',cfg:'ser124_config',sup:'ser124_supervisor'};
 function up(s){ // MAYUSCULAS sin tildes (conserva N-tilde), sin pipe
   return String(s==null?'':s)
     .replace(/ñ/g,'').replace(/Ñ/g,'')   // protege la N-tilde
@@ -550,6 +552,7 @@ let config=load(LS.cfg,{url:DEFAULT_URL,token:'',autoSync:true});
 if(config.autoSync===undefined) config.autoSync=true;
 if(!config.url){ config.url=DEFAULT_URL; save(LS.cfg,config); }  // URL de Google Sheets predeterminada
 let edit={2:-1,3:-1,4:-1,5:-1,6:-1,7:-1};
+let supervisor=load(LS.sup,{tipoIdSuperv:'CC',numIdSuperv:'',nomSuperv:''});   // supervisor único para todos los contratos (Tipo 3)
 
 /* uid + estado + periodo + updatedAt en cada registro (ciclo BORRADOR -> CARGADO) */
 function genUid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
@@ -631,8 +634,8 @@ function fieldHtml(t,f){
 function buildDetailPanel(t){
   const s=SCHEMA[t];
   const panel=document.getElementById('p-t'+t);
-  const extra=s.fields.map(f=>fieldHtml(t,f)).join('');
-  panel.innerHTML=`
+  const extra=excelFields(t).map(f=>fieldHtml(t,f)).join('');   // no muestra los campos globales (supervisor)
+  panel.innerHTML=(t===3?supervisorCardHtml():'')+`
   <div class="card">
     <div class="card-head">
       <div class="ttl"><span class="card-ico" style="background:${s.color}"><b style="font-family:Inter;font-weight:800">${t}</b></span>
@@ -665,6 +668,107 @@ function prefillHeader(t){
   document.getElementById(`f${t}_nit`).value=entidad.nitBenef||'';
   toast('Datos del encabezado copiados','ok');
 }
+
+/* ══════════════════════ SUPERVISOR ÚNICO + CARGUE MASIVO (TIPO 3) ══════════════════════ */
+function supervisorCardHtml(){
+  return `
+  <div class="card">
+    <div class="card-head"><div class="ttl"><span class="card-ico" style="background:var(--red)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+    <div><h3>Supervisor del contrato (único para todos)</h3><div class="sub">Se registra una sola vez y se aplica a todos los contratos.</div></div></div></div>
+    <div class="card-body">
+      <div class="grid g3">
+        <div class="field"><label>Tipo id. supervisor</label><select id="sup_tipo">${optionsHtml(ID_SUPERVISOR,supervisor.tipoIdSuperv||'CC')}</select></div>
+        <div class="field"><label>N.° id. supervisor <span class="max">17</span></label><input id="sup_num" inputmode="numeric" maxlength="17" placeholder="Documento del supervisor"></div>
+        <div class="field"><label>Nombre del supervisor <span class="max">100</span></label><input id="sup_nom" class="uppercase" maxlength="100" placeholder="Nombre completo"></div>
+      </div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="guardarSupervisor()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Guardar y aplicar a todos</button>
+        <div class="spacer"></div>
+        <label class="btn btn-green" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg> Cargar contratos (Excel del sistema)
+          <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importarContratosSistema(this)"></label>
+      </div>
+      <div class="section-note" style="margin-top:12px">El cargue masivo lee el <b>export del sistema de contratación</b> (columnas CÓDIGOCONTRATO, OBJETOCONTRATO, VALOR INIC. HIDECONTRATO, CONTRATISTAS, FECHA ACTAINICIO, TIEMPO EJECUCIÓN) y crea registros de contrato (Tipo 3, indicador <b>I</b>). La <b>fecha de terminación</b> = fecha de acta de inicio + días de ejecución. El <b>supervisor</b> de arriba y el <b>ID Recurso / NIT / período</b> del encabezado se aplican a cada contrato. Ejecuta <b>Guardar entidad y período</b> antes de cargar.</div>
+    </div>
+  </div>`;
+}
+function pintarSupervisor(){
+  const t=document.getElementById('sup_tipo'), n=document.getElementById('sup_num'), m=document.getElementById('sup_nom');
+  if(t) t.value=supervisor.tipoIdSuperv||'CC';
+  if(n) n.value=supervisor.numIdSuperv||'';
+  if(m) m.value=supervisor.nomSuperv||'';
+}
+function guardarSupervisor(){
+  supervisor={ tipoIdSuperv:document.getElementById('sup_tipo').value,
+    numIdSuperv:normNum(document.getElementById('sup_num').value),
+    nomSuperv:up(document.getElementById('sup_nom').value) };
+  save(LS.sup,supervisor);
+  // aplicar a todos los contratos en borrador
+  let n=0; store[3].forEach(r=>{ if(!esCargado(r)){ r.tipoIdSuperv=supervisor.tipoIdSuperv; r.numIdSuperv=supervisor.numIdSuperv; r.nomSuperv=supervisor.nomSuperv; r.updatedAt=nowISO(); n++; } });
+  save(LS.data,store); renderTable(3); updateAll();
+  toast(`Supervisor guardado y aplicado a ${n} contrato(s)`,'ok');
+}
+function aplicarSupervisor(r){ r.tipoIdSuperv=supervisor.tipoIdSuperv||''; r.numIdSuperv=supervisor.numIdSuperv||''; r.nomSuperv=supervisor.nomSuperv||''; return r; }
+function normHeader(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+function addDays(iso,n){ const d=new Date(iso+'T00:00:00'); if(isNaN(d.getTime()))return ''; d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function parseValorCO(v){
+  let s=String(v==null?'':v).replace(/[^\d.,]/g,'');
+  if(s.indexOf(',')>=0 && s.indexOf('.')>=0) s=s.replace(/\./g,'').replace(',','.');      // 22.500.000,00
+  else if(s.indexOf(',')>=0) s=s.replace(',', '.');
+  else { const p=s.split('.'); if(p.length>1 && p[p.length-1].length===3) s=p.join(''); }  // solo miles
+  return fmtDec(s);
+}
+function importarContratosSistema(input){
+  const f=input.files[0]; if(!f) return;
+  if(!entidad.idRecurso||!entidad.nitBenef){ toast('Primero guarda la entidad y el período (pestaña 1)','err'); input.value=''; return; }
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const sh=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:''});
+      let hidx=-1; const H={};
+      for(let i=0;i<rows.length;i++){
+        const nn=rows[i].map(c=>normHeader(c));
+        if(nn.some(c=>c.indexOf('CODIGOCONTRATO')>=0)){ hidx=i; nn.forEach((c,j)=>{ if(c) H[c]=j; }); break; }
+      }
+      if(hidx<0){ toast('No encontré los encabezados (CÓDIGOCONTRATO…). ¿Es el export del sistema?','err'); input.value=''; return; }
+      const col=(...names)=>{ for(const n of names){ for(const k in H){ if(k.indexOf(n)>=0) return H[k]; } } return -1; };
+      const cCod=col('CODIGOCONTRATO'), cObj=col('OBJETOCONTRATO'),
+            cValH=col('HIDECONTRATO'), cVal=col('VALORINIC'),
+            cTie=col('TIEMPOEJECUCION'), cCon=col('CONTRATISTAS'),
+            cActa=col('FECHAACTAINICIO'), cReg=col('FECHAREGISTROCONTRATO');
+      const per=entidad.fechaFin||'';
+      let add=0, upd=0, dup=0, skip=0;
+      for(let i=hidx+1;i<rows.length;i++){
+        const row=rows[i]; if(!row||row.every(c=>String(c).trim()==='')) continue;
+        const cod=up(cCod>=0?row[cCod]:''); if(!cod){ skip++; continue; }
+        const contr=String((cCon>=0?row[cCon]:'')==null?'':(cCon>=0?row[cCon]:'')).trim();
+        const mm=contr.match(/^(\d+)[\s-]+(.*)$/);
+        const doc=mm?mm[1]:normNum(contr), nomC=up((mm?mm[2]:contr).replace(/\s+/g,' '));
+        const fIni=normFecha(cActa>=0?row[cActa]:(cReg>=0?row[cReg]:''));
+        const dias=parseInt(String(cTie>=0?row[cTie]:'').replace(/[^\d]/g,''),10);
+        const fFin=(fIni&&!isNaN(dias)&&dias>0)?addDays(fIni,dias):'1900-01-01';
+        let val='';
+        if(cValH>=0 && String(row[cValH]).trim()!=='') val=fmtDec(String(row[cValH]));
+        if(!val && cVal>=0) val=parseValorCO(row[cVal]);
+        const r={ idRecurso:up(entidad.idRecurso), nit:normNum(entidad.nitBenef), indicador:'I',
+          tipoActo:'1', numActo:cod, fecha:fIni, fechaFin:fFin, objeto:up(cObj>=0?row[cObj]:''),
+          valor:val, tipoIdContratista:'CC', numIdContratista:normNum(doc), nomContratista:nomC,
+          tipoIdSuperv:supervisor.tipoIdSuperv||'', numIdSuperv:supervisor.numIdSuperv||'', nomSuperv:supervisor.nomSuperv||'',
+          periodo:per };
+        const key=recordKey(3,r);
+        if(store[3].some(x=>esCargado(x)&&recordKey(3,x)===key)){ dup++; continue; }
+        const pos=store[3].findIndex(x=>!esCargado(x)&&recordKey(3,x)===key);
+        if(pos>=0){ r.uid=store[3][pos].uid; r.estado='BORRADOR'; r.updatedAt=nowISO(); store[3][pos]=r; upd++; }
+        else{ r.uid=genUid(); r.estado='BORRADOR'; r.updatedAt=nowISO(); store[3].push(r); add++; }
+      }
+      save(LS.data,store); renderTable(3); updateAll();
+      toast(`Contratos: ${add} nuevos, ${upd} actualizados${dup?', '+dup+' ya cargados (omitidos)':''}${skip?', '+skip+' sin código':''}`,'ok');
+    }catch(err){ toast('Error al leer el Excel: '+err.message,'err'); }
+    input.value='';
+  };
+  rd.readAsArrayBuffer(f);
+}
 function toggleCond(t){
   const na=document.getElementById(`f${t}_indicador`).value==='NA';
   const cw=document.getElementById(`cw_${t}`);
@@ -675,8 +779,9 @@ function readForm(t){
   const s=SCHEMA[t], g=k=>{const el=document.getElementById(`f${t}_${k}`); return el?el.value:'';};
   const r={ idRecurso:up(g('idRecurso')), nit:normNum(g('nit')), indicador:g('indicador') };
   s.fields.forEach(f=>{
-    let v=g(f.k);
     if(r.indicador==='NA'){ r[f.k]=''; return; }
+    if(f.global){ r[f.k]=supervisor[f.k]||''; return; }   // supervisor único: viene del formulario global
+    let v=g(f.k);
     if(f.kind==='num') v=normNum(v);
     else if(f.kind==='dec') v=normDec(v);
     else if(f.kind==='date') v=v||'';
@@ -932,7 +1037,7 @@ function descargarPlantilla(){
   // ejemplos por tipo
   const ejemplos={
     2:['ID0000000123','800000000','I','4','RES-000045','2026-07-05','150000000'],
-    3:['ID0000000123','800000000','I','1','CPS-000123','2026-07-10','2026-12-31','PRESTACION DE SERVICIOS DE SALUD','120000000','CC','1090000001','JUAN PEREZ','CC','52000000','MARIA GOMEZ'],
+    3:['ID0000000123','800000000','I','1','CPS-000123','2026-07-10','2026-12-31','PRESTACION DE SERVICIOS DE SALUD','120000000','CC','1090000001','JUAN PEREZ'],
     4:['ID0000000123','800000000','I','1','CPS-000123','POL-998877','2026-07-12'],
     5:['ID0000000123','800000000','I','1','CPS-000123','1','ACT-01','2026-07-31','40000000','40000000','35','AVANCE CONFORME AL CRONOGRAMA'],
     6:['ID0000000123','800000000','NA','','','','','','','','','',''],
@@ -965,7 +1070,7 @@ function importarExcel(input){
           const r={ idRecurso:up(row[0]), nit:normNum(row[1]), indicador:up(row[2]) };
           if(!r.idRecurso||!r.nit){ skip++; return; }
           if(!['I','A','E','NA'].includes(r.indicador)) r.indicador='I';
-          s.fields.forEach((fdef,j)=>{
+          excelFields(t).forEach((fdef,j)=>{
             let v=row[3+j];
             if(r.indicador==='NA'){ r[fdef.k]=''; return; }
             if(fdef.kind==='num') v=normNum(v);
@@ -974,6 +1079,8 @@ function importarExcel(input){
             else v=up(v);
             r[fdef.k]=v;
           });
+          // campos globales (supervisor) desde el registro único
+          s.fields.filter(f=>f.global).forEach(f=>{ r[f.k]= r.indicador==='NA'?'':(supervisor[f.k]||''); });
           r.periodo=per;
           // saltar si ya existe un CARGADO con la misma clave + periodo
           const key=recordKey(t,r);
@@ -995,7 +1102,7 @@ function exportarDatos(){
   const wb=XLSX.utils.book_new();
   ORDER.forEach(t=>{
     const cols=[...excelCols(t),'ESTADO','PERIODO'];
-    const data=[cols,...store[t].map(r=>[r.idRecurso,r.nit,r.indicador,...SCHEMA[t].fields.map(f=>r[f.k]||''),r.estado||'BORRADOR',r.periodo||''])];
+    const data=[cols,...store[t].map(r=>[r.idRecurso,r.nit,r.indicador,...excelFields(t).map(f=>r[f.k]||''),r.estado||'BORRADOR',r.periodo||''])];
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),SHEET_NAME[t]);
   });
   XLSX.writeFile(wb,'Datos_SER124DREC_actuales.xlsx');
@@ -1145,7 +1252,7 @@ function pintarSync(){
 
 /* ══════════════════════ BACKUP / RESET ══════════════════════ */
 function exportarBackup(){
-  const data={entidad,store,config,fecha:new Date().toISOString()};
+  const data={entidad,store,config,supervisor,fecha:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='respaldo_ser124drec.json'; a.click();
   toast('Respaldo exportado','ok');
@@ -1153,26 +1260,26 @@ function exportarBackup(){
 function importarBackup(input){
   const f=input.files[0]; if(!f)return; const rd=new FileReader();
   rd.onload=ev=>{ try{ const d=JSON.parse(ev.target.result);
-    if(d.entidad)entidad=d.entidad; if(d.store){ store=d.store; [2,3,4,5,6,7].forEach(t=>{if(!Array.isArray(store[t]))store[t]=[];}); } if(d.config)config=d.config;
+    if(d.entidad)entidad=d.entidad; if(d.store){ store=d.store; [2,3,4,5,6,7].forEach(t=>{if(!Array.isArray(store[t]))store[t]=[];}); } if(d.config)config=d.config; if(d.supervisor)supervisor=d.supervisor;
     migrarRegistros();
-    save(LS.ent,entidad); save(LS.data,store); save(LS.cfg,config);
-    pintarEntidad(); pintarConfig(); pintarSync(); ORDER.forEach(t=>renderTable(t)); updateAll();
+    save(LS.ent,entidad); save(LS.data,store); save(LS.cfg,config); save(LS.sup,supervisor);
+    pintarEntidad(); pintarConfig(); pintarSync(); pintarSupervisor(); ORDER.forEach(t=>renderTable(t)); updateAll();
     toast('Respaldo importado','ok');
   }catch(e){ toast('Archivo inválido','err'); } input.value=''; };
   rd.readAsText(f);
 }
 function borrarTodo(){
   confirmModal('Borrar todos los datos','Se eliminarán entidad, registros y configuración de este equipo. No se puede deshacer.',()=>{
-    [LS.ent,LS.data,LS.cfg].forEach(k=>localStorage.removeItem(k));
-    entidad={}; store={2:[],3:[],4:[],5:[],6:[],7:[]}; config={url:'',token:''};
-    pintarEntidad(); pintarConfig(); ORDER.forEach(t=>renderTable(t)); updateAll(); toast('Datos borrados','info');
+    [LS.ent,LS.data,LS.cfg,LS.sup].forEach(k=>localStorage.removeItem(k));
+    entidad={}; store={2:[],3:[],4:[],5:[],6:[],7:[]}; config={url:DEFAULT_URL,token:'',autoSync:true}; supervisor={tipoIdSuperv:'CC',numIdSuperv:'',nomSuperv:''};
+    pintarEntidad(); pintarConfig(); pintarSupervisor(); ORDER.forEach(t=>renderTable(t)); updateAll(); toast('Datos borrados','info');
   });
 }
 
 /* ══════════════════════ INIT ══════════════════════ */
 ORDER.forEach(t=>buildDetailPanel(t));
 migrarRegistros();
-pintarEntidad(); pintarConfig(); pintarSync();
+pintarEntidad(); pintarConfig(); pintarSync(); pintarSupervisor();
 ORDER.forEach(t=>{ renderTable(t); toggleCond(t); });
 updateAll();
 // sincronización automática al abrir (si está configurada)

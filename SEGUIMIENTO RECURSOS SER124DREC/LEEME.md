@@ -31,6 +31,26 @@ Aplicativo local (offline) para generar el archivo plano `.TXT` complementario d
 
 ---
 
+## Contratos (Tipo 3): supervisor único y cargue masivo
+
+En la pestaña **Contratos** hay un bloque arriba con dos herramientas:
+
+- **Supervisor del contrato (único para todos):** registras una sola vez el tipo y número de identificación y el nombre del supervisor/interventor. Al pulsar **Guardar y aplicar a todos**, ese supervisor se asigna a todos los contratos (los ya CARGADOS no se tocan). Por eso el supervisor ya no se pide contrato por contrato.
+- **Cargar contratos (Excel del sistema):** carga masiva de contratistas leyendo el **export del sistema de contratación** tal cual. El aplicativo reconoce las columnas por su nombre:
+
+  | Columna del export | Se usa como |
+  |---|---|
+  | `CÓDIGOCONTRATO` | Número de contrato |
+  | `OBJETOCONTRATO` | Objeto |
+  | `VALOR INIC. HIDECONTRATO` | Valor del contrato |
+  | `CONTRATISTAS` | Se separa en documento (primer número) y nombre |
+  | `FECHA ACTAINICIO` | Fecha del contrato |
+  | `TIEMPO EJECUCIÓN` | Días para calcular la **fecha de terminación** (inicio + días) |
+
+  Cada contrato se crea como Tipo 3 con indicador **I**, tipo de contrato **1 (Contrato)**, tipo de identificación del contratista **CC**, y toma el **supervisor** de arriba y el **ID Recurso / NIT / período** del encabezado (pestaña 1). Los que coincidan con un contrato ya **CARGADO** del mismo período se omiten; si vuelves a cargar el mismo contrato en borrador, se actualiza en vez de duplicarse.
+
+  > Antes de cargar: guarda la **entidad y el período** (pestaña 1) y el **supervisor**.
+
 ## Sincronización y estados (borrador → cargado)
 
 Google Sheets es la **fuente de verdad**. Cada registro tiene un estado:

@@ -40,7 +40,7 @@ En la pestaña **Contratos** hay un bloque arriba con dos herramientas:
 
   | Columna del export | Se usa como |
   |---|---|
-  | `CÓDIGOCONTRATO` | Número de contrato |
+  | `CÓDIGOCONTRATO` | Número de contrato (prefijo **CPS-** + año: 0483 → CPS-0483-2026) |
   | `OBJETOCONTRATO` | Objeto |
   | `VALOR INIC. HIDECONTRATO` | Valor del contrato |
   | `CONTRATISTAS` | Se separa en documento (primer número) y nombre |

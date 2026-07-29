@@ -397,6 +397,7 @@ tbody tr:last-child td{border-bottom:none}
 
 <script>
 /* ══════════════════════ CATÁLOGOS ══════════════════════ */
+const PREFIJO_CONTRATO='CPS-';   // se antepone al número de contrato en el cargue masivo (0483 -> CPS-0483)
 const TIPO_ENTIDAD=[['NI','NI · NIT (entidad beneficiaria)'],['DE','DE · Departamento'],['DI','DI · Distrito'],['MU','MU · Municipio']];
 const IND=[['','— selecciona —'],['I','I · Insertar (nuevo)'],['A','A · Actualizar (corrige uno previo)'],['E','E · Anular (elimina uno previo)'],['NA','NA · No aplica (omite el registro)']];
 const ACTO_INCORP=[['','—'],['1','1 · Ordenanza'],['2','2 · Acuerdo'],['3','3 · Decreto'],['4','4 · Resolución'],['5','5 · Acta']];
@@ -687,7 +688,7 @@ function supervisorCardHtml(){
         <label class="btn btn-green" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg> Cargar contratos (Excel del sistema)
           <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importarContratosSistema(this)"></label>
       </div>
-      <div class="section-note" style="margin-top:12px">El cargue masivo lee el <b>export del sistema de contratación</b> (columnas CÓDIGOCONTRATO, OBJETOCONTRATO, VALOR INIC. HIDECONTRATO, CONTRATISTAS, FECHA ACTAINICIO, TIEMPO EJECUCIÓN) y crea registros de contrato (Tipo 3, indicador <b>I</b>). La <b>fecha de terminación</b> = fecha de acta de inicio + días de ejecución. El <b>supervisor</b> de arriba y el <b>ID Recurso / NIT / período</b> del encabezado se aplican a cada contrato. Ejecuta <b>Guardar entidad y período</b> antes de cargar.</div>
+      <div class="section-note" style="margin-top:12px">El cargue masivo lee el <b>export del sistema de contratación</b> (columnas CÓDIGOCONTRATO, OBJETOCONTRATO, VALOR INIC. HIDECONTRATO, CONTRATISTAS, FECHA ACTAINICIO, TIEMPO EJECUCIÓN) y crea registros de contrato (Tipo 3, indicador <b>I</b>). El <b>número de contrato</b> se arma con prefijo y año (0483 → <b>CPS-0483-2026</b>). La <b>fecha de terminación</b> = fecha de acta de inicio + días de ejecución. El <b>supervisor</b> de arriba y el <b>ID Recurso / NIT / período</b> del encabezado se aplican a cada contrato. Ejecuta <b>Guardar entidad y período</b> antes de cargar.</div>
     </div>
   </div>`;
 }
@@ -751,8 +752,10 @@ function importarContratosSistema(input){
         let val='';
         if(cValH>=0 && String(row[cValH]).trim()!=='') val=fmtDec(String(row[cValH]));
         if(!val && cVal>=0) val=parseValorCO(row[cVal]);
+        const anio=(fIni||per||'').slice(0,4);                            // año del contrato (de la fecha de acta o del período)
+        const numContrato=/^\d+$/.test(cod)?(PREFIJO_CONTRATO+cod+(anio?('-'+anio):'')):cod;   // 0483 -> CPS-0483-2026 (no duplica si ya trae prefijo)
         const r={ idRecurso:up(entidad.idRecurso), nit:normNum(entidad.nitBenef), indicador:'I',
-          tipoActo:'1', numActo:cod, fecha:fIni, fechaFin:fFin, objeto:up(cObj>=0?row[cObj]:''),
+          tipoActo:'1', numActo:numContrato, fecha:fIni, fechaFin:fFin, objeto:up(cObj>=0?row[cObj]:''),
           valor:val, tipoIdContratista:'CC', numIdContratista:normNum(doc), nomContratista:nomC,
           tipoIdSuperv:supervisor.tipoIdSuperv||'', numIdSuperv:supervisor.numIdSuperv||'', nomSuperv:supervisor.nomSuperv||'',
           periodo:per };

@@ -1063,6 +1063,20 @@ h1,h2,h3,.section-hero h1,.nav-brand,.carnet-card{font-family:var(--font-display
             <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="adminEliminarBannerContingencia()">Quitar banner</button>
           </div>
         </div>
+
+        <!-- Banner Inspección Personal -->
+        <div style="background:var(--bg-soft);border-radius:var(--r-xl);padding:1.25rem;border:1px solid var(--border)">
+          <p style="font-weight:700;font-size:.9rem;margin-bottom:.25rem">Banner — Inspección Personal</p>
+          <p style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem">Encabezado que aparece al exportar PDF e imagen del informe de inspección de emblemas.</p>
+          <img id="admin-banner-inspeccion-preview" src="" alt="Banner inspección" style="display:none;width:100%;border-radius:var(--r-md);margin-bottom:.75rem;max-height:120px;object-fit:contain;background:#fff">
+          <div style="display:flex;flex-direction:column;gap:.5rem">
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer;text-align:center">
+              Cargar imagen
+              <input type="file" accept="image/*" style="display:none" onchange="adminCargarBannerInspeccion(this)">
+            </label>
+            <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="adminEliminarBannerInspeccion()">Quitar banner</button>
+          </div>
+        </div>
       </div>
     </div>
     <div id="apane-seguimiento" class="admin-pane"><!-- inyectado --></div>
@@ -5684,6 +5698,7 @@ function dataURLtoBlob(dataurl){
 ───────────────────────────────────────────── */
 const BANNER_RIESGOS_KEY      = 'mm_banner_riesgos';
 const BANNER_CONTINGENCIA_KEY = 'mm_banner_contingencia';
+const BANNER_INSPECCION_KEY   = 'mm_banner_inspeccion';
 
 /* Lee un banner: primero caché local, luego Supabase */
 function getBannerCached(key, fallback){
@@ -5716,7 +5731,7 @@ async function bannersCargarDesdeSupabase(){
     const { data, error } = await supa
       .from('mm_config')
       .select('key, value')
-      .in('key', [BANNER_PRINCIPAL_KEY, BANNER_RIESGOS_KEY, BANNER_CONTINGENCIA_KEY]);
+      .in('key', [BANNER_PRINCIPAL_KEY, BANNER_RIESGOS_KEY, BANNER_CONTINGENCIA_KEY, BANNER_INSPECCION_KEY]);
     if(error || !data) return;
 
     data.forEach(row => {
@@ -5739,6 +5754,10 @@ function _aplicarBannerDOM(key, value){
   }
   if(key === BANNER_CONTINGENCIA_KEY){
     const prev = document.getElementById('admin-banner-contingencia-preview');
+    if(prev){ prev.src=value; prev.style.display='block'; }
+  }
+  if(key === BANNER_INSPECCION_KEY){
+    const prev = document.getElementById('admin-banner-inspeccion-preview');
     if(prev){ prev.src=value; prev.style.display='block'; }
   }
 }
@@ -5794,9 +5813,19 @@ function adminEliminarBannerContingencia(){
   toast('Banner de contingencia eliminado.','info');
 }
 
+function adminCargarBannerInspeccion(input){
+  _adminSubirBanner(input, BANNER_INSPECCION_KEY, 2, 'Banner de inspección guardado.');
+}
+function adminEliminarBannerInspeccion(){
+  bannerDelete(BANNER_INSPECCION_KEY);
+  const el = document.getElementById('admin-banner-inspeccion-preview');
+  if(el){ el.src=''; el.style.display='none'; }
+  toast('Banner de inspección eliminado.','info');
+}
+
 /* Aplica caché local inmediatamente (antes de que llegue Supabase) */
 function adminCargarBannersGuardados(){
-  [BANNER_PRINCIPAL_KEY, BANNER_RIESGOS_KEY, BANNER_CONTINGENCIA_KEY].forEach(key => {
+  [BANNER_PRINCIPAL_KEY, BANNER_RIESGOS_KEY, BANNER_CONTINGENCIA_KEY, BANNER_INSPECCION_KEY].forEach(key => {
     const val = localStorage.getItem(key);
     if(val) _aplicarBannerDOM(key, val);
   });
@@ -6456,17 +6485,69 @@ async function inspEliminarPersona(pid){
   inspCargarPersonas();
 }
 
+// ── Helper: construye canvas en blanco con banner ──────────────
+async function _inspBuildPrintCanvas(bannerKey, htmlContent, widthPx=1200){
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:fixed;top:-9999px;left:-9999px;width:${widthPx}px;background:#ffffff;color:#1a1a2e;font-family:Arial,sans-serif;padding:2rem 2.5rem;box-sizing:border-box`;
+  document.body.appendChild(wrap);
+
+  const bannerData = localStorage.getItem(bannerKey);
+  if(bannerData){
+    const img = document.createElement('img');
+    img.src = bannerData;
+    img.style.cssText = 'width:100%;max-height:130px;object-fit:contain;margin-bottom:1.5rem;display:block';
+    wrap.appendChild(img);
+    await new Promise(r=>{ img.complete ? r() : (img.onload=r, img.onerror=r); });
+  }
+
+  const content = document.createElement('div');
+  content.innerHTML = htmlContent;
+  wrap.appendChild(content);
+
+  await new Promise(r=>setTimeout(r,80));
+  const canvas = await html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+  document.body.removeChild(wrap);
+  return canvas;
+}
+
 // ── Exportaciones de la inspección ────────────────────────────
 async function inspExportarPDF(){
-  const el = document.getElementById('insp-tabla-personas');
-  if(!el||!window.jspdf||!window.html2canvas){ toast('Librerías no disponibles','warn'); return; }
-  const canvas = await html2canvas(el,{scale:2,backgroundColor:'#1a1f2e'});
+  if(!window.jspdf||!window.html2canvas){ toast('Librerías no disponibles','warn'); return; }
+  if(!_inspPersonas.length){ toast('No hay personas registradas','warn'); return; }
+
+  const html = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:#1a1a2e;color:#fff">
+        <th style="padding:8px 10px;text-align:left">Nombre</th>
+        <th style="padding:8px;text-align:left">Servicio</th>
+        <th style="padding:8px;text-align:center">Extramural</th>
+        <th style="padding:8px;text-align:center">Tarjeta ID</th>
+        <th style="padding:8px;text-align:center">Foto 3x4</th>
+        <th style="padding:8px;text-align:center">Firmada</th>
+        <th style="padding:8px;text-align:center">Peto MM</th>
+        <th style="padding:8px;text-align:center">Cumple</th>
+      </tr></thead>
+      <tbody>${_inspPersonas.map((p,i)=>`
+        <tr style="background:${i%2===0?'#f8fafc':'#ffffff'};border-bottom:1px solid #e2e8f0">
+          <td style="padding:7px 10px;font-weight:600">${p.nombre}</td>
+          <td style="padding:7px 10px">${p.servicio_otro||p.servicio}</td>
+          <td style="padding:7px 10px;text-align:center">${p.extramural?'Sí':'No'}</td>
+          <td style="padding:7px 10px;text-align:center">${p.usa_tarjeta?'✓':'✗'}</td>
+          <td style="padding:7px 10px;text-align:center">${p.usa_tarjeta?(p.ti_foto_correcta?'✓':'✗'):'—'}</td>
+          <td style="padding:7px 10px;text-align:center">${p.usa_tarjeta?(p.ti_firmada?'✓':'✗'):'—'}</td>
+          <td style="padding:7px 10px;text-align:center">${p.usa_peto?'✓':'No'}</td>
+          <td style="padding:7px 10px;text-align:center;font-weight:700;color:${p.cumple?'#16a34a':'#dc2626'}">${p.cumple?'✓ Cumple':'✗ No cumple'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  const canvas = await _inspBuildPrintCanvas(BANNER_INSPECCION_KEY, html, 1100);
   const {jsPDF} = window.jspdf;
   const pdf = new jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
   const W = pdf.internal.pageSize.getWidth();
   const ratio = canvas.width/canvas.height;
   pdf.addImage(canvas.toDataURL('image/png'),'PNG',20,20,W-40,(W-40)/ratio);
-  pdf.save(`inspeccion_${_inspCurrentId?.slice(0,8)}.pdf`);
+  pdf.save(`inspeccion_${_inspCurrentId?.slice(0,8)||'export'}.pdf`);
 }
 
 function inspExportarCSV(){
@@ -6489,12 +6570,39 @@ function inspExportarCSV(){
 }
 
 async function inspExportarImagen(){
-  const el = document.getElementById('insp-personas-section');
-  if(!el||!window.html2canvas){ toast('html2canvas no disponible','warn'); return; }
-  const canvas = await html2canvas(el,{scale:2,backgroundColor:'#1a1f2e'});
+  if(!window.html2canvas){ toast('html2canvas no disponible','warn'); return; }
+  if(!_inspPersonas.length){ toast('No hay personas registradas','warn'); return; }
+
+  const html = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:#1a1a2e;color:#fff">
+        <th style="padding:8px 10px;text-align:left">Nombre</th>
+        <th style="padding:8px;text-align:left">Servicio</th>
+        <th style="padding:8px;text-align:center">Extramural</th>
+        <th style="padding:8px;text-align:center">Tarjeta ID</th>
+        <th style="padding:8px;text-align:center">Foto 3x4</th>
+        <th style="padding:8px;text-align:center">Firmada</th>
+        <th style="padding:8px;text-align:center">Peto MM</th>
+        <th style="padding:8px;text-align:center">Cumple</th>
+      </tr></thead>
+      <tbody>${_inspPersonas.map((p,i)=>`
+        <tr style="background:${i%2===0?'#f8fafc':'#ffffff'};border-bottom:1px solid #e2e8f0">
+          <td style="padding:7px 10px;font-weight:600">${p.nombre}</td>
+          <td style="padding:7px 10px">${p.servicio_otro||p.servicio}</td>
+          <td style="padding:7px 10px;text-align:center">${p.extramural?'Sí':'No'}</td>
+          <td style="padding:7px 10px;text-align:center">${p.usa_tarjeta?'✓':'✗'}</td>
+          <td style="padding:7px 10px;text-align:center">${p.usa_tarjeta?(p.ti_foto_correcta?'✓':'✗'):'—'}</td>
+          <td style="padding:7px 10px;text-align:center">${p.usa_tarjeta?(p.ti_firmada?'✓':'✗'):'—'}</td>
+          <td style="padding:7px 10px;text-align:center">${p.usa_peto?'✓':'No'}</td>
+          <td style="padding:7px 10px;text-align:center;font-weight:700;color:${p.cumple?'#16a34a':'#dc2626'}">${p.cumple?'✓ Cumple':'✗ No cumple'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  const canvas = await _inspBuildPrintCanvas(BANNER_INSPECCION_KEY, html, 1100);
   const a = document.createElement('a');
   a.href = canvas.toDataURL('image/png');
-  a.download = `inspeccion_${_inspCurrentId?.slice(0,8)}.png`;
+  a.download = `inspeccion_${_inspCurrentId?.slice(0,8)||'export'}.png`;
   a.click();
 }
 
@@ -6769,30 +6877,129 @@ function adminInsp_renderInforme(inspeccs, personas, cont){
     const ctxH = document.getElementById(chartId5)?.getContext('2d');
     if(ctxH&&srvKeys.length) new Chart(ctxH,{type:'bar',data:{labels:srvKeys,datasets:[{label:'% Cumplimiento',data:srvPcts,backgroundColor:srvColors,borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+'%'}}},scales:{x:{grid:{display:false},ticks:{color:'#ccc',font:{size:10}}},y:{max:100,ticks:{callback:v=>v+'%',color:'#ccc'},grid:{color:'rgba(255,255,255,.06)'}}}}});
 
-    // Guardar referencia para exports
+    // Guardar referencias para exports
     window._adminInspData = {inspeccs, personas};
+    window._adminInspChartIds = {A:chartId1, B:chartId2, C:chartId3, G:chartId4, H:chartId5};
   }, 100);
 }
 
+function _adminInspBuildInformeHtml(){
+  const {inspeccs, personas} = window._adminInspData||{inspeccs:[],personas:[]};
+  const ids = window._adminInspChartIds||{};
+  const total    = personas.length;
+  const cumplen  = personas.filter(p=>p.cumple).length;
+  const pct      = total ? Math.round(cumplen/total*100) : 0;
+  const semColor = pct>=80?'#16a34a':pct>=50?'#d97706':'#dc2626';
+
+  // Extraer imágenes de los charts ya renderizados
+  const chartImg = id => {
+    const el = document.getElementById(id);
+    return el ? el.toDataURL('image/png') : null;
+  };
+  const imgA = chartImg(ids.A), imgB = chartImg(ids.B), imgC = chartImg(ids.C);
+  const imgG = chartImg(ids.G), imgH = chartImg(ids.H);
+
+  // Tabla detallada
+  const tablaRows = personas.map((p,i)=>{
+    const insp = inspeccs.find(i=>i.id===p.inspeccion_id)||{};
+    return `<tr style="background:${i%2===0?'#f8fafc':'#fff'};border-bottom:1px solid #e2e8f0">
+      <td style="padding:6px 8px;font-weight:500">${p.nombre}</td>
+      <td style="padding:6px 8px">${p.servicio_otro||p.servicio}</td>
+      <td style="padding:6px 8px;font-size:11px">${(insp.ips||'').replace('IPS ','')}</td>
+      <td style="text-align:center">${p.usa_tarjeta?'✓':'✗'}</td>
+      <td style="text-align:center">${p.ti_foto_correcta!=null?(p.ti_foto_correcta?'✓':'✗'):'—'}</td>
+      <td style="text-align:center">${p.ti_firmada!=null?(p.ti_firmada?'✓':'✗'):'—'}</td>
+      <td style="text-align:center">${p.usa_peto?'✓':'No'}</td>
+      <td style="text-align:center;font-weight:700;color:${p.cumple?'#16a34a':'#dc2626'}">${p.cumple?'✓':'✗'}</td>
+    </tr>`;
+  }).join('');
+
+  const noCumplenLista = personas.filter(p=>!p.cumple).map(p=>{
+    const insp = inspeccs.find(i=>i.id===p.inspeccion_id)||{};
+    return `<div style="padding:5px 0;border-bottom:1px solid #fee2e2;font-size:12px">${p.nombre} · <span style="color:#666">${p.servicio_otro||p.servicio} · ${(insp.ips||'').replace('IPS ','')}</span></div>`;
+  }).join('');
+
+  const cumplenLista = personas.filter(p=>p.cumple).map(p=>{
+    const insp = inspeccs.find(i=>i.id===p.inspeccion_id)||{};
+    return `<div style="padding:5px 0;border-bottom:1px solid #dcfce7;font-size:12px">${p.nombre} <span style="color:#666">· ${(insp.ips||'').replace('IPS ','')}</span></div>`;
+  }).join('');
+
+  return `
+  <!-- Resumen KPIs -->
+  <div style="display:flex;gap:16px;margin-bottom:20px">
+    <div style="flex:1;border:2px solid ${semColor};border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:2rem;font-weight:800;color:${semColor}">${pct}%</div>
+      <div style="font-size:11px;color:#555;margin-top:4px">Cumplimiento general</div>
+    </div>
+    <div style="flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:2rem;font-weight:800;color:#1a1a2e">${total}</div>
+      <div style="font-size:11px;color:#555;margin-top:4px">Personas inspeccionadas</div>
+    </div>
+    <div style="flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:2rem;font-weight:800;color:#1a1a2e">${inspeccs.length}</div>
+      <div style="font-size:11px;color:#555;margin-top:4px">Inspecciones en el período</div>
+    </div>
+  </div>
+
+  <!-- Gráficas A y B -->
+  <div style="display:flex;gap:16px;margin-bottom:20px">
+    ${imgA?`<div style="flex:2;border:1px solid #e2e8f0;border-radius:10px;padding:14px"><div style="font-weight:700;font-size:12px;margin-bottom:8px;color:#444">A · Semáforo por IPS</div><img src="${imgA}" style="width:100%;height:auto"></div>`:''}
+    ${imgB?`<div style="flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:14px"><div style="font-weight:700;font-size:12px;margin-bottom:8px;color:#444">B · Cumplimiento general</div><img src="${imgB}" style="width:100%;height:auto"></div>`:''}
+  </div>
+
+  <!-- Gráfica C -->
+  ${imgC?`<div style="border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:20px"><div style="font-weight:700;font-size:12px;margin-bottom:8px;color:#444">C · Razones de no portación de tarjeta de identificación</div><img src="${imgC}" style="width:100%;height:auto"></div>`:''}
+
+  <!-- Tabla detallada E -->
+  <div style="border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:20px">
+    <div style="font-weight:700;font-size:12px;margin-bottom:8px;color:#444">E · Tabla detallada de personal</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr style="background:#1a1a2e;color:#fff">
+        <th style="padding:6px 8px;text-align:left">Nombre</th><th style="padding:6px 8px;text-align:left">Servicio</th><th style="padding:6px 8px">IPS</th>
+        <th style="padding:6px;text-align:center">TI</th><th style="padding:6px;text-align:center">Foto</th><th style="padding:6px;text-align:center">Firma</th><th style="padding:6px;text-align:center">Peto</th><th style="padding:6px;text-align:center">Cumple</th>
+      </tr></thead>
+      <tbody>${tablaRows}</tbody>
+    </table>
+  </div>
+
+  <!-- Felicitaciones + Lista seguimiento -->
+  <div style="display:flex;gap:16px;margin-bottom:20px">
+    <div style="flex:1;border:1px solid #bbf7d0;border-radius:10px;padding:14px;background:#f0fdf4">
+      <div style="font-weight:700;font-size:12px;color:#16a34a;margin-bottom:8px">F · Felicitaciones</div>
+      ${cumplenLista||'<div style="font-size:12px;color:#666">Nadie cumple todos los criterios aún.</div>'}
+    </div>
+    <div style="flex:1;border:1px solid #fecaca;border-radius:10px;padding:14px;background:#fff5f5">
+      <div style="font-weight:700;font-size:12px;color:#dc2626;margin-bottom:8px">Lista de seguimiento</div>
+      ${noCumplenLista||'<div style="font-size:12px;color:#666">¡Todos cumplen!</div>'}
+    </div>
+  </div>
+
+  <!-- Gráficas G y H -->
+  ${imgG?`<div style="border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:20px"><div style="font-weight:700;font-size:12px;margin-bottom:8px;color:#444">G · Tendencia de cumplimiento</div><img src="${imgG}" style="width:100%;height:auto"></div>`:''}
+  ${imgH?`<div style="border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:20px"><div style="font-weight:700;font-size:12px;margin-bottom:8px;color:#444">H · Cumplimiento por servicio</div><img src="${imgH}" style="width:100%;height:auto"></div>`:''}
+  `;
+}
+
 async function adminInsp_exportarPDF(){
-  const el = document.getElementById('adminInsp-informe-contenido');
-  if(!el||!window.jspdf||!window.html2canvas){ toast('Librerías no disponibles','warn'); return; }
+  if(!window.jspdf||!window.html2canvas){ toast('Librerías no disponibles','warn'); return; }
+  if(!window._adminInspData?.personas?.length){ toast('Genera el informe primero','warn'); return; }
+  toast('Generando PDF…','info');
+  const canvas = await _inspBuildPrintCanvas(BANNER_INSPECCION_KEY, _adminInspBuildInformeHtml(), 1100);
   const {jsPDF} = window.jspdf;
   const pdf = new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
   const W = pdf.internal.pageSize.getWidth();
   const H = pdf.internal.pageSize.getHeight();
-  const canvas = await html2canvas(el,{scale:2,backgroundColor:'#1a1f2e'});
-  const imgH = (canvas.height*W)/canvas.width;
-  let posY=0, pageH=H-40;
-  while(posY<imgH){
-    if(posY>0) pdf.addPage();
-    const srcY = (posY/imgH)*canvas.height;
-    const srcH = Math.min((pageH/imgH)*canvas.height, canvas.height-srcY);
+  const imgH = (canvas.height * W) / canvas.width;
+  let posY = 0, pageH = H - 40;
+  while(posY < imgH){
+    if(posY > 0) pdf.addPage();
+    const srcY  = (posY / imgH) * canvas.height;
+    const srcH  = Math.min((pageH / imgH) * canvas.height, canvas.height - srcY);
     const pg = document.createElement('canvas');
-    pg.width=canvas.width; pg.height=srcH;
-    pg.getContext('2d').drawImage(canvas,0,srcY,canvas.width,srcH,0,0,canvas.width,srcH);
-    pdf.addImage(pg.toDataURL('image/png'),'PNG',0,20,W,pageH*(srcH/((pageH/imgH)*canvas.height)));
-    posY+=pageH;
+    pg.width = canvas.width; pg.height = srcH;
+    pg.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+    pdf.addImage(pg.toDataURL('image/png'), 'PNG', 0, 20, W, pageH * (srcH / ((pageH / imgH) * canvas.height)));
+    posY += pageH;
   }
   pdf.save(`informe_inspeccion_${new Date().toISOString().slice(0,10)}.pdf`);
 }
@@ -6820,12 +7027,13 @@ function adminInsp_exportarCSV(){
 }
 
 async function adminInsp_exportarImagen(){
-  const el=document.getElementById('adminInsp-informe-contenido');
-  if(!el||!window.html2canvas){ toast('html2canvas no disponible','warn'); return; }
-  const canvas=await html2canvas(el,{scale:2,backgroundColor:'#1a1f2e'});
-  const a=document.createElement('a');
-  a.href=canvas.toDataURL('image/png');
-  a.download=`informe_inspeccion_${new Date().toISOString().slice(0,10)}.png`;
+  if(!window.html2canvas){ toast('html2canvas no disponible','warn'); return; }
+  if(!window._adminInspData?.personas?.length){ toast('Genera el informe primero','warn'); return; }
+  toast('Generando imagen…','info');
+  const canvas = await _inspBuildPrintCanvas(BANNER_INSPECCION_KEY, _adminInspBuildInformeHtml(), 1100);
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = `informe_inspeccion_${new Date().toISOString().slice(0,10)}.png`;
   a.click();
 }
 // ═══ FIN módulo Inspección Personal ══════════════════════════

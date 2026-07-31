@@ -96,6 +96,7 @@ a.pill{text-decoration:none}
 .group-tag.unica{background:rgba(21,101,192,.12);color:var(--primary2)}
 .group-tag.mensual{background:rgba(180,83,9,.12);color:var(--yellow)}
 .group-tag.disp{background:rgba(124,58,237,.12);color:var(--purple)}
+.group-tag.extra{background:rgba(8,145,178,.12);color:var(--teal)}
 .group-head h3{font-size:14px;color:var(--text3);font-weight:700}
 .group-head .gc{font-size:11px;color:var(--text2);margin-left:auto;font-weight:600}
 
@@ -103,6 +104,7 @@ a.pill{text-decoration:none}
 .pitem{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 1px 3px rgba(15,76,129,.05);margin-bottom:10px;overflow:hidden}
 .pitem-top{display:flex;align-items:flex-start;gap:12px;padding:13px 15px}
 .pnum{width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--primary);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pnum.extra{background:linear-gradient(135deg,var(--teal),var(--green));color:#fff;font-size:18px}
 .pmeta{flex:1;min-width:0}
 .pmeta .pt{font-size:13.5px;font-weight:700;color:var(--text);line-height:1.3}
 .pmeta .pd{font-size:11px;color:var(--text2);margin-top:3px;line-height:1.5}
@@ -447,11 +449,14 @@ const PUNTOS = [
   {n:13,per:'mensual',t:'Archivo Excel con los documentos del numeral 3', d:'Archivo en Excel que contenga todos los documentos relacionados en el numeral 3.'},
   {n:14,per:'disp',   t:'Certificación de datos reportados', d:'Certificación (Representante Legal, Contador y/o Revisor Fiscal) de que los datos reportados corresponden a la documentación del numeral 3.'},
   {n:15,per:'disp',   t:'Certificación de cumplimiento (Anexo 2)', d:'Certificación de cumplimiento expedida por el Representante Legal, Contador o Revisor Fiscal (Anexo No. 2).'},
+  {n:16,per:'mensual',sym:'+',extra:true, t:'Archivo Plano SER124DREC', d:'Archivo plano de seguimiento a la ejecución de recursos (SER124DREC) que se reporta a PISIS. Complementa los soportes de la Resolución 0900/2026.'},
+  {n:17,per:'mensual',sym:'+',extra:true, t:'Cargue Mensual a PISIS', d:'Soporte del cargue mensual efectivo en la plataforma PISIS (acuse, constancia o pantallazo del envío del periodo).'},
 ];
 const PER_INFO = {
   unica:  {lbl:'Única vez',           cls:'unica'},
   mensual:{lbl:'Mensual',             cls:'mensual'},
-  disp:   {lbl:'Según disponibilidad',cls:'disp'}
+  disp:   {lbl:'Según disponibilidad',cls:'disp'},
+  extra:  {lbl:'Adicional',           cls:'extra'}
 };
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const UNICO = 'UNICO';
@@ -596,6 +601,7 @@ function renderRepo(){
   html+=groupHtml('unica','Documentos de única vez','Se cargan una sola vez durante toda la ejecución.',[1,2,8,9],months);
   html+=groupHtml('mensual','Documentos mensuales','Se cargan cada mes del periodo de ejecución. Cada mes tiene su propia casilla.',[3,4,5,6,7,10,11,13],months);
   html+=groupHtml('disp','Documentos según disponibilidad','Se cargan cuando el documento esté disponible (cierre / liquidación).',[12,14,15],months);
+  html+=groupHtml('extra','Procesos adicionales','Procesos complementarios al reporte de la Res. 0900/2026, con una casilla por mes. El Archivo Plano SER124DREC puedes generarlo en el <a href="../SEGUIMIENTO RECURSOS SER124DREC/Seguimiento_Recursos_SER124DREC.html" style="color:var(--primary2);font-weight:700">módulo SER124DREC</a>.',[16,17],months);
   c.innerHTML=html;
 }
 
@@ -625,7 +631,7 @@ function singlePunto(p){
   const files=slotFiles(p.n,UNICO);
   return `<div class="pitem">
     <div class="pitem-top">
-      <div class="pnum">${p.n}</div>
+      <div class="pnum ${p.extra?'extra':''}">${p.sym||p.n}</div>
       <div class="pmeta"><div class="pt">${esc(p.t)}</div><div class="pd">${esc(p.d)}</div>${respLine(p.n)}</div>
       <div class="pstate">${stBadge(st)}</div>
     </div>
@@ -653,7 +659,7 @@ function monthlyPunto(p,months){
   const sin=months.filter(m=>slotState(p.n,m)==='sin').length;
   return `<div class="pitem">
     <div class="pitem-top">
-      <div class="pnum">${p.n}</div>
+      <div class="pnum ${p.extra?'extra':''}">${p.sym||p.n}</div>
       <div class="pmeta"><div class="pt">${esc(p.t)}</div><div class="pd">${esc(p.d)}</div>${respLine(p.n)}</div>
       <div class="pstate">
         <span class="badge pis" title="En PISIS"><span class="dot"></span>${pis}</span>
@@ -724,7 +730,7 @@ function renderSummary(){
 
   let html=`
   <div class="sum-grid">
-    <div class="sum-tile blue"><div class="st-v">${tot}</div><div class="st-l">Casillas requeridas (Res. 0900/2026)</div></div>
+    <div class="sum-tile blue"><div class="st-v">${tot}</div><div class="st-l">Casillas de seguimiento (15 puntos + adicionales)</div></div>
     <div class="sum-tile red"><div class="st-v">${sin}</div><div class="st-l">Sin soporte — <b>faltan por cargar</b></div></div>
     <div class="sum-tile yellow"><div class="st-v">${car}</div><div class="st-l">Cargadas — <b>listas para PISIS</b></div></div>
     <div class="sum-tile green"><div class="st-v">${pis}</div><div class="st-l">Ya cargadas en PISIS</div></div>
@@ -754,7 +760,7 @@ function renderSummary(){
     if(p.per==='mensual'){months.forEach(m=>{const st=slotState(p.n,m);tt++;if(st==='sin')ss++;else if(st==='car')cc++;else pp++;});}
     else{const st=slotState(p.n,UNICO);tt++;if(st==='sin')ss++;else if(st==='car')cc++;else pp++;}
     html+=`<tr>
-      <td class="num">${p.n}</td>
+      <td class="num">${p.sym||p.n}</td>
       <td>${esc(p.t)}</td>
       <td>${puntoResp(p.n)?`<b style="color:var(--text3)">${esc(puntoResp(p.n))}</b>`:'<span style="color:var(--text2)">—</span>'}</td>
       <td><span class="group-tag ${p.per}" style="font-size:9px">${PER_INFO[p.per].lbl}</span></td>
@@ -779,7 +785,8 @@ function renderSummary(){
 function chip(s,cls){
   const p=PUNTOS.find(x=>x.n===s.punto);
   const per=s.periodo&&s.periodo!==UNICO?` · ${mesLabel(s.periodo)}`:'';
-  return `<span class="mini ${cls}" style="margin:2px 4px 2px 0;padding:3px 9px;height:auto;display:inline-flex;font-weight:700">#${s.punto} ${esc(p.t.slice(0,34))}${p.t.length>34?'…':''}${per}</span>`;
+  const tag=p.sym?p.sym:'#'+s.punto;
+  return `<span class="mini ${cls}" style="margin:2px 4px 2px 0;padding:3px 9px;height:auto;display:inline-flex;font-weight:700">${tag} ${esc(p.t.slice(0,34))}${p.t.length>34?'…':''}${per}</span>`;
 }
 
 /* ═══════════════ UPLOAD ═══════════════ */
@@ -859,7 +866,7 @@ function openRespModal(n){
   if(!ST.admin){toast('Solo el administrador puede asignar responsables','warn');return;}
   respPunto=n;
   const p=PUNTOS.find(x=>x.n===n);
-  $('respModalTitle').textContent=`Responsable · Punto ${n}`;
+  $('respModalTitle').textContent=p.extra?`Responsable · ${p.t}`:`Responsable · Punto ${n}`;
   $('respModalDesc').textContent=p.t;
   $('f_resp').value=puntoResp(n)||'';
   refreshRespDatalist();

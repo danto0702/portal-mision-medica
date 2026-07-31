@@ -493,6 +493,15 @@ const SCHEMA={
       {k:'portafolio',label:'Portafolio',len:3,kind:'select',opts:PORTAFOLIO,req:'soft'},
     ]},
 };
+// Columnas que se muestran en la tabla de cada tipo (clave del campo, encabezado corto)
+const TABLE_COLS={
+  2:[['numActo','N° acto'],['fecha','Fecha'],['valor','Valor']],
+  3:[['numActo','N° contrato'],['nomContratista','Contratista'],['valor','Valor']],
+  4:[['numActo','N° contrato'],['numPoliza','N° póliza'],['fecha','Fecha']],
+  5:[['numActo','N° contrato'],['tipoActa','Acta'],['noActa','N° acta'],['valorPagado','Pagado']],
+  6:[['numActo','N° acto'],['valor','Valor'],['fechaConsig','Consignación']],
+  7:[['numActo','N° acto'],['valor','Valor'],['fechaConsig','Consignación']]
+};
 // Campos que se piden por registro en el formulario y en Excel (excluye los globales, como el supervisor)
 function excelFields(t){ return SCHEMA[t].fields.filter(f=>!f.global); }
 // Columnas Excel por tipo (orden): ID_RECURSO, NIT, INDICADOR, ...extras (sin campos globales)
@@ -876,17 +885,18 @@ function renderTable(t){
   const nB=rows.filter(r=>!esCargado(r)).length, nC=rows.filter(esCargado).length;
   document.getElementById(`cnt_${t}`).textContent=rows.length;
   if(!rows.length){ cont.innerHTML='<div class="t-empty">Aún no has agregado registros de este tipo.</div>'; return; }
-  // columnas resumidas: #, Estado, IDRecurso, NIT, Indicador, primeros 2 campos con dato, acciones
-  const showFields=s.fields.slice(0,2);
-  const head=['#','Estado','ID Recurso','NIT','Ind.',...showFields.map(f=>f.label.replace(/ .*/,'')),'Acciones'];
+  // columnas por tipo (sin ID Recurso ni NIT: son iguales en todas las filas, vienen del encabezado)
+  const fmap={}; s.fields.forEach(f=>{ fmap[f.k]=f; });
+  const cols=TABLE_COLS[t]||excelFields(t).slice(0,3).map(f=>[f.k,f.label.replace(/ .*/,'')]);
+  const head=['#','Estado','Ind.',...cols.map(c=>c[1]),'Acciones'];
   let html=`<div style="padding:8px 12px;font-size:11px;color:var(--text2)"><b style="color:var(--text3)">${nB}</b> borrador · <b style="color:var(--green)">${nC}</b> cargado</div>`;
   html+='<div class="tbl-wrap"><table><thead><tr>'+head.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr></thead><tbody>';
   rows.forEach((r,i)=>{
     const lk=esCargado(r);
     html+=`<tr${lk?' style="background:rgba(5,150,105,.05)"':''}><td class="num">${i+1}</td>`;
     html+=`<td><span class="tag ${lk?'CARGADO':'BORRADOR'}">${lk?'CARGADO':'BORRADOR'}</span></td>`;
-    html+=`<td>${esc(r.idRecurso)}</td><td>${esc(r.nit)}</td><td><span class="tag ${r.indicador||'NA'}">${esc(r.indicador||'—')}</span></td>`;
-    showFields.forEach(f=>{ let v=r[f.k]||''; if(f.kind==='dec'&&v) v=money(parseFloat(v)); html+=`<td>${esc(String(v).slice(0,26))}</td>`; });
+    html+=`<td><span class="tag ${r.indicador||'NA'}">${esc(r.indicador||'—')}</span></td>`;
+    cols.forEach(c=>{ const f=fmap[c[0]]; let v=r[c[0]]||''; if(f&&f.kind==='dec'&&v) v=money(parseFloat(v)); html+=`<td>${esc(String(v).slice(0,40))}</td>`; });
     if(lk){
       html+=`<td><span class="lockbadge" title="Cargado: bloqueado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Bloqueado</span></td>`;
     }else{

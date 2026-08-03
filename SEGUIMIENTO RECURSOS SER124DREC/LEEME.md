@@ -61,6 +61,16 @@ En **Generar y enviar** está el botón **"Cargar plano corregido (.TXT)"**. Sir
 - **No** cambia el encabezado (pestaña 1); el período de cada registro se toma del registro de control (Tipo 1) del archivo.
 - El archivo se lee como **ANSI** (conserva la Ñ). El aplicativo informa cuántos registros actualizó, reabrió y agregó.
 
+## Módulo Administrador · informe financiero (.docx)
+
+La pestaña **Administrador** (contraseña opcional, se configura al final de esa misma pestaña) permite:
+
+1. **Rubros de la resolución:** define los rubros presupuestales y su **valor asignado**. Puedes editarlos o eliminarlos.
+2. **Asignar rubro a contratos:** a cada contrato (Tipo 3) le asignas su rubro, uno a uno o **en bloque** (a todos, o solo a los que no tienen). El rubro también aparece en el formulario y en la tabla de Contratos. *(El rubro es un dato interno del aplicativo; no forma parte del archivo plano.)*
+3. **Informe financiero:** eliges el rango de períodos (**un mes** con el atajo, o **un rango** entre dos fechas de corte) y generas un **Word .docx nativo** con, por cada rubro: **Asignado · Contratado · Pagado · Saldo · % Ejecución**, más totales y el valor de reintegros del período.
+
+Fórmulas: Contratado = Σ valor de contratos (Tipo 3) · Pagado = Σ valor pagado del seguimiento (Tipo 5, enlazado al contrato) · Saldo = Asignado − Contratado · % Ejec. = Pagado / Asignado. El filtro por período usa la fecha de corte de cada registro.
+
 ## Sincronización y estados (borrador → cargado)
 
 Google Sheets es la **fuente de verdad**. Cada registro tiene un estado:

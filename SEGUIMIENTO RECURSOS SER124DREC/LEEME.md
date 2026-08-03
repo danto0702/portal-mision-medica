@@ -51,6 +51,16 @@ En la pestaña **Contratos** hay un bloque arriba con dos herramientas:
 
   > Antes de cargar: guarda la **entidad y el período** (pestaña 1) y el **supervisor**.
 
+## Cargar un archivo plano corregido (.TXT)
+
+En **Generar y enviar** está el botón **"Cargar plano corregido (.TXT)"**. Sirve para tomar un archivo plano SER124DREC ya ajustado por fuera y **actualizar los registros del aplicativo** con esas correcciones.
+
+- **Fusiona por clave** del anexo + período: los registros del archivo que coincidan con los existentes los actualizan; los nuevos se agregan; lo que no venga en el archivo se conserva.
+- Los registros importados quedan como **BORRADOR** (para revisarlos y regenerar).
+- Si una corrección coincide con un registro que estaba **CARGADO**, lo **reabre** (queda en borrador con los datos corregidos).
+- **No** cambia el encabezado (pestaña 1); el período de cada registro se toma del registro de control (Tipo 1) del archivo.
+- El archivo se lee como **ANSI** (conserva la Ñ). El aplicativo informa cuántos registros actualizó, reabrió y agregó.
+
 ## Sincronización y estados (borrador → cargado)
 
 Google Sheets es la **fuente de verdad**. Cada registro tiene un estado:

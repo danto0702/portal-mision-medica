@@ -333,6 +333,8 @@ tbody tr:last-child td{border-bottom:none}
         <div class="btn-row" style="margin-top:18px">
           <button class="btn btn-primary" id="btnDownload" onclick="descargarTxt()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Descargar .TXT</button>
           <button class="btn btn-ghost" id="btnCopy" onclick="copiarPlano()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar contenido</button>
+          <label class="btn btn-ghost" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg> Cargar plano corregido (.TXT)
+            <input type="file" accept=".txt,.TXT" style="display:none" onchange="importarPlano(this)"></label>
           <button class="btn btn-ghost" data-sync="push" onclick="syncPush()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> Guardar avance en la nube</button>
           <div class="spacer"></div>
           <button class="btn btn-green" id="btnConfirm" onclick="confirmarCarga()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"/></svg> Confirmar carga (marcar CARGADO)</button>
@@ -1028,6 +1030,62 @@ function descargarTxt(){
 function copiarPlano(){
   const {errs}=validar(); if(errs.length){ toast('Corrige los errores primero','err'); return; }
   navigator.clipboard.writeText(buildPlano()).then(()=>toast('Contenido copiado','ok'),()=>toast('No se pudo copiar','err'));
+}
+/* CARGAR ARCHIVO PLANO CORREGIDO (.TXT) — fusiona por clave del anexo + período */
+function importarPlano(input){
+  const f=input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const lines=String(ev.target.result).split(/\r\n|\n|\r/).filter(l=>l.trim()!=='');
+      const parsed={2:[],3:[],4:[],5:[],6:[],7:[]};
+      let filePeriodo='', bad=0, control=null;
+      lines.forEach(l=>{
+        const p=l.split('|');
+        const t=parseInt(p[0],10);
+        if(t===1){ control={tipoId:up(p[1]),numId:normNum(p[2]),fechaIni:p[3]||'',fechaFin:p[4]||''}; filePeriodo=p[4]||''; return; }
+        if(!SCHEMA[t]){ bad++; return; }
+        const r={ idRecurso:up(p[2]), nit:normNum(p[3]), indicador:up(p[4])||'I' };
+        if(!['I','A','E','NA'].includes(r.indicador)) r.indicador='I';
+        SCHEMA[t].fields.forEach((fdef,j)=>{
+          let v=p[5+j];
+          if(r.indicador==='NA'){ r[fdef.k]=''; return; }
+          if(fdef.kind==='num') v=normNum(v);
+          else if(fdef.kind==='dec') v=normDec(v);
+          else if(fdef.kind==='date') v=normFecha(v);
+          else v=up(v);
+          r[fdef.k]=(v==null?'':v);
+        });
+        parsed[t].push(r);
+      });
+      const per = filePeriodo || entidad.fechaFin || '';
+      let add=0, upd=0, reab=0;
+      ORDER.forEach(t=>{
+        parsed[t].forEach(r=>{
+          r.periodo=per;
+          const key=recordKey(t,r);
+          const pos=store[t].findIndex(x=>recordKey(t,x)===key);
+          if(pos>=0){
+            const wasCargado=esCargado(store[t][pos]);
+            r.uid=store[t][pos].uid; r.estado='BORRADOR'; r.updatedAt=nowISO();
+            store[t][pos]=r; upd++; if(wasCargado) reab++;
+          }else{
+            r.uid=genUid(); r.estado='BORRADOR'; r.updatedAt=nowISO();
+            store[t].push(r); add++;
+          }
+        });
+      });
+      // refresca el supervisor global desde el archivo (si vino en algún Tipo 3)
+      const conSup=parsed[3].find(r=>r.nomSuperv||r.numIdSuperv);
+      if(conSup){ supervisor={tipoIdSuperv:conSup.tipoIdSuperv||'CC',numIdSuperv:conSup.numIdSuperv||'',nomSuperv:conSup.nomSuperv||''}; save(LS.sup,supervisor); pintarSupervisor(); }
+      save(LS.data,store); ORDER.forEach(t=>renderTable(t)); updateAll();
+      const totalDet=ORDER.reduce((a,t)=>a+parsed[t].length,0);
+      if(totalDet===0){ toast('No encontré registros de detalle válidos en el archivo. ¿Es un plano SER124DREC?','err'); }
+      else toast(`Plano cargado: ${upd} actualizado(s)${reab?' ('+reab+' reabierto(s) de CARGADO)':''}, ${add} nuevo(s)${bad?', '+bad+' línea(s) ignorada(s)':''}`,'ok');
+    }catch(err){ toast('Error al leer el plano: '+err.message,'err'); }
+    input.value='';
+  };
+  rd.readAsText(f,'windows-1252');   // ANSI: conserva la Ñ
 }
 
 /* ══════════════════════ EXCEL ══════════════════════ */

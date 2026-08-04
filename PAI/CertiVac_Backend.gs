@@ -421,9 +421,11 @@ function apiGetPeriodos(e) {
     if (datos.length <= 1) return jsonResponse({ ok: true, periodos: [] });
     const set = new Set();
     datos.slice(1).forEach(r => {
-      // Extraer YYYY-MM del campo dia (col E = índice 4) directamente
-      const d = String(r[4] || '').trim();
-      if (d.length >= 7) set.add(d.substring(0, 7));
+      // Normalizar la fecha (col E = índice 4) antes de extraer YYYY-MM.
+      // r[4] puede llegar como objeto Date desde Sheets; normalizarFecha lo
+      // convierte a 'YYYY-MM-DD' evitando cadenas como 'Wed Sep'.
+      const f = normalizarFecha(r[4]);
+      if (f.length >= 7) set.add(f.substring(0, 7));
     });
     return jsonResponse({ ok: true, periodos: [...set].sort().reverse() });
   } catch (err) { return errorResponse(err.message); }

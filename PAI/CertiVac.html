@@ -4014,16 +4014,37 @@ function ctFechaTexto(){
 }
 
 // ── Inicialización de la vista ──
+function ctLlenarMeses(periodos){
+  const sel=$('ct-mes'); if(!sel) return;
+  const prev=sel.value;
+  const MN=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  // Solo períodos válidos YYYY-MM (descarta fechas mal serializadas del backend)
+  const validos=[...new Set((periodos||[]).filter(p=>/^\d{4}-\d{2}$/.test(String(p))))].sort().reverse();
+  sel.innerHTML='<option value="">— Seleccione —</option>';
+  validos.forEach(p=>{ const [y,m]=p.split('-'); const op=document.createElement('option'); op.value=p; op.textContent=`${MN[+m]||m} ${y}`; if(p===prev)op.selected=true; sel.appendChild(op); });
+  return validos.length;
+}
 async function certTrazInit(){
   const fe=$('ct-fecha'); if(fe && !fe.value) fe.value=new Date().toISOString().substring(0,10);
-  const sel=$('ct-mes');
-  if(sel && sel.options.length<=1 && getApiUrl()){
+  const sel=$('ct-mes'); if(!sel) return;
+  // ¿Ya tiene opciones válidas? No repetir trabajo.
+  const yaValidas=[...sel.options].some(o=>/^\d{4}-\d{2}$/.test(o.value));
+  if(yaValidas) return;
+  // 1) Reusar períodos normalizados de la caché de liquidación (sin red)
+  if(APP.liqCache && APP.liqCache.periodos && APP.liqCache.periodos.length){
+    if(ctLlenarMeses(APP.liqCache.periodos)) return;
+  }
+  // 2) Reusar opciones válidas del selector del topbar
+  const msel=$('msel');
+  if(msel){
+    const vals=[...msel.options].map(o=>o.value).filter(v=>/^\d{4}-\d{2}$/.test(v));
+    if(vals.length){ ctLlenarMeses(vals); return; }
+  }
+  // 3) Consultar la liquidación (el backend normaliza los períodos ahí)
+  if(getApiUrl()){
     try{
-      const pd=await apiGet({accion:'periodos'});
-      if(pd.ok && pd.periodos){
-        const MN=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-        pd.periodos.forEach(p=>{ const [y,m]=String(p).split('-'); const op=document.createElement('option'); op.value=p; op.textContent=`${MN[+m]||m} ${y}`; sel.appendChild(op); });
-      }
+      const liq=await apiGet({accion:'liquidacion'});
+      if(liq.ok && liq.periodos){ APP.liqCache=APP.liqCache||liq; ctLlenarMeses(liq.periodos); }
     }catch(e){ /* silencioso */ }
   }
 }

@@ -7,6 +7,8 @@
 <!-- Librerías locales offline (sin CDN) -->
 <script src="libs/xlsx.full.min.js"></script>
 <script src="libs/chart.umd.min.js"></script>
+<!-- Plantilla base (membrete) para la Certificación de Trazadores en Word -->
+<script src="cert_trazadores_plantilla.js"></script>
 <style>
 /* Fuentes de sistema como fallback offline — Syne y JetBrains Mono se cargan si hay internet */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Lora:ital,wght@0,400;0,600&display=swap');
@@ -515,6 +517,7 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
       <button class="ni" onclick="nav('liquidacion',this)"><span class="ico">💵</span>Liquidaciones</button>
       <button class="ni" onclick="nav('metas',this)"><span class="ico">🎯</span>Tabla de Metas</button>
       <button class="ni" onclick="nav('informemun',this)"><span class="ico">📋</span>Informe por Municipio</button>
+      <button class="ni" onclick="nav('certtraz',this)"><span class="ico">📑</span>Certificación Trazadores</button>
       <div class="nsec">Análisis</div>
       <button class="ni" onclick="nav('analytics',this)"><span class="ico">📈</span>Gráficas & Análisis</button>
       <button class="ni" onclick="nav('exportar',this)"><span class="ico">⬇️</span>Exportar Excel</button>
@@ -707,6 +710,45 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
           <tbody id="tb-im"><tr><td colspan="9"><div class="es"><div class="ei">📍</div><p>Seleccione un municipio y período para ver el informe</p></div></td></tr></tbody>
         </table></div>
       </div>
+    </div>
+
+    <!-- CERTIFICACIÓN DE TRAZADORES POR MUNICIPIO -->
+    <div class="view" id="view-certtraz">
+
+      <div class="al al-i" style="margin-bottom:14px">📑 <div>Conteo <strong>estricto por texto de dosis</strong> de los 3 trazadores contractuales, agrupado por municipio: <strong>3ras de Pentavalente</strong>, <strong>1ras Triple Viral</strong> y <strong>2do Refuerzo DPT</strong>. Ingrese las metas del mes, revise/edite la conclusión y genere el Word con el membrete institucional.</div></div>
+
+      <!-- Filtros -->
+      <div class="card" style="padding:14px 20px;margin-bottom:14px">
+        <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+          <div>
+            <div class="an-filter-label">Mes a certificar</div>
+            <select id="ct-mes" class="an-sel" style="min-width:200px" onchange="ctMesChange()">
+              <option value="">— Seleccione —</option>
+            </select>
+          </div>
+          <div>
+            <div class="an-filter-label">Lugar de expedición</div>
+            <input id="ct-lugar" class="an-sel" style="min-width:130px" value="Ábrego">
+          </div>
+          <div>
+            <div class="an-filter-label">Fecha de expedición</div>
+            <input id="ct-fecha" type="date" class="an-sel" style="min-width:150px">
+          </div>
+          <div style="display:flex;gap:6px;align-items:flex-end;margin-left:auto">
+            <button class="btn b-te b-sm" onclick="ctCargarCoberturas()">🔄 Calcular coberturas</button>
+            <button class="btn b-co b-sm" onclick="ctGenerarWord()">⬇️ Generar Word (4 certificados)</button>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--s4)">
+          Las metas se guardan por municipio y mes en este navegador. La cobertura se calcula desde los registros cargados en Google Sheets.
+        </div>
+      </div>
+
+      <!-- Bloques por municipio (render dinámico) -->
+      <div id="ct-municipios">
+        <div class="card"><div class="es"><div class="ei">📍</div><p>Seleccione un mes y pulse <strong>Calcular coberturas</strong>.</p></div></div>
+      </div>
+
     </div>
 
     <!-- ANALYTICS -->
@@ -1316,6 +1358,7 @@ function nav(id,btn){
     asignaciones:'📍 Asignación Vacunadora → Municipio',
     valores:'💲 Editar Valores y Metas por Ciclo',
     config:'⚙️ Configuración — Conexión API',
+    certtraz:'📑 Certificación de Trazadores por Municipio',
     verificador:'🧒 Verificador de Población Susceptible'};
   $('tb-t').textContent=ts[id]||'';
   if(id==='metas')renderMetas();
@@ -1328,6 +1371,7 @@ function nav(id,btn){
   if(id==='asignaciones')cargarAsignaciones();
   if(id==='valores')cargarValores();
   if(id==='config')abrirConfig();
+  if(id==='certtraz')certTrazInit();
   if(id==='verificador'){
     const ifr=$('iframe-verificador');
     if(!ifr.dataset.loaded){ ifr.src='Analizador_PAI_HRNO.html'; ifr.dataset.loaded='1'; }
@@ -3891,6 +3935,294 @@ function descargarPDFInformeMun(){
   document.title=`CertiVac_Informe_${mun}_${periodo}`;
   window.print();
   setTimeout(()=>{ document.title=tituloOrig; },1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CERTIFICACIÓN DE TRAZADORES POR MUNICIPIO  → Word con membrete institucional
+// ═══════════════════════════════════════════════════════════════════════
+const CT_MUNICIPIOS=['Convención','Teorama','El Carmen','Ábrego'];
+const CT_TRAZADORES=[
+  {id:'penta', label:'3ras de Pentavalente', match:b=>b.includes('pentavalente'), dosis:['tercera dosis','3ra dosis','3a dosis','3ra. dosis']},
+  {id:'tv',    label:'1ras Triple Viral',    match:b=>b.includes('triple viral'), dosis:['primera dosis','1ra dosis','1a dosis','1ra. dosis']},
+  {id:'dpt',   label:'2do Refuerzo DPT',     match:b=>b.startsWith('dpt'),        dosis:['segundo refuerzo','2do refuerzo','2° refuerzo','2do. refuerzo','refuerzo 2']},
+];
+const CT_SECTPR='<w:sectPr w:rsidR="009B5780" w:rsidRPr="00AF7AC6" w:rsidSect="009B5780"><w:headerReference w:type="even" r:id="rId8"/><w:headerReference w:type="default" r:id="rId9"/><w:footerReference w:type="even" r:id="rId10"/><w:footerReference w:type="default" r:id="rId11"/><w:headerReference w:type="first" r:id="rId12"/><w:footerReference w:type="first" r:id="rId13"/><w:pgSz w:w="12240" w:h="18720" w:code="119"/><w:pgMar w:top="1418" w:right="1701" w:bottom="1985" w:left="1701" w:header="510" w:footer="227" w:gutter="0"/><w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>';
+
+function ctNorm(s){ return String(s==null?'':s).trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' '); }
+
+// Conteo ESTRICTO por texto de dosis, agrupado por municipio.
+// El municipio se resuelve igual que en el backend: asignación de la
+// vacunadora (mapa asigMap) con respaldo en el campo municipio del registro
+// (que en muchos archivos viene vacío).
+function ctContar(registros, asigMap){
+  const cob={}; CT_MUNICIPIOS.forEach(m=>cob[m]={penta:0,tv:0,dpt:0});
+  const munNorm=CT_MUNICIPIOS.map(m=>({disp:m, n:ctNorm(m)}));
+  let enMun=0, sinMun=0;
+  (registros||[]).forEach(r=>{
+    const vac=ctNorm(r.vacunadora);
+    let munRaw=(asigMap && asigMap[vac]) ? asigMap[vac] : r.municipio;
+    const munR=ctNorm(munRaw);
+    const hit=munR?munNorm.find(x=> munR===x.n || munR.includes(x.n) || x.n.includes(munR)):null;
+    if(!hit){ sinMun++; return; }
+    enMun++;
+    const bio=ctNorm(r.biologico);
+    const dos=ctNorm(r.texto_dosis);
+    for(const t of CT_TRAZADORES){
+      if(t.match(bio) && t.dosis.some(d=>dos.includes(ctNorm(d)))){ cob[hit.disp][t.id]++; break; }
+    }
+  });
+  return {cob, enMun, sinMun};
+}
+
+// ── Metas persistidas por municipio y mes (localStorage) ──
+function ctLoadMetas(){ try{ return JSON.parse(localStorage.getItem('certivac_traz_metas')||'{}'); }catch(e){ return {}; } }
+function ctGetMetas(mun,mes){ const all=ctLoadMetas(); return all[mun+'|'+mes]||{}; }
+function ctSaveMeta(mun,mes,traz,val){ const all=ctLoadMetas(); const k=mun+'|'+mes; all[k]=all[k]||{}; all[k][traz]=val; localStorage.setItem('certivac_traz_metas',JSON.stringify(all)); }
+
+// ── Clasificación cualitativa y textos ──
+function ctEstado(meta,cob){
+  meta=+meta||0; cob=+cob||0;
+  if(meta<=0) return cob>0?'Sin meta definida':'Sin meta definida';
+  const r=cob/meta;
+  if(cob>=meta) return r>=1.20?'Muy superior a la meta':'Superior a la meta';
+  return r>=0.85?'Inferior a la meta':'Muy inferior a la meta';
+}
+function ctConclusion(mun,filas){
+  const cumplen=filas.filter(f=>(+f.cob)>=(+f.meta) && (+f.meta)>0).length;
+  const rezagados=filas.filter(f=>(+f.cob)<(+f.meta));
+  const nombres=rezagados.map(f=>f.label).join(', ');
+  if(cumplen===3){
+    return `De acuerdo con lo anterior, se concluye que se dio cumplimiento a las metas mensuales establecidas en los trazadores de vacunación para el municipio de ${mun}. En consecuencia, y conforme a lo estipulado contractualmente, aplica el pago completo general para el equipo de vacunación del municipio.`;
+  }
+  if(cumplen===0){
+    return `De acuerdo con lo anterior, se concluye que no se dio cumplimiento a las metas mensuales establecidas en los trazadores de vacunación para el municipio de ${mun}, presentándose rezagos significativos en todos los trazadores. En consecuencia, y conforme a lo estipulado contractualmente, no aplica el pago completo general para el equipo de vacunación del municipio. Por lo tanto, se deja constancia de que para efectos de pago únicamente se tendrán en cuenta las metas de vacunación de cumplimiento individual, tal como lo establece el contrato vigente.`;
+  }
+  return `De acuerdo con lo anterior, si bien se presentan rezagos en el(los) trazador(es) de ${nombres}, se destaca el buen comportamiento en los demás trazadores, los cuales cumplen las metas establecidas. Conforme a lo estipulado contractualmente, se certifica el cumplimiento para efectos del pago total correspondiente para el municipio de ${mun}. No obstante, se deja constancia de que el siguiente pago quedará condicionado a la recuperación de los usuarios en rezago del(los) trazador(es) de ${nombres}.`;
+}
+function ctMesTexto(){
+  const v=$('ct-mes').value; if(!v) return {nombre:'',anio:'',mm:''};
+  const [y,m]=v.split('-'); const MN=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return {nombre:MN[+m]||m, anio:y, mm:v};
+}
+function ctFechaTexto(){
+  const lugar=($('ct-lugar').value||'Ábrego').trim();
+  const f=$('ct-fecha').value;
+  const MN=['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  if(!f) return `Dado en ${lugar}.`;
+  const [y,m,d]=f.split('-').map(Number);
+  return `Dado en ${lugar}, a los ${d} días del mes de ${MN[m]||m} de ${y}.`;
+}
+
+// ── Inicialización de la vista ──
+async function certTrazInit(){
+  const fe=$('ct-fecha'); if(fe && !fe.value) fe.value=new Date().toISOString().substring(0,10);
+  const sel=$('ct-mes');
+  if(sel && sel.options.length<=1 && getApiUrl()){
+    try{
+      const pd=await apiGet({accion:'periodos'});
+      if(pd.ok && pd.periodos){
+        const MN=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        pd.periodos.forEach(p=>{ const [y,m]=String(p).split('-'); const op=document.createElement('option'); op.value=p; op.textContent=`${MN[+m]||m} ${y}`; sel.appendChild(op); });
+      }
+    }catch(e){ /* silencioso */ }
+  }
+}
+function ctMesChange(){
+  APP.ctData=null;
+  $('ct-municipios').innerHTML='<div class="card"><div class="es"><div class="ei">📍</div><p>Pulse <strong>Calcular coberturas</strong> para el mes seleccionado.</p></div></div>';
+}
+
+// ── Cargar coberturas desde los registros de Google Sheets ──
+async function ctCargarCoberturas(){
+  const mes=$('ct-mes').value;
+  if(!mes){ toast('Seleccione el mes a certificar','warn'); return; }
+  if(!getApiUrl()){ toast('⚠️ Configure la URL del API en ⚙️ Configuración','warn'); return; }
+  showLoad('Calculando coberturas…','Consultando registros en Google Sheets');
+  try{
+    // Registros del mes + asignaciones vacunadora→municipio (para resolver municipio)
+    const [r, a] = await Promise.all([
+      apiGet({accion:'registros', mes, limite:100000}),
+      apiGet({accion:'asignaciones'}).catch(()=>({ok:false}))
+    ]);
+    if(!r.ok) throw new Error(r.error||'Error al consultar registros');
+    const asigMap={};
+    if(a && a.ok && a.asignaciones) a.asignaciones.forEach(x=>{ if(x.vacunadora) asigMap[ctNorm(x.vacunadora)]=x.municipio; });
+    const {cob, enMun, sinMun}=ctContar(r.registros||[], asigMap);
+    APP.ctData={mes, coberturas:cob, total:r.total, leidos:(r.registros||[]).length, enMun, sinMun};
+    ctRenderMunicipios(cob, mes);
+    if(enMun===0 && (r.registros||[]).length>0){
+      toast('⚠️ Ningún registro se asoció a los 4 municipios. Configure "Vacunadora → Municipio" o revise el municipio en los archivos.','warn');
+    } else {
+      toast(`✅ ${enMun} registros de los 4 municipios analizados`+(sinMun?` · ${sinMun} sin municipio (omitidos)`:''));
+    }
+  }catch(e){ toast('❌ '+e.message,'err'); }
+  finally{ hideLoad(); }
+}
+
+// ── Render de los 4 bloques por municipio ──
+function ctRenderMunicipios(cob, mes){
+  const cont=$('ct-municipios');
+  const BORD='1px solid #cfd8e3';
+  cont.innerHTML=CT_MUNICIPIOS.map((mun,i)=>{
+    const metas=ctGetMetas(mun,mes);
+    const rows=CT_TRAZADORES.map(t=>{
+      const c=(cob[mun]&&cob[mun][t.id])||0;
+      const m=(metas[t.id]!=null)?metas[t.id]:'';
+      const mnum=+m||0; const rez=mnum-c; const blank=(m===''||m==null);
+      return `<tr>
+        <td style="font-weight:600">${t.label}</td>
+        <td><input type="number" min="0" id="ct-meta-${i}-${t.id}" value="${blank?'':m}" oninput="ctFilaChange(${i},'${t.id}')" style="width:74px;padding:5px 8px;border:${BORD};border-radius:6px;font-size:12px;text-align:center"></td>
+        <td id="ct-cob-${i}-${t.id}" style="font-weight:700;color:var(--cobalt)">${c}</td>
+        <td id="ct-rez-${i}-${t.id}" style="color:${rez>0?'var(--orange)':'var(--teal-d)'}">${blank?'—':rez}</td>
+        <td id="ct-est-${i}-${t.id}" style="font-size:11px">${blank?'—':ctEstado(mnum,c)}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="card-h"><div class="card-t">📍 ${mun}</div><span class="bdg" id="ct-badge-${i}">—</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>Trazador</th><th>Meta</th><th>Cobertura</th><th>Rezago</th><th>Estado</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      <div style="padding:12px 16px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="font-size:11px;font-weight:700;color:var(--s4);text-transform:uppercase;letter-spacing:.5px">Conclusión (editable)</label>
+          <button class="btn b-gh b-sm" onclick="ctSugerir(${i})">🔄 Sugerir texto</button>
+        </div>
+        <textarea id="ct-concl-${i}" oninput="this.dataset.edited='1'" style="width:100%;min-height:92px;padding:10px 12px;border:${BORD};border-radius:8px;font-size:12.5px;font-family:inherit;line-height:1.5;resize:vertical"></textarea>
+      </div>
+    </div>`;
+  }).join('');
+  CT_MUNICIPIOS.forEach((mun,i)=>{ ctUpdateBadge(i); ctSugerir(i); });
+}
+function ctFilaChange(i,tid){
+  const mes=(APP.ctData&&APP.ctData.mes)||$('ct-mes').value;
+  const meta=+($(`ct-meta-${i}-${tid}`).value)||0;
+  ctSaveMeta(CT_MUNICIPIOS[i], mes, tid, meta);
+  const cob=+($(`ct-cob-${i}-${tid}`).textContent)||0;
+  const rez=meta-cob;
+  const rezEl=$(`ct-rez-${i}-${tid}`); rezEl.textContent=rez; rezEl.style.color=rez>0?'var(--orange)':'var(--teal-d)';
+  $(`ct-est-${i}-${tid}`).textContent=ctEstado(meta,cob);
+  ctUpdateBadge(i);
+  // Regenerar la conclusión sugerida salvo que el usuario la haya editado a mano
+  const ta=$(`ct-concl-${i}`); if(ta && ta.dataset.edited!=='1') ctSugerir(i);
+}
+function ctUpdateBadge(i){
+  let cumplen=0;
+  CT_TRAZADORES.forEach(t=>{ const m=+($(`ct-meta-${i}-${t.id}`).value)||0; const c=+($(`ct-cob-${i}-${t.id}`).textContent)||0; if(m>0 && c>=m) cumplen++; });
+  const el=$(`ct-badge-${i}`); if(!el) return;
+  if(cumplen===3){ el.className='bdg b-g'; el.textContent='Cumple 3/3'; }
+  else if(cumplen===0){ el.className='bdg b-r'; el.textContent='No cumple 0/3'; }
+  else { el.className='bdg b-y'; el.textContent='Parcial '+cumplen+'/3'; }
+}
+function ctSugerir(i){
+  const filas=CT_TRAZADORES.map(t=>({label:t.label, meta:+($(`ct-meta-${i}-${t.id}`).value)||0, cob:+($(`ct-cob-${i}-${t.id}`).textContent)||0}));
+  const ta=$(`ct-concl-${i}`);
+  ta.value=ctConclusion(CT_MUNICIPIOS[i], filas);
+  ta.dataset.edited=''; // vuelve a modo "sugerencia automática"
+}
+
+// ── Utilidades OOXML / ZIP (STORE) para armar el .docx ──
+function ctEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function ctPara(text,o){ o=o||{};
+  let rpr=''; if(o.bold)rpr+='<w:b/>'; if(o.size)rpr+=`<w:sz w:val="${o.size}"/><w:szCs w:val="${o.size}"/>`;
+  let ppr=''; if(o.center)ppr+='<w:jc w:val="center"/>'; else if(o.justify)ppr+='<w:jc w:val="both"/>';
+  const pprXml=(ppr||rpr)?`<w:pPr>${ppr}${rpr?`<w:rPr>${rpr}</w:rPr>`:''}</w:pPr>`:'';
+  const run=(text!==''&&text!=null)?`<w:r>${rpr?`<w:rPr>${rpr}</w:rPr>`:''}<w:t xml:space="preserve">${ctEsc(text)}</w:t></w:r>`:'';
+  return `<w:p>${pprXml}${run}</w:p>`;
+}
+function ctBuildDocumentXml(){
+  const {nombre:mesN}=ctMesTexto();
+  const fechaTxt=ctFechaTexto();
+  const PB='<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+  const certs=CT_MUNICIPIOS.map((mun,i)=>{
+    const b=[];
+    b.push(ctPara(`CERTIFICADO TRAZADORES PAI DEL MES DE ${mesN.toUpperCase()}`,{bold:true,center:true,size:28}));
+    b.push(ctPara(''));
+    b.push(ctPara('EL SUSCRITO COORDINADOR DE SALUD PÚBLICA DE LA E.S.E. HOSPITAL REGIONAL NOROCCIDENTAL',{bold:true,center:true}));
+    b.push(ctPara(''));
+    b.push(ctPara('CERTIFICA:',{bold:true,center:true}));
+    b.push(ctPara(''));
+    b.push(ctPara(`Que, una vez revisado el comportamiento de los trazadores de vacunación correspondientes al mes de ${mesN.toLowerCase()} en el municipio de ${mun}, se evidencian los siguientes resultados:`,{justify:true}));
+    b.push(ctPara(''));
+    CT_TRAZADORES.forEach(t=>{
+      const meta=+($(`ct-meta-${i}-${t.id}`)?.value)||0;
+      const cob=+($(`ct-cob-${i}-${t.id}`)?.textContent)||0;
+      b.push(ctPara(`${t.label}: Meta ${meta}, Cobertura ${cob}, ${ctEstado(meta,cob)}`));
+    });
+    b.push(ctPara(''));
+    b.push(ctPara(($(`ct-concl-${i}`)?.value||''),{justify:true}));
+    b.push(ctPara(''));
+    b.push(ctPara(fechaTxt));
+    b.push(ctPara('')); b.push(ctPara('')); b.push(ctPara(''));
+    b.push(ctPara('DANILO TORRADO BLANCO',{bold:true}));
+    b.push(ctPara('Coordinador de Salud Pública (CPS)'));
+    return b.join('');
+  });
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${certs.join(PB)}${CT_SECTPR}</w:body></w:document>`;
+}
+function ctB64ToBytes(b64){ const bin=atob(b64); const len=bin.length; const out=new Uint8Array(len); for(let i=0;i<len;i++) out[i]=bin.charCodeAt(i); return out; }
+function ctCrc32(bytes){ let c=~0>>>0; for(let i=0;i<bytes.length;i++){ c^=bytes[i]; for(let k=0;k<8;k++) c=(c>>>1)^(0xEDB88320 & -(c&1)); } return (~c)>>>0; }
+function ctReadZip(bytes){
+  const dv=new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const dec=new TextDecoder(); const entries=[]; let i=0;
+  while(i+30<=bytes.length && dv.getUint32(i,true)===0x04034b50){
+    const compSize=dv.getUint32(i+18,true);
+    const nameLen=dv.getUint16(i+26,true);
+    const extraLen=dv.getUint16(i+28,true);
+    const nameStart=i+30;
+    const name=dec.decode(bytes.subarray(nameStart,nameStart+nameLen));
+    const dataStart=nameStart+nameLen+extraLen;
+    entries.push({name, data:bytes.subarray(dataStart,dataStart+compSize)});
+    i=dataStart+compSize;
+  }
+  return entries;
+}
+function ctBuildZip(entries){
+  const enc=new TextEncoder();
+  const u16=n=>[n&255,(n>>8)&255];
+  const u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255];
+  const chunks=[]; const central=[]; let offset=0;
+  entries.forEach(e=>{
+    const nameB=enc.encode(e.name);
+    const crc=ctCrc32(e.data); const size=e.data.length;
+    const lh=new Uint8Array([].concat(u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(size),u32(size),u16(nameB.length),u16(0)));
+    chunks.push(lh, nameB, e.data);
+    const cd=new Uint8Array([].concat(u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(size),u32(size),u16(nameB.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset)));
+    central.push(cd, nameB);
+    offset+=lh.length+nameB.length+size;
+  });
+  let cdSize=0; central.forEach(p=>cdSize+=p.length);
+  const eocd=new Uint8Array([].concat(u32(0x06054b50),u16(0),u16(0),u16(entries.length),u16(entries.length),u32(cdSize),u32(offset),u16(0)));
+  const all=chunks.concat(central,[eocd]);
+  let total=0; all.forEach(p=>total+=p.length);
+  const out=new Uint8Array(total); let pos=0;
+  all.forEach(p=>{ out.set(p,pos); pos+=p.length; });
+  return out;
+}
+function ctDescargar(bytes, filename){
+  const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1200);
+}
+function ctGenerarWord(){
+  if(typeof window.PLANTILLA_TRAZADORES_B64!=='string'){ toast('❌ No se cargó la plantilla del Word (cert_trazadores_plantilla.js)','err'); return; }
+  if(!APP.ctData){ toast('Primero pulse "Calcular coberturas"','warn'); return; }
+  const {nombre:mesN, anio}=ctMesTexto();
+  if(!mesN){ toast('Seleccione el mes a certificar','warn'); return; }
+  try{
+    showLoad('Generando Word…','Ensamblando los 4 certificados');
+    const tpl=ctB64ToBytes(window.PLANTILLA_TRAZADORES_B64);
+    const entries=ctReadZip(tpl);
+    if(!entries.length) throw new Error('Plantilla del Word inválida');
+    const docBytes=new TextEncoder().encode(ctBuildDocumentXml());
+    let reemplazado=false;
+    const nuevos=entries.map(e=>{ if(e.name==='word/document.xml'){ reemplazado=true; return {name:e.name, data:docBytes}; } return e; });
+    if(!reemplazado) nuevos.push({name:'word/document.xml', data:docBytes});
+    const out=ctBuildZip(nuevos);
+    ctDescargar(out, `CERTIFICADO TRAZADORES ${mesN} ${anio}.docx`);
+    toast('✅ Word generado con los 4 certificados');
+  }catch(e){ console.error('[certtraz]',e); toast('❌ '+e.message,'err'); }
+  finally{ hideLoad(); }
 }
 
 window.onload=async ()=>{

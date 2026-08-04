@@ -380,6 +380,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="card-body"><div class="btn-row">
         <button class="btn btn-ghost" onclick="exportarBackup()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Exportar respaldo (.json)</button>
         <label class="btn btn-ghost" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> Importar respaldo<input type="file" accept=".json" style="display:none" onchange="importarBackup(this)"></label>
+        <button class="btn btn-ghost" onclick="eliminarDuplicados()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1M15 9l-4 4-2-2"/></svg> Eliminar duplicados</button>
         <div class="spacer"></div>
         <button class="btn btn-danger" onclick="borrarTodo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Borrar todos los datos</button>
       </div></div>
@@ -593,6 +594,30 @@ function totalActivos(){ return ORDER.reduce((a,t)=>a+activos(t).length,0); }
 function totalCargados(){ return ORDER.reduce((a,t)=>a+store[t].filter(esCargado).length,0); }
 // clave anti-duplicados: tipo + clave del anexo + periodo (fecha de corte)
 function recordKey(t,r){ return [t, ...SCHEMA[t].key.map(k=>String(r[k]||'').toUpperCase()), r.periodo||''].join('¬'); }
+// cuenta registros duplicados (misma clave del anexo + período)
+function contarDuplicados(){ let n=0; ORDER.forEach(t=>{ const seen=new Set(); store[t].forEach(r=>{ const k=recordKey(t,r); if(seen.has(k)) n++; else seen.add(k); }); }); return n; }
+function eliminarDuplicados(){
+  const n=contarDuplicados();
+  if(!n){ toast('No hay registros duplicados','info'); return; }
+  confirmModal('Eliminar duplicados',
+    `Se encontraron ${n} registro(s) duplicado(s) (misma clave del anexo + período). Se conservará uno por grupo (prefiriendo el CARGADO o el más reciente) y se eliminarán los demás. ¿Continuar?`,
+    ()=>{
+      let removed=0;
+      ORDER.forEach(t=>{
+        const seen={}, keep=[];
+        store[t].forEach(r=>{
+          const k=recordKey(t,r);
+          if(seen[k]===undefined){ seen[k]=keep.length; keep.push(r); }
+          else{ const idx=seen[k], cur=keep[idx];
+            const win=(esCargado(r)&&!esCargado(cur))?r:(!esCargado(r)&&esCargado(cur))?cur:(String(r.updatedAt||'')>=String(cur.updatedAt||'')?r:cur);
+            keep[idx]=win; removed++; }
+        });
+        store[t]=keep;
+      });
+      save(LS.data,store); ORDER.forEach(t=>renderTable(t)); updateAll();
+      toast(`${removed} duplicado(s) eliminado(s)`,'ok');
+    });
+}
 
 /* ══════════════════════ NAVEGACIÓN ══════════════════════ */
 function go(tab){
@@ -783,7 +808,7 @@ function importarContratosSistema(input){
         const key=recordKey(3,r);
         if(store[3].some(x=>esCargado(x)&&recordKey(3,x)===key)){ dup++; continue; }
         const pos=store[3].findIndex(x=>!esCargado(x)&&recordKey(3,x)===key);
-        if(pos>=0){ r.uid=store[3][pos].uid; r.estado='BORRADOR'; r.updatedAt=nowISO(); store[3][pos]=r; upd++; }
+        if(pos>=0){ r.rubro=store[3][pos].rubro||''; r.uid=store[3][pos].uid; r.estado='BORRADOR'; r.updatedAt=nowISO(); store[3][pos]=r; upd++; }
         else{ r.uid=genUid(); r.estado='BORRADOR'; r.updatedAt=nowISO(); store[3].push(r); add++; }
       }
       save(LS.data,store); renderTable(3); updateAll();
@@ -837,9 +862,9 @@ function addRecord(t){
   if(errs.length){ toast('Faltan datos: '+errs.slice(0,4).join(', ')+(errs.length>4?'…':''),'err'); return; }
   r.periodo=entidad.fechaFin||'';
   const key=recordKey(t,r);
-  // bloquear si ya existe un registro CARGADO con la misma clave + periodo
-  const yaCargado=store[t].some((x,i)=>i!==edit[t] && esCargado(x) && recordKey(t,x)===key);
-  if(yaCargado){ toast('Ya existe un registro CARGADO con esa misma información en este período. No se puede duplicar.','err'); return; }
+  // no se permite duplicar: misma clave del anexo + período (esté en borrador o cargado)
+  const dupIdx=store[t].findIndex((x,i)=>i!==edit[t] && recordKey(t,x)===key);
+  if(dupIdx>=0){ const st=esCargado(store[t][dupIdx])?'CARGADO':'en borrador'; toast(`Ya existe un registro (${st}) con esa misma información en este período. No se permite duplicarlo.`,'err'); go('t'+t); return; }
   if(edit[t]>=0){
     const prev=store[t][edit[t]];
     if(esCargado(prev)){ toast('Ese registro está CARGADO y no se puede editar.','err'); return; }
@@ -1083,6 +1108,7 @@ function importarPlano(input){
           const pos=store[t].findIndex(x=>recordKey(t,x)===key);
           if(pos>=0){
             const wasCargado=esCargado(store[t][pos]);
+            if(t===3) r.rubro=store[t][pos].rubro||'';
             r.uid=store[t][pos].uid; r.estado='BORRADOR'; r.updatedAt=nowISO();
             store[t][pos]=r; upd++; if(wasCargado) reab++;
           }else{
@@ -1172,7 +1198,7 @@ function importarExcel(input){
   rd.onload=ev=>{
     try{
       const wb=XLSX.read(ev.target.result,{type:'array'});
-      let totalAdd=0, skip=0, dupCargado=0;
+      let totalAdd=0, upd=0, skip=0, dupCargado=0;
       const per=entidad.fechaFin||'';
       ORDER.forEach(t=>{
         const sh=wb.Sheets[SHEET_NAME[t]]||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()===SHEET_NAME[t])];
@@ -1196,16 +1222,17 @@ function importarExcel(input){
           // campos globales (supervisor) desde el registro único
           s.fields.filter(f=>f.global).forEach(f=>{ r[f.k]= r.indicador==='NA'?'':(supervisor[f.k]||''); });
           r.periodo=per;
-          // saltar si ya existe un CARGADO con la misma clave + periodo
           const key=recordKey(t,r);
+          // no duplicar: si ya existe CARGADO igual, se omite; si existe borrador igual, se actualiza
           if(store[t].some(x=>esCargado(x)&&recordKey(t,x)===key)){ dupCargado++; return; }
-          r.uid=genUid(); r.estado='BORRADOR'; r.updatedAt=nowISO();
-          store[t].push(r); totalAdd++;
+          const pos=store[t].findIndex(x=>!esCargado(x)&&recordKey(t,x)===key);
+          if(pos>=0){ if(t===3) r.rubro=store[t][pos].rubro||''; r.uid=store[t][pos].uid; r.estado='BORRADOR'; r.updatedAt=nowISO(); store[t][pos]=r; upd++; }
+          else{ r.uid=genUid(); r.estado='BORRADOR'; r.updatedAt=nowISO(); store[t].push(r); totalAdd++; }
         });
       });
       save(LS.data,store);
       ORDER.forEach(t=>renderTable(t)); updateAll();
-      toast(`Cargados ${totalAdd} registro(s)${dupCargado?' · '+dupCargado+' ya cargados (omitidos)':''}${skip?' · '+skip+' fila(s) inválidas':''}`,'ok');
+      toast(`Cargados ${totalAdd} nuevo(s)${upd?', '+upd+' actualizado(s)':''}${dupCargado?', '+dupCargado+' ya cargados (omitidos)':''}${skip?', '+skip+' inválidas':''}`,'ok');
     }catch(err){ toast('Error al leer el archivo: '+err.message,'err'); }
     input.value='';
   };

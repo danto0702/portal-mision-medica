@@ -213,6 +213,10 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
 .ct-l{font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;opacity:.65}
 .ct-v{font-family:'Lora',serif;font-size:22px;color:var(--teal)}
 .ct-v-ext{font-family:'Lora',serif;font-size:18px;color:var(--orange)}
+.ctot-total{grid-column:1 / -1;background:linear-gradient(135deg,var(--teal-d),#0f766e);color:#fff;border:none}
+.ctot-total .ct-v{color:#fff;font-size:22px}
+.ctedit{outline:none;border-bottom:1px dashed rgba(150,150,150,.5);cursor:text}
+.ctedit:focus{border-bottom-color:var(--teal)}
 .cfirmas{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:32px;padding-top:24px;border-top:1px solid var(--s2)}
 .fb{text-align:center}.fl{border-top:1.5px solid var(--ink);margin-bottom:5px;margin-top:34px}
 .flbl{font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:var(--s4);font-weight:600}
@@ -229,8 +233,9 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
        display:block!important; overflow:visible!important; inset:auto!important }
   .cw{ border-radius:0!important; box-shadow:none!important; max-width:100%!important;
        width:100%!important; margin:0!important }
-  .ch,.ctot-main,.ctbl thead,.sub-row td,.sub-row-ext td{
+  .ch,.ctot-main,.ctot-total,.ctbl thead,.sub-row td,.sub-row-ext td{
     -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important }
+  .ctedit{ border-bottom:none!important }
   /* Inputs del certificado se ven como texto plano al imprimir */
   .c-sub input,.firma-inp{ border:none!important; background:transparent!important;
     font-family:'Syne',sans-serif!important; padding:0!important; outline:none!important }
@@ -369,6 +374,12 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
         </label>
         <span style="font-size:11px;color:var(--s4)">· Cambie el valor para recalcular toda la tabla automáticamente</span>
       </div>
+      <div class="cert-precio-wrap no-print" style="margin-top:-6px">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:600">
+          <input type="checkbox" id="cert-sumar-fuera" onchange="toggleTotalGeneral()" style="width:15px;height:15px;cursor:pointer">
+          Sumar «Fuera de meta» al total — mostrar recuadro «Total General»
+        </label>
+      </div>
       <table class="ctbl">
         <thead><tr>
           <th>Ciclo</th>
@@ -384,8 +395,9 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
         <tbody id="c-tbody"></tbody>
       </table>
       <div class="ctot-wrap">
-        <div class="ctot ctot-main"><div><div class="ct-l">Subtotal a Pagar</div><div id="c-formula-txt" style="font-size:10px;opacity:.4;margin-top:1px">MIN(aplicadas,meta)×$8.000</div></div><div class="ct-v" id="c-gran">$0</div></div>
-        <div class="ctot ctot-ext"><div><div class="ct-l" style="color:var(--orange)">Fuera de Meta (ref.)</div><div style="font-size:10px;opacity:.6;color:var(--orange);margin-top:1px">No se paga</div></div><div class="ct-v-ext" id="c-ext">$0</div></div>
+        <div class="ctot ctot-main"><div><div class="ct-l ctedit" contenteditable="true" spellcheck="false" title="Edite el título de este recuadro">Subtotal a Pagar</div><div id="c-formula-txt" style="font-size:10px;opacity:.4;margin-top:1px">MIN(aplicadas,meta)×$8.000</div></div><div class="ct-v" id="c-gran">$0</div></div>
+        <div class="ctot ctot-ext"><div><div class="ct-l ctedit" style="color:var(--orange)" contenteditable="true" spellcheck="false" title="Edite el título de este recuadro">Fuera de Meta (ref.)</div><div class="ctedit" style="font-size:10px;opacity:.6;color:var(--orange);margin-top:1px" contenteditable="true" spellcheck="false" title="Edite este texto">No se paga</div></div><div class="ct-v-ext" id="c-ext">$0</div></div>
+        <div class="ctot ctot-total" id="c-total-gen-box" style="display:none"><div><div class="ct-l ctedit" contenteditable="true" spellcheck="false" title="Edite el título de este recuadro">Total General a Pagar</div><div class="ctedit" style="font-size:10px;opacity:.75;margin-top:1px" contenteditable="true" spellcheck="false" title="Edite este texto">Subtotal a pagar + Fuera de meta</div></div><div class="ct-v" id="c-total-gen">$0</div></div>
       </div>
       <div class="cfirmas">
         <!-- Firma 1: Vacunadora -->
@@ -2032,6 +2044,8 @@ async function verCert(nombre){
   $('c-dext').textContent=v.tFuera.toLocaleString('es-CO')+' dosis';
   $('c-gran').textContent=fmt(v.tVal);
   $('c-ext').textContent=fmt(v.tValExt||0);
+  $('c-total-gen').textContent=fmt((v.tVal||0)+(v.tValExt||0));
+  ctSyncTotalGeneralVisibility();
   $('c-fuente').textContent='Fuente: Google Sheets — REGISTROS_PAI';
   // Campos de firma
   $('f1-nombre').value=v.vac;
@@ -2227,7 +2241,15 @@ function recalcCertTotals(){
   $('c-dext').textContent=totFuera.toLocaleString('es-CO')+' dosis';
   $('c-gran').textContent=fmt(totVal);
   $('c-ext').textContent =fmt(totValExt);
+  const tg=$('c-total-gen'); if(tg) tg.textContent=fmt(totVal+totValExt);
 }
+
+// ── Recuadro "Total General" (Subtotal + Fuera de meta) del certificado ──
+function ctSyncTotalGeneralVisibility(){
+  const chk=$('cert-sumar-fuera'); const box=$('c-total-gen-box');
+  if(box) box.style.display=(chk && chk.checked)?'flex':'none';
+}
+function toggleTotalGeneral(){ ctSyncTotalGeneralVisibility(); }
 
 // Imprimir: solo el certificado (el CSS @media print oculta todo lo demás)
 function imprimirCert(){

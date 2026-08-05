@@ -1825,7 +1825,7 @@ function renderEmblemas(){
         <div class="card-header">Información Institucional</div>
         <div class="grid-2">
           <div class="form-group"><label class="form-label">Perfil / Profesión <span class="req">*</span></label><input name="perfil_profesion" class="form-input" required placeholder="Ej: Médico General, Enfermero, Odontólogo..."></div>
-          <div class="form-group"><label class="form-label">Cargo <span class="req">*</span></label><select name="cargo" class="form-select" required>${selOpts(CFG.CARGOS,'Seleccione cargo...')}</select></div>
+          <div class="form-group"><label class="form-label">Cargo <span class="req">*</span></label><select name="cargo" class="form-select" required onchange="toggleCargoOtro(this,'cargo-otro-carnet')">${selOpts(CFG.CARGOS,'Seleccione cargo...')}</select><input type="text" id="cargo-otro-carnet" name="cargo_otro" class="form-input" placeholder="Especifique el cargo..." style="display:none;margin-top:.5rem"></div>
           <div class="form-group"><label class="form-label">Vinculación <span class="req">*</span></label><select name="vinculacion" class="form-select" required>${selOpts(['Nómina','SSO','OPS','Contrato Sindical','Otro'],'Seleccione...')}</select></div>
           <div class="form-group"><label class="form-label">Municipio <span class="req">*</span></label><select name="municipio" class="form-select" required onchange="actualizarIPS(this.value)">${selOpts(CFG.MUNICIPIOS,'Seleccione municipio...')}</select></div>
           <div class="form-group" style="grid-column:1/-1"><label class="form-label">IPS <span class="req">*</span></label><select name="ips" class="form-select" required id="sel-ips"><option value="">Seleccione municipio primero...</option></select></div>
@@ -1884,7 +1884,7 @@ function renderEmblemas(){
           <div class="form-group"><label class="form-label">Apellidos <span class="req">*</span></label><input name="apellidos" class="form-input" required></div>
           <div class="form-group"><label class="form-label">Tipo documento <span class="req">*</span></label><select name="tipo_documento" class="form-select" required>${selOpts(CFG.TIPOS_DOC,'Seleccione...')}</select></div>
           <div class="form-group"><label class="form-label">Número documento <span class="req">*</span></label><input name="numero_documento" class="form-input" required></div>
-          <div class="form-group"><label class="form-label">Cargo <span class="req">*</span></label><select name="cargo" class="form-select" required>${selOpts(CFG.CARGOS,'Seleccione cargo...')}</select></div>
+          <div class="form-group"><label class="form-label">Cargo <span class="req">*</span></label><select name="cargo" class="form-select" required onchange="toggleCargoOtro(this,'cargo-otro-emblema')">${selOpts(CFG.CARGOS,'Seleccione cargo...')}</select><input type="text" id="cargo-otro-emblema" name="cargo_otro" class="form-input" placeholder="Especifique el cargo..." style="display:none;margin-top:.5rem"></div>
           <div class="form-group"><label class="form-label">Municipio <span class="req">*</span></label><select name="municipio" class="form-select" required>${selOpts(CFG.MUNICIPIOS,'Seleccione...')}</select></div>
           <div class="form-group"><label class="form-label">Correo electrónico <span class="req">*</span></label><input name="correo" type="email" class="form-input" required></div>
           <div class="form-group"><label class="form-label">Teléfono</label><input name="telefono" type="tel" class="form-input"></div>
@@ -1947,6 +1947,15 @@ const IPS_POR_MUNICIPIO = {
   'Convención': ['IPS Convención','IPS San Pablo','PS Casitas','PS Capitanlargo'],
   'Teorama':    ['IPS San Pablo','PS Aserrío','PS San Juancito','PS El Aserrío'],
 };
+function toggleCargoOtro(sel, inputId){
+  const inp = document.getElementById(inputId);
+  if(!inp) return;
+  const show = sel.value === 'Otro';
+  inp.style.display = show ? 'block' : 'none';
+  inp.required = show;
+  if(!show) inp.value = '';
+}
+
 function actualizarIPS(mun){
   const sel = document.getElementById('sel-ips');
   if(!sel) return;
@@ -2031,6 +2040,8 @@ async function submitCarnet(e){
   // 3. Insertar solicitud en Supabase con la URL de Drive
   btn.innerHTML = '<span class="spinner"></span> Guardando solicitud...';
   const data = Object.fromEntries(fd.entries());
+  if(data.cargo === 'Otro'){ data.cargo = (data.cargo_otro||'').trim() || 'Otro'; }
+  delete data.cargo_otro;
   delete data.fecha_solicitud_display;
   data.documento_pdf_url = driveUrl;
   data.fecha_solicitud = new Date().toISOString();
@@ -2074,6 +2085,8 @@ async function submitEmblemaPub(e){
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Enviando...';
   const fd = new FormData(e.target);
   const data = Object.fromEntries(fd.entries());
+  if(data.cargo === 'Otro'){ data.cargo = (data.cargo_otro||'').trim() || 'Otro'; }
+  delete data.cargo_otro;
   const {error} = await supa.from('mm_solicitudes_emblemas').insert([data]);
   if(error){ toast('Error: '+error.message,'error'); btn.disabled=false; btn.textContent='Enviar Solicitud'; return; }
   toast('Solicitud de emblema enviada correctamente.','success',6000);

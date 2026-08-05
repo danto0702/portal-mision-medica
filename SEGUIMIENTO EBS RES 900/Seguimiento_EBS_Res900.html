@@ -430,6 +430,7 @@ const CFG = {
   BUCKET: 'ebs-soportes',
   ADMIN_PASS: 'HRNO2026'
 };
+const MAX_FILE_BYTES = 209715200; // 200 MB por archivo
 const supa = supabase.createClient(CFG.SUPA_URL, CFG.SUPA_KEY);
 
 /* ═══════════════ DEFINICIÓN DE LOS 15 PUNTOS ═══════════════ */
@@ -803,7 +804,7 @@ $('fileInput').addEventListener('change',async e=>{
   loader(true);
   let okCount=0;
   for(const file of files){
-    if(file.size>52428800){toast(`"${file.name}" supera 50 MB`,'err');continue;}
+    if(file.size>MAX_FILE_BYTES){toast(`"${file.name}" supera 200 MB`,'err');continue;}
     const safe=file.name.replace(/[^\w.\-]+/g,'_').slice(-90);
     const path=`${ST.expId}/p${punto}/${periodo}/${crypto.randomUUID()}_${safe}`;
     const {error:upErr}=await supa.storage.from(CFG.BUCKET).upload(path,file,{upsert:false,contentType:file.type||'application/octet-stream'});

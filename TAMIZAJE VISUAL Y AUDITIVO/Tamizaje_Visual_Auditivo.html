@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f4c81">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<title>Tamizaje Visual y Auditivo · ESE HRNO</title>
+<script src="jspdf.umd.min.js"></script>
+<style>
+/* ─────────── RESET & BASE ─────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#eef4fb; --surface:#ffffff; --surface2:#f4f8fd;
+  --border:rgba(15,76,129,0.14); --border2:rgba(15,76,129,0.30);
+  --text:#0c1b33; --text2:#4a6a8a; --text3:#1e3a5f;
+  --primary:#0f4c81; --primary2:#1565c0; --teal:#0891B2;
+  --green:#059669; --green-bg:#e7f6ef;
+  --red:#dc2626; --red-bg:#fdecec; --yellow:#b45309; --yellow-bg:#fef3e2;
+  --r:14px; --sh:0 2px 10px rgba(15,76,129,.08); --sh2:0 8px 30px rgba(15,76,129,.14);
+}
+html{font-size:16px;-webkit-text-size-adjust:100%;}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;
+  padding-bottom:env(safe-area-inset-bottom);
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block;}
+h1,h2,h3{line-height:1.25;color:var(--text3);}
+a{color:var(--primary2);text-decoration:none;}
+/* ─────────── BANNER ─────────── */
+.banner-wrap{width:100%;background:var(--surface);border-bottom:1px solid var(--border);}
+.banner-wrap img{width:100%;height:auto;max-height:200px;object-fit:contain;margin:0 auto;}
+.banner-fallback{width:100%;aspect-ratio:2000/283;max-height:150px;
+  background:linear-gradient(100deg,#0f4c81,#0891B2);color:#fff;
+  display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;
+  font-weight:700;font-size:clamp(15px,3.5vw,26px);letter-spacing:.3px;}
+/* ─────────── LAYOUT ─────────── */
+.wrap{max-width:920px;margin:0 auto;padding:16px 14px 120px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:14px 0 8px;}
+.topbar .brand{font-size:13px;color:var(--text2);font-weight:600;}
+.topbar .brand b{color:var(--primary);}
+.pill-link{font-size:12.5px;color:var(--primary2);border:1px solid var(--border2);border-radius:999px;
+  padding:7px 14px;font-weight:600;background:var(--surface);display:inline-flex;gap:6px;align-items:center;min-height:38px;}
+.pill-link:active{background:var(--surface2);}
+/* ─────────── CARDS ─────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
+  padding:18px 16px;margin-bottom:16px;}
+.card h2{font-size:17px;display:flex;align-items:center;gap:9px;margin-bottom:4px;}
+.card .sub{font-size:12.5px;color:var(--text2);margin-bottom:14px;}
+.section-tag{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;
+  background:var(--primary);color:#fff;font-size:13px;font-weight:700;flex:none;}
+/* ─────────── HOME ─────────── */
+.hero{text-align:center;padding:26px 16px 14px;}
+.hero h1{font-size:clamp(20px,5vw,30px);margin-bottom:8px;}
+.hero p{color:var(--text2);font-size:14px;max-width:620px;margin:0 auto;}
+.home-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px;}
+@media(max-width:560px){.home-actions{grid-template-columns:1fr;}}
+.home-btn{border:1px solid var(--border);border-radius:var(--r);background:var(--surface);box-shadow:var(--sh);
+  padding:24px 18px;text-align:left;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:8px;min-height:120px;}
+.home-btn:hover{box-shadow:var(--sh2);transform:translateY(-2px);border-color:var(--border2);}
+.home-btn .ic{font-size:30px;}
+.home-btn .t{font-size:17px;font-weight:700;color:var(--text3);}
+.home-btn .d{font-size:12.5px;color:var(--text2);}
+/* ─────────── FORM ─────────── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+@media(max-width:560px){.grid2,.grid3{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:2px;}
+.field label{font-size:12.5px;font-weight:600;color:var(--text3);}
+.field .req{color:var(--red);}
+.field .hint{font-size:11px;color:var(--text2);font-weight:400;}
+input[type=text],input[type=number],input[type=date],select,textarea{
+  width:100%;font-size:16px;font-family:inherit;color:var(--text);background:var(--surface);
+  border:1px solid var(--border2);border-radius:10px;padding:11px 12px;transition:.15s;min-height:44px;}
+textarea{min-height:70px;resize:vertical;line-height:1.45;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary2);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a6a8a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:38px;}
+.readonly-chip{font-size:12.5px;background:var(--surface2);border:1px dashed var(--border2);border-radius:10px;padding:10px 12px;color:var(--text3);font-weight:600;min-height:44px;display:flex;align-items:center;}
+/* consent */
+.consent{display:flex;gap:11px;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px;margin-top:4px;}
+.consent input{width:22px;height:22px;flex:none;margin-top:1px;accent-color:var(--primary);}
+.consent label{font-size:12px;color:var(--text2);line-height:1.5;}
+/* checkbox tamizaje selector */
+.select-tamiz{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+@media(max-width:560px){.select-tamiz{grid-template-columns:1fr;}}
+.tamiz-opt{border:2px solid var(--border);border-radius:12px;padding:15px;cursor:pointer;display:flex;gap:12px;align-items:center;background:var(--surface);transition:.15s;}
+.tamiz-opt .ck{width:24px;height:24px;border-radius:7px;border:2px solid var(--border2);flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;transition:.15s;}
+.tamiz-opt.on{border-color:var(--primary);background:#f0f6fd;}
+.tamiz-opt.on .ck{background:var(--primary);border-color:var(--primary);}
+.tamiz-opt .ti{font-size:24px;}
+.tamiz-opt .tt{font-weight:700;font-size:14.5px;color:var(--text3);}
+.tamiz-opt .ts{font-size:11.5px;color:var(--text2);}
+.tamiz-opt.disabled{opacity:.5;cursor:not-allowed;background:var(--surface2);}
+/* ─────────── VALE / SI-NO ─────────── */
+.qitem{border:1px solid var(--border);border-radius:12px;padding:13px;margin-bottom:11px;background:var(--surface);}
+.qitem.neg{border-color:rgba(220,38,38,.4);background:#fef7f7;}
+.qitem .cat{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--primary);border-radius:6px;padding:2px 8px;margin-bottom:7px;}
+.qitem .cat.E{background:var(--teal);}.qitem .cat.I{background:#7c3aed;}.qitem .cat.V{background:var(--yellow);}
+.qitem .qrep{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.qitem .qobs{font-size:11.5px;color:var(--text2);background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.45;}
+.qitem .qobs b{color:var(--text3);}
+.sino{display:flex;gap:8px;}
+.sino button{flex:1;font-size:14px;font-weight:700;font-family:inherit;border:1.5px solid var(--border2);background:var(--surface);
+  border-radius:9px;padding:10px;cursor:pointer;color:var(--text2);transition:.12s;min-height:44px;}
+.sino button.si.on{background:var(--green);border-color:var(--green);color:#fff;}
+.sino button.no.on{background:var(--red);border-color:var(--red);color:#fff;}
+.backtrack{margin-top:10px;padding-left:12px;border-left:3px solid rgba(220,38,38,.35);}
+.backtrack .bt-note{font-size:11px;color:var(--yellow);font-weight:600;margin-bottom:8px;display:flex;gap:6px;align-items:center;}
+.range-badge{font-size:12px;color:var(--primary);font-weight:700;background:#eaf2fb;border-radius:8px;padding:6px 11px;display:inline-block;margin-bottom:12px;}
+.struct-row{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.struct-row:last-child{border-bottom:none;}
+.struct-row .sname{font-weight:600;font-size:13px;color:var(--text3);}
+.struct-row .mini-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:700;}
+.struct-head{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;font-size:10.5px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;padding-bottom:6px;border-bottom:2px solid var(--border);}
+.mini-sino{display:flex;gap:6px;}
+.mini-sino button{flex:1;font-size:12px;font-weight:700;font-family:inherit;border:1.5px solid var(--border2);background:var(--surface);border-radius:8px;padding:8px 4px;cursor:pointer;color:var(--text2);min-height:40px;}
+.mini-sino button.si.on{background:var(--green);border-color:var(--green);color:#fff;}
+.mini-sino button.no.on{background:var(--red);border-color:var(--red);color:#fff;}
+/* eyes */
+.eye-table{width:100%;border-collapse:collapse;margin-top:6px;}
+.eye-table th,.eye-table td{padding:8px 6px;text-align:center;font-size:12.5px;}
+.eye-table th{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:700;border-bottom:2px solid var(--border);}
+.eye-table td:first-child,.eye-table th:first-child{text-align:left;font-weight:700;color:var(--text3);}
+.eye-table select{min-height:40px;font-size:14px;padding:8px;}
+/* ─────────── BUTTONS / NAV ─────────── */
+.actionbar{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
+  border-top:1px solid var(--border);padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+  display:flex;gap:10px;justify-content:space-between;z-index:40;box-shadow:0 -4px 20px rgba(15,76,129,.06);}
+.actionbar .inner{max-width:920px;margin:0 auto;width:100%;display:flex;gap:10px;justify-content:space-between;}
+.btn{font-size:15px;font-weight:700;font-family:inherit;border-radius:11px;padding:13px 20px;cursor:pointer;border:1.5px solid transparent;transition:.15s;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary2);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-ghost{background:var(--surface);color:var(--text3);border-color:var(--border2);}
+.btn-ghost:hover{background:var(--surface2);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-block{width:100%;}
+/* ─────────── RESULT ─────────── */
+.result-card{border-radius:14px;padding:18px;margin-bottom:14px;border:2px solid;}
+.result-card.pass{background:var(--green-bg);border-color:var(--green);}
+.result-card.fail{background:var(--red-bg);border-color:var(--red);}
+.result-card .rc-top{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.result-card .rc-ic{font-size:30px;}
+.result-card .rc-title{font-size:18px;font-weight:800;}
+.result-card.pass .rc-title{color:var(--green);}.result-card.fail .rc-title{color:var(--red);}
+.result-card .rc-sub{font-size:13px;color:var(--text3);line-height:1.5;}
+.result-card .rc-detail{font-size:12px;color:var(--text2);margin-top:8px;background:rgba(255,255,255,.6);border-radius:8px;padding:9px 11px;}
+.warn-box{background:var(--yellow-bg);border:1px solid var(--yellow);border-radius:10px;padding:11px 13px;font-size:12.5px;color:#7a3d05;margin-bottom:14px;line-height:1.5;}
+/* ─────────── DASHBOARD ─────────── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+@media(max-width:560px){.kpis{grid-template-columns:1fr 1fr;}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--sh);}
+.kpi .v{font-size:24px;font-weight:800;color:var(--primary);}
+.kpi .l{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:2px;}
+.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+@media(max-width:720px){.filters{grid-template-columns:1fr 1fr;}}
+.filters input,.filters select{min-height:40px;font-size:14px;}
+.table-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);}
+table.data{width:100%;border-collapse:collapse;min-width:820px;}
+table.data th,table.data td{padding:10px 12px;font-size:12.5px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.data th{background:var(--surface2);color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;}
+table.data tr:hover td{background:var(--surface2);}
+.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px;}
+.badge.v{background:#eaf2fb;color:var(--primary);}.badge.a{background:#f3ecfd;color:#7c3aed;}
+.badge.ok{background:var(--green-bg);color:var(--green);}.badge.bad{background:var(--red-bg);color:var(--red);}
+.mini-btn{font-size:11.5px;font-weight:700;font-family:inherit;border:1px solid var(--border2);background:var(--surface);border-radius:7px;padding:6px 11px;cursor:pointer;color:var(--primary);min-height:34px;}
+.mini-btn:hover{background:var(--surface2);}
+.hidden{display:none!important;}
+.toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:var(--text3);color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;font-weight:600;box-shadow:var(--sh2);z-index:60;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;text-align:center;}
+.toast.show{opacity:1;bottom:100px;}
+.toast.err{background:var(--red);}.toast.ok{background:var(--green);}
+.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:40px 20px;color:var(--text2);font-size:14px;}
+</style>
+</head>
+<body>
+
+<div class="banner-wrap">
+  <img id="banner" src="banner.png" alt="ESE Hospital Regional Noroccidental — Salud Pública"
+       onerror="this.onerror=null;this.style.display='none';document.getElementById('bfb').style.display='flex';">
+  <div id="bfb" class="banner-fallback" style="display:none">TAMIZAJE VISUAL Y AUDITIVO · ESE HOSPITAL REGIONAL NOROCCIDENTAL</div>
+</div>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">Coordinación de <b>Salud Pública</b> · ESE HRNO</div>
+    <a class="pill-link" href="../index.html">← Portal Salud Pública</a>
+  </div>
+
+  <!-- ══════════ HOME ══════════ -->
+  <section id="view-home">
+    <div class="hero">
+      <h1>Tamizaje Visual y Auditivo</h1>
+      <p>Aplicación del instrumento <b>VALE</b> (valoración auditiva y comunicativa, 0–12 años) y del <b>tamizaje visual con tabla de Snellen</b>. Registro en la nube y generación de resultado en PDF.</p>
+    </div>
+    <div class="home-actions">
+      <button class="home-btn" onclick="go('nuevo')">
+        <span class="ic">📝</span>
+        <span class="t">Nuevo tamizaje</span>
+        <span class="d">Diligenciar la valoración de un paciente y generar su PDF con resultado.</span>
+      </button>
+      <button class="home-btn" onclick="go('admin')">
+        <span class="ic">🔐</span>
+        <span class="t">Panel administrador</span>
+        <span class="d">Ver resultados, filtrar, exportar y descargar encuestas en PDF.</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ══════════ NUEVO — PASO 1: DATOS ══════════ -->
+  <section id="view-datos" class="hidden">
+    <div class="card">
+      <h2><span class="section-tag">1</span> Datos del paciente</h2>
+      <div class="sub">Todos los campos marcados con <span style="color:var(--red)">*</span> son obligatorios.</div>
+      <div class="grid2">
+        <div class="field"><label>Nombre completo <span class="req">*</span></label><input type="text" id="p_nombre" placeholder="Nombres y apellidos" autocomplete="off"></div>
+        <div class="field"><label>Acudiente / cuidador</label><input type="text" id="p_acudiente" placeholder="Nombre del acudiente" autocomplete="off"></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Tipo de documento <span class="req">*</span></label>
+          <select id="p_tipodoc"><option value="">Seleccione</option><option>RC</option><option>TI</option><option>CC</option><option>CE</option><option>PA</option><option>MS</option><option>AS</option></select></div>
+        <div class="field"><label>Número de documento <span class="req">*</span></label><input type="text" id="p_doc" inputmode="numeric" placeholder="Documento" autocomplete="off"></div>
+        <div class="field"><label>Género <span class="req">*</span></label>
+          <select id="p_genero"><option value="">Seleccione</option><option>Masculino</option><option>Femenino</option><option>Intersexual</option><option>No declara</option></select></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Fecha de nacimiento <span class="req">*</span></label><input type="date" id="p_fnac" onchange="calcEdad()"></div>
+        <div class="field"><label>Edad</label><div class="readonly-chip" id="p_edad">—</div></div>
+        <div class="field"><label>Curso de vida</label><div class="readonly-chip" id="p_curso">—</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>EPS</label><input type="text" id="p_eps" placeholder="Entidad" autocomplete="off"></div>
+        <div class="field"><label>Municipio <span class="req">*</span></label>
+          <select id="p_municipio"><option value="">Seleccione</option>
+            <option>Ábrego</option><option>Convención</option><option>El Carmen</option><option>El Tarra</option><option>Hacarí</option><option>La Playa de Belén</option><option>San Calixto</option><option>Teorama</option><option>Ocaña</option><option>Tibú</option><option>Otro</option></select></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="section-tag">2</span> Datos del evaluador</h2>
+      <div class="sub">Se recuerdan en este dispositivo para agilizar los próximos registros.</div>
+      <div class="grid3">
+        <div class="field"><label>Nombre del evaluador <span class="req">*</span></label><input type="text" id="e_nombre" autocomplete="off"></div>
+        <div class="field"><label>Registro médico / profesional</label><input type="text" id="e_registro" autocomplete="off"></div>
+        <div class="field"><label>Especialidad / profesión</label><input type="text" id="e_especialidad" autocomplete="off"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="section-tag">3</span> Consentimiento y selección</h2>
+      <div class="consent">
+        <input type="checkbox" id="p_consent">
+        <label for="p_consent">Autorizo el tratamiento de mis datos personales (o los del menor a mi cargo) conforme a la <b>Ley 1581 de 2012</b> y la política de tratamiento de datos de la ESE Hospital Regional Noroccidental, con fines de tamizaje en salud, seguimiento y remisión. Los datos se manejan con confidencialidad.</label>
+      </div>
+      <div style="margin-top:16px">
+        <label style="font-size:12.5px;font-weight:600;color:var(--text3)">¿Qué tamizaje(s) se aplicarán? <span class="req">*</span></label>
+        <div class="select-tamiz" style="margin-top:8px">
+          <div class="tamiz-opt" id="opt-visual" onclick="toggleTamiz('visual')">
+            <div class="ck">✓</div><div class="ti">👁️</div>
+            <div><div class="tt">Tamizaje visual</div><div class="ts">Agudeza visual · Tabla de Snellen · Todas las edades</div></div>
+          </div>
+          <div class="tamiz-opt" id="opt-auditivo" onclick="toggleTamiz('auditivo')">
+            <div class="ck">✓</div><div class="ti">👂</div>
+            <div><div class="tt">Tamizaje auditivo (VALE)</div><div class="ts" id="aud-sub">Audición y lenguaje · 0 a 12 años</div></div>
+          </div>
+        </div>
+        <div id="aud-warn" class="warn-box hidden" style="margin-top:12px">⚠️ El instrumento VALE solo aplica para niños y niñas de <b>0 a 12 años</b>. Para esta edad no es posible aplicar el tamizaje auditivo VALE.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ NUEVO — PASO 2: VISUAL ══════════ -->
+  <section id="view-visual" class="hidden">
+    <div class="card">
+      <h2>👁️ Tamizaje visual — Tabla de Snellen</h2>
+      <div class="sub">Registre la agudeza visual medida con cartilla física a distancia estándar (6 m / 20 pies).</div>
+      <div class="grid2">
+        <div class="field"><label>Tipo de optotipo <span class="req">*</span></label>
+          <select id="v_optotipo"><option value="">Seleccione</option><option>Letras Snellen</option><option>E direccional (Snellen E)</option><option>Figuras / LEA symbols</option></select></div>
+        <div class="field"><label>¿Usa corrección óptica? <span class="req">*</span></label>
+          <select id="v_correccion" onchange="toggleCC()"><option value="">Seleccione</option><option>No</option><option>Sí</option></select>
+          <span class="hint">Gafas o lentes de contacto.</span></div>
+      </div>
+
+      <div style="margin-top:8px">
+        <div style="font-size:12.5px;font-weight:700;color:var(--text3);margin-bottom:4px">Agudeza visual — SIN corrección</div>
+        <table class="eye-table">
+          <thead><tr><th>Ojo</th><th>Agudeza</th></tr></thead>
+          <tbody>
+            <tr><td>Derecho (OD)</td><td><select id="v_sc_od" class="ag-sel"></select></td></tr>
+            <tr><td>Izquierdo (OI)</td><td><select id="v_sc_oi" class="ag-sel"></select></td></tr>
+            <tr><td>Ambos (AO)</td><td><select id="v_sc_ao" class="ag-sel"></select></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="cc-block" class="hidden" style="margin-top:14px">
+        <div style="font-size:12.5px;font-weight:700;color:var(--text3);margin-bottom:4px">Agudeza visual — CON corrección</div>
+        <table class="eye-table">
+          <thead><tr><th>Ojo</th><th>Agudeza</th></tr></thead>
+          <tbody>
+            <tr><td>Derecho (OD)</td><td><select id="v_cc_od" class="ag-sel"></select></td></tr>
+            <tr><td>Izquierdo (OI)</td><td><select id="v_cc_oi" class="ag-sel"></select></td></tr>
+            <tr><td>Ambos (AO)</td><td><select id="v_cc_ao" class="ag-sel"></select></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="field" style="margin-top:14px"><label>Observaciones</label><textarea id="v_obs" placeholder="Hallazgos, motivo si no es valorable, etc."></textarea></div>
+    </div>
+  </section>
+
+  <!-- ══════════ NUEVO — PASO 3: AUDITIVO (VALE) ══════════ -->
+  <section id="view-auditivo" class="hidden">
+    <div class="card">
+      <h2>👂 Tamizaje auditivo y comunicativo (VALE)</h2>
+      <div class="sub">Instrumento del Ministerio de Salud (2016) · versión institucional V01-2022.</div>
+      <div class="range-badge" id="vale-range">Rango de edad: —</div>
+
+      <div id="riesgos-menor" class="hidden">
+        <h3 style="font-size:14px;margin:12px 0 8px">Riesgos generales (menores de 2 años)</h3>
+        <div class="struct-head" style="grid-template-columns:1.6fr .8fr"><span>Condición</span><span style="text-align:center">Sí / No</span></div>
+        <div id="riesgos-menor-list"></div>
+      </div>
+
+      <h3 style="font-size:14px;margin:16px 0 8px">Antecedentes (todas las edades)</h3>
+      <div class="field"><label>¿Antes, durante o poco después del nacimiento hubo alguna complicación? (describa)</label><textarea id="a_perinatal"></textarea></div>
+      <div class="field"><label>¿Diagnóstico de alguna condición de salud? ¿Condición de riesgo social (maltrato, abandono, otras)? (describa)</label><textarea id="a_diag"></textarea></div>
+      <div class="field"><label>¿Dificultades en el aprendizaje de la lectura/escritura o en el desempeño escolar? (describa)</label><textarea id="a_aprend"></textarea></div>
+    </div>
+
+    <div class="card">
+      <h3 style="font-size:15px;margin-bottom:4px">Condiciones estructurales</h3>
+      <div class="sub">Observe presencia (existe y está en su lugar) e integridad (completa y sin lesiones).</div>
+      <div class="struct-head"><span>Estructura</span><span style="text-align:center">Presencia</span><span style="text-align:center">Integridad</span></div>
+      <div id="struct-list"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="font-size:15px;margin-bottom:4px">Ítems de valoración por dimensión</h3>
+      <div class="sub">Formule la pregunta al acudiente y verifique con la observación directa. Marque <b>Sí</b> o <b>No</b>. Si marca <b>No</b>, aparecerá el ítem del rango anterior de la misma categoría (retroceso automático).</div>
+      <div id="vale-items"></div>
+    </div>
+  </section>
+
+  <!-- ══════════ NUEVO — PASO 4: RESULTADO ══════════ -->
+  <section id="view-resultado" class="hidden">
+    <div class="card">
+      <h2>✅ Resultado del tamizaje</h2>
+      <div class="sub" id="res-paciente">—</div>
+      <div id="res-cards"></div>
+      <div id="res-download" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- ══════════ ADMIN ══════════ -->
+  <section id="view-admin" class="hidden">
+    <div id="admin-login" class="card" style="max-width:440px;margin:30px auto">
+      <h2>🔐 Panel administrador</h2>
+      <div class="sub">Ingrese la contraseña de administrador.</div>
+      <div class="field"><label>Contraseña</label><input type="password" id="admin-pass" style="font-size:16px" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-primary btn-block" id="btn-login" onclick="doLogin()" style="margin-top:8px">Ingresar</button>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+      <div class="topbar" style="margin-top:0">
+        <h2 style="font-size:18px">📊 Resultados de tamizaje</h2>
+        <div style="display:flex;gap:8px">
+          <button class="mini-btn" onclick="loadRegistros()">↻ Actualizar</button>
+          <button class="mini-btn" onclick="exportCSV()">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="kpis" id="admin-kpis"></div>
+      <div class="filters">
+        <input type="text" id="f_buscar" placeholder="🔍 Nombre o documento" oninput="renderTabla()">
+        <select id="f_tipo" onchange="renderTabla()"><option value="">Todos los tamizajes</option><option value="VISUAL">Visual</option><option value="AUDITIVO">Auditivo</option></select>
+        <select id="f_result" onchange="renderTabla()"><option value="">Todos los resultados</option><option value="PASA">Pasa / Normal</option><option value="FALLA">Falla / Remisión</option></select>
+        <select id="f_municipio" onchange="renderTabla()"><option value="">Todos los municipios</option></select>
+      </div>
+      <div class="table-scroll">
+        <table class="data">
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Paciente</th><th>Documento</th><th>Edad</th><th>Curso de vida</th><th>Municipio</th><th>Resultado</th><th>Evaluador</th><th>PDF</th></tr></thead>
+          <tbody id="admin-tbody"></tbody>
+        </table>
+      </div>
+      <div id="admin-empty" class="empty hidden">No hay registros que coincidan con los filtros.</div>
+    </div>
+  </section>
+</div>
+
+<!-- ACTION BAR -->
+<div class="actionbar hidden" id="actionbar">
+  <div class="inner">
+    <button class="btn btn-ghost" id="btn-back" onclick="navBack()">← Atrás</button>
+    <button class="btn btn-primary" id="btn-next" onclick="navNext()">Siguiente →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════ CONFIG ════════════════════ */
+// Pega aquí la URL de la aplicación web de Apps Script (termina en /exec)
+const APPS_SCRIPT_URL = '';
+
+/* ════════════════════ DATOS VALE ════════════════════ */
+const AGUDEZAS = ['20/20','20/25','20/30','20/40','20/50','20/60','20/70','20/80','20/100','20/200'];
+const AG_NV = 'No valorable';
+
+const VALE_RANGOS = [
+ {id:'r1',label:'0 a 3 meses',min:0,max:3,items:[
+   {cat:'C',rep:'Cuando en casa se cierra una puerta, se cae un objeto o se escucha un ruido muy fuerte, ¿el bebé se mueve, se queda quieto o llora?',obs:'El evaluador produce un ruido fuerte fuera del campo visual, pero cerca del bebé, y observa que emite alguna respuesta como: sobresalto, llorar, interrumpir actividad.'},
+   {cat:'E',rep:'¿Usted siente diferencias en el llanto del bebé dependiendo si es por hambre, por sueño, porque está mojado, o de mal humor?',obs:'El evaluador observa (si tiene oportunidad) que el bebé emite llantos diferenciados según necesidades y situaciones.'},
+   {cat:'E',rep:'¿El bebé succiona con fuerza el alimento u otros objetos?',obs:'El evaluador observa la succión mientras el bebé se alimenta.'},
+   {cat:'I',rep:'Cuando le habla al bebé, ¿él/ella la/lo mira?',obs:'El evaluador observa que el bebé mira al interlocutor cuando este le habla.'},
+ ]},
+ {id:'r2',label:'4 a 6 meses',min:4,max:6,items:[
+   {cat:'C',rep:'Cuando se escucha una puerta, timbre u otro sonido familiar, ¿el bebé voltea la cabeza buscando el sonido?',obs:'El evaluador aplaude fuerte fuera del campo visual pero cerca del bebé y observa que el bebé ubica la fuente sonora.'},
+   {cat:'E',rep:'Cuando alguien le dice repeticiones de gestos y vocalizaciones como vocales "aaa", "eee" o sílabas mamama o papapa, ¿el bebé intenta emitir sonidos similares?',obs:'El evaluador se dirige al bebé haciendo producciones como mamama, papapa, y observa que el bebé intenta imitar el sonido.'},
+   {cat:'I',rep:'Cuando interactúa, juega, canta, habla con su bebé, ¿él/ella hace sonidos o sonríe?',obs:'El evaluador observa que en la interacción con su interlocutor el bebé emite respuestas con sonidos o sonrisas.'},
+ ]},
+ {id:'r3',label:'7 a 9 meses',min:7,max:9,items:[
+   {cat:'C',rep:'Cuando usted le canta o le conversa, ¿el bebé muestra interés?',obs:'El evaluador juega, canta, habla con el bebé y observa que el bebé reacciona, responde, muestra interés.'},
+   {cat:'E',rep:'Cuando el bebé quiere algo, ¿utiliza sonidos, sílabas, palabras o gestos para solicitarlo?',obs:'El evaluador interactúa directamente y observa que el niño/a corresponde y hace solicitudes de cosas que quiere.'},
+   {cat:'I',rep:'Cuando el bebé tiene alguna necesidad (por ejemplo, quiere algo, está incómodo o tiene hambre), ¿emite balbuceos, sonidos, señala o llora, para satisfacerla?',obs:'El evaluador interactúa con el bebé y detecta que él/ella emite balbuceos, hace señalamientos, sonríe, o llora para llamar la atención del interlocutor.'},
+ ]},
+ {id:'r4',label:'10 a 12 meses',min:10,max:12,items:[
+   {cat:'C',rep:'Cuando las personas le hablan, ¿el niño/a les presta atención?',obs:'El evaluador le habla directamente y observa que el niño/a responde con su atención.'},
+   {cat:'E',rep:'Cuando le dicen palabras nuevas, ¿el niño/a trata de imitarlas?',obs:'El evaluador muestra diferentes objetos diciendo sus nombres al niño/a, y observa que él/ella intenta imitarlo.'},
+   {cat:'E',rep:'El niño/a consume alimentos como papillas, jugos espesos, o galletas diariamente.',obs:'El evaluador solicita al acudiente ofrecer al niño/a una compota, papilla u otro alimento diferente a leche y observa si el niño/a lo recibe y lo traga sin atorarse.'},
+   {cat:'I',rep:'Cuando el niño/a quiere algún objeto (por ejemplo, un juguete), ¿lo señala y/o hace sonidos para obtenerlo?',obs:'El evaluador toma un objeto del niño/a y observa que él/ella lo solicita señalando o emitiendo sonidos.'},
+ ]},
+ {id:'r5',label:'13 a 15 meses',min:13,max:15,items:[
+   {cat:'C',rep:'Cuando usted le pide al niño/a que le muestre los ojos, la nariz, u otra parte del cuerpo (que él conozca), ¿lo hace?',obs:'El evaluador le pide que muestre partes del cuerpo y observa que el niño/a responde en coherencia con la solicitud.'},
+   {cat:'E',rep:'¿El niño/a produce sonidos de animales o de objetos conocidos, por ejemplo, gato, vaca, teléfono, etc.?',obs:'El evaluador observa que el niño/a reproduce el sonido de diferentes animales y objetos.'},
+   {cat:'I',rep:'¿El niño/a toma y trae un objeto cuando quiere jugar con usted?',obs:'El evaluador tiene juguetes conocidos cerca del niño/a y observa que los toma y los trae cuando quiere jugar con alguien.'},
+ ]},
+ {id:'r6',label:'16 a 18 meses',min:16,max:18,items:[
+   {cat:'C',rep:'¿El niño/a ejecuta acciones u órdenes sencillas cuando alguien se las solicita? Por ejemplo: "¿dónde está la abuela?".',obs:'El evaluador observa que el niño/a señala personas conocidas a su alrededor cuando se le solicita.'},
+   {cat:'E',rep:'¿El niño/a dice el nombre de diferentes objetos cotidianos cuando se le pregunta "¿qué es esto?"?',obs:'El evaluador observa que el niño/a nombra diferentes objetos de uso cotidiano.'},
+   {cat:'I',rep:'¿El niño/a pide cosas usando palabras, sílabas o sonidos vocálicos?',obs:'El evaluador observa que el niño/a utiliza palabras, sílabas, sonidos vocálicos y gestos para solicitar juguetes u objetos cuando quiere jugar con ellos.'},
+ ]},
+ {id:'r7',label:'19 a 24 meses',min:19,max:24,items:[
+   {cat:'C',rep:'¿El niño/a entiende y ejecuta órdenes? Por ejemplo si le dicen: "trae la cuchara de la cocina".',obs:'El evaluador da al niño/a algunas órdenes directas y observa que las entiende y ejecuta.'},
+   {cat:'E',rep:'¿El niño/a dice cada vez más palabras, incluyendo: "yo, mío, no, arriba, abajo" y nombres de objetos y acciones cotidianas?',obs:'El evaluador observa que el niño/a utiliza nombres de objetos y acciones, y palabras como "yo, mío, no, arriba, abajo".'},
+   {cat:'I',rep:'¿El niño/a produce sonidos, sílabas y palabras, acompañadas de gestos, señalamientos, miradas y entonaciones de habla cuando quiere interactuar con otros?',obs:'El evaluador observa en la interacción del niño/a el uso de sonidos, sílabas y palabras acompañadas de gestos, señalamientos, miradas y entonaciones de habla.'},
+ ]},
+ {id:'r8',label:'25 a 36 meses',min:25,max:36,items:[
+   {cat:'C',rep:'¿El niño/a utiliza palabras como "mío, tuyo, suyo" cuando se le pregunta a quién pertenece algún objeto conocido? Por ejemplo: "¿de quién es esta camisa?, ¿de quién es este muñeco?".',obs:'El evaluador observa que el niño/a utiliza al menos dos posesivos (mío, tuyo, suyo) cuando se le pregunta a quién pertenece algún objeto conocido.'},
+   {cat:'E',rep:'¿El niño/a se mueve, se emociona, canta, aplaude, cuando le ponen música?',obs:'El evaluador pone música y observa que el niño/a trata de acompañarla con algún movimiento.'},
+   {cat:'E',rep:'¿El niño/a muerde alimentos duros (por ejemplo, galletas) y los come sin atorarse?',obs:'El evaluador le da al niño/a una galleta y observa si hace buena masticación y no se atora o tose al tragar.'},
+   {cat:'I',rep:'¿El niño/a se muestra interesado por comunicarse, interactuar, conversar y jugar con otros niños de su edad, en diferentes situaciones?',obs:'En interacciones naturales entre pares, el evaluador observa interés del niño/a por comunicarse, interactuar, conversar y jugar con otros niños de su edad.'},
+ ]},
+ {id:'r9',label:'3 años 1 mes a 4 años',min:37,max:48,items:[
+   {cat:'C',rep:'En narraciones de hechos, cuentos o historias, ¿el niño/a responde a preguntas de qué, cómo, cuándo, etc.?',obs:'En la visualización y narración de un cuento, el evaluador observa que el niño/a responde a preguntas de qué, cómo, cuándo, etc.'},
+   {cat:'E',rep:'¿El niño/a hace preguntas cuando se presenta una situación nueva para él?',obs:'En la interacción comunicativa, el evaluador observa que el niño/a hace diferentes preguntas.'},
+   {cat:'I',rep:'¿El niño/a expresa sus sentimientos, pensamientos, emociones e ideas cuando interactúa con personas cercanas?',obs:'El evaluador pide al acudiente que le pregunte al niño/a sobre sus sentimientos, pensamientos, emociones e ideas y observa el comportamiento.'},
+ ]},
+ {id:'r10',label:'4 años 1 mes a 5 años',min:49,max:60,items:[
+   {cat:'C',rep:'¿El niño/a sabe y repite rondas, canciones, cuentos, historias cortas o fragmentos?',obs:'El evaluador le solicita al niño/a cantar alguna canción.'},
+   {cat:'E',rep:'¿El niño/a habla utilizando frases de al menos cuatro palabras para contar hechos o expresar diferentes situaciones?',obs:'El evaluador solicita al niño/a que cuente algo que le sucedió y observa el uso de frases coherentes de al menos cuatro palabras.'},
+   {cat:'I',rep:'¿El niño/a comprende y responde cuando las personas saludan, se despiden, dicen "gracias" o "por favor"?',obs:'El evaluador identifica que el niño/a hace uso de reglas sociales, de manera guiada o espontánea, durante el contacto comunicativo.'},
+ ]},
+ {id:'r11',label:'5 años 1 mes a 9 años',min:61,max:108,items:[
+   {cat:'C',rep:'¿El niño/a cumple con varias indicaciones dadas al mismo tiempo? Por ejemplo: "primero te pones de pie, luego vas corriendo hasta la puerta y después das dos golpes con la mano".',obs:'El evaluador observa que el niño/a ejecuta varias instrucciones dadas al mismo tiempo, en la secuencia adecuada.'},
+   {cat:'E',rep:'¿Cuando el niño/a habla o cuenta una historia se entiende claramente lo que dice y pronuncia bien todos los sonidos?',obs:'El evaluador solicita al niño que cuente algo que le sucedió y observa que se entiende con claridad y pronuncia bien todos los sonidos.'},
+   {cat:'I',rep:'¿El niño/a sostiene conversaciones con familiares y no familiares para expresar opiniones e intentar convencer de sus ideas a los demás?',obs:'El evaluador propone un tema de discusión pertinente a la edad y observa habilidades para expresar su opinión y convencer a su interlocutor.'},
+ ]},
+ {id:'r12',label:'9 años 1 mes a 12 años 11 meses',min:109,max:155,items:[
+   {cat:'C',rep:'¿El niño/a identifica errores, se ríe de ellos e intenta corregirlos cuando alguien los dice? Por ejemplo: "la pelota tiene patas", "por la noche me como el desayuno".',obs:'El evaluador provee al niño/a frases con errores (absurdos) y observa que logra identificarlos, riéndose, haciendo caras o intentando corregirlo.'},
+   {cat:'E',rep:'¿El niño/a habla y explica el porqué de diversas situaciones, sentimientos y pensamientos usando palabras abstractas como orgullo, valor, amar, etc.?',obs:'El evaluador observa que el niño/a justifica el porqué de diversas situaciones, pensamientos o sentimientos.'},
+   {cat:'I',rep:'¿El niño/a conversa con otros de diferentes temas, escuchando sus ideas y expresando con argumentos su acuerdo o desacuerdo?',obs:'El evaluador plantea una conversación con un tema de opinión y observa que puede asumir y defender una postura personal.'},
+ ]},
+];
+const VALE_VESTIBULAR = [
+ {id:'v1',label:'3 a 5 años',min:36,max:60,items:[
+   {cat:'V',rep:'¿El niño/a disfruta actividades de movimiento del cuerpo como columpiarse, girar, dar botes, saltar?',obs:'El evaluador le solicita al niño/a que dé una vuelta sobre su propio eje y observa que mantiene el equilibrio.'},
+   {cat:'V',rep:'¿El niño/a camina recto, sin inclinarse hacia los lados y sin caerse constantemente?',obs:'El evaluador le solicita al niño/a que camine en línea recta y observa que puede hacerlo sin inclinarse hacia los lados.'},
+ ]},
+ {id:'v2',label:'5 años 1 mes a 12 años 11 meses',min:61,max:155,items:[
+   {cat:'V',rep:'¿El niño/a disfruta dar algunas vueltas sobre sí mismo, sin caerse?',obs:'El evaluador le pide al niño/a que dé tres vueltas sobre su propio eje y observa que mantiene el equilibrio al detenerse.'},
+   {cat:'V',rep:'¿Cuando el niño/a se tropieza o siente que se va a caer, pone las manos para protegerse?',obs:'El evaluador observa, si tiene oportunidad, que el niño/a anticipa acciones de protección para evitar caídas.'},
+   {cat:'V',rep:'¿El niño/a disfruta del movimiento en varias direcciones, velocidades y alturas? Por ejemplo: subir al rodadero, sube y baja, que lo suban o bajen rápidamente.',obs:'El evaluador observa, si tiene oportunidad, que el niño/a disfruta hacer movimientos con su cuerpo en diferentes velocidades, direcciones y alturas.'},
+ ]},
+];
+const ESTRUCTURAS = ['Orejas','Labios','Lengua','Nariz','Paladar','Ojos','Dientes (acorde a la edad)','Cuello','Hombros'];
+const RIESGOS_MENOR = ['Bajo peso al nacer (menor de 1500 gr)','Nació antes de las 30 semanas de gestación (prematuro extremo)','Estancia superior a 30 días en la Unidad de Cuidados Intensivos Neonatales'];
+const CAT_NOMBRE = {C:'Comprensión',E:'Expresión',I:'Interacción',V:'Vestibular'};
+
+/* ════════════════════ ESTADO ════════════════════ */
+let STATE = {};
+let FLOW = [];      // secuencia de vistas del flujo "nuevo"
+let flowIdx = 0;
+let REGISTROS = {visual:[],auditivo:[]};
+let ADMIN_CLAVE = '';
+let BANNER_DATA = null;
+
+/* ════════════════════ UTILIDADES ════════════════════ */
+const $ = id => document.getElementById(id);
+function toast(msg,type){const t=$('toast');t.textContent=msg;t.className='toast show '+(type||'');setTimeout(()=>t.className='toast',2600);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function edadEnMeses(fnac,ref){
+  const b=new Date(fnac), r=ref?new Date(ref):new Date();
+  if(isNaN(b))return null;
+  let m=(r.getFullYear()-b.getFullYear())*12+(r.getMonth()-b.getMonth());
+  if(r.getDate()<b.getDate())m--;
+  return Math.max(0,m);
+}
+function textoEdad(meses){
+  if(meses==null)return '—';
+  const a=Math.floor(meses/12), mm=meses%12;
+  if(a===0)return mm+' mes'+(mm===1?'':'es');
+  if(mm===0)return a+' año'+(a===1?'':'s');
+  return a+' año'+(a===1?'':'s')+' '+mm+' mes'+(mm===1?'':'es');
+}
+function cursoVida(meses){
+  const a=Math.floor(meses/12);
+  if(a<=5)return 'Primera Infancia (0-5)';
+  if(a<=11)return 'Infancia (6-11)';
+  if(a<=17)return 'Adolescencia (12-17)';
+  if(a<=28)return 'Juventud (18-28)';
+  if(a<=59)return 'Adultez (29-59)';
+  return 'Vejez (60+)';
+}
+const MAX_AUD_MESES=155;
+
+/* ════════════════════ NAVEGACIÓN ════════════════════ */
+const VIEWS=['home','datos','visual','auditivo','resultado','admin'];
+function showView(v){
+  VIEWS.forEach(x=>$('view-'+x).classList.toggle('hidden',x!==v));
+  window.scrollTo(0,0);
+}
+function go(dest){
+  if(dest==='nuevo'){ resetNuevo(); flowIdx=0; buildFlow(); renderFlowStep(); $('actionbar').classList.remove('hidden'); }
+  else if(dest==='admin'){ showView('admin'); $('actionbar').classList.add('hidden'); }
+  else if(dest==='home'){ showView('home'); $('actionbar').classList.add('hidden'); }
+}
+function buildFlow(){
+  FLOW=['datos'];
+  if(STATE.tamiz&&STATE.tamiz.visual)FLOW.push('visual');
+  if(STATE.tamiz&&STATE.tamiz.auditivo)FLOW.push('auditivo');
+  FLOW.push('resultado');
+}
+function renderFlowStep(){
+  const v=FLOW[flowIdx];
+  showView(v);
+  $('btn-back').textContent = flowIdx===0?'← Inicio':'← Atrás';
+  const isLast = flowIdx===FLOW.length-1;
+  const beforeResult = FLOW[flowIdx+1]==='resultado';
+  $('btn-next').classList.toggle('hidden', isLast);
+  $('btn-next').textContent = beforeResult?'Ver resultado →':'Siguiente →';
+  if(v==='resultado')renderResultado();
+}
+function navBack(){
+  if(flowIdx===0){ go('home'); return; }
+  flowIdx--; renderFlowStep();
+}
+function navNext(){
+  const v=FLOW[flowIdx];
+  if(v==='datos'){ if(!validarDatos())return; buildFlow(); }
+  if(v==='visual'){ if(!validarVisual())return; }
+  if(v==='auditivo'){ /* opcional validar */ }
+  if(flowIdx<FLOW.length-1){ flowIdx++; renderFlowStep(); }
+}
+
+/* ════════════════════ PASO 1: DATOS ════════════════════ */
+function resetNuevo(){
+  STATE={ tamiz:{visual:false,auditivo:false}, vale:{struct:{},riesgos:{},resp:{}}, visual:{} };
+  ['p_nombre','p_acudiente','p_doc','p_eps','p_fnac','v_obs','a_perinatal','a_diag','a_aprend'].forEach(id=>{if($(id))$(id).value='';});
+  ['p_tipodoc','p_genero','p_municipio','v_optotipo','v_correccion'].forEach(id=>{if($(id))$(id).value='';});
+  $('p_consent').checked=false;
+  $('p_edad').textContent='—';$('p_curso').textContent='—';
+  $('opt-visual').classList.remove('on');$('opt-auditivo').classList.remove('on','disabled');
+  $('aud-warn').classList.add('hidden');
+  $('cc-block').classList.add('hidden');
+  // recordar evaluador
+  const ev=JSON.parse(localStorage.getItem('tva_evaluador')||'{}');
+  $('e_nombre').value=ev.nombre||'';$('e_registro').value=ev.registro||'';$('e_especialidad').value=ev.especialidad||'';
+}
+function calcEdad(){
+  const f=$('p_fnac').value;
+  const m=edadEnMeses(f);
+  if(m==null){$('p_edad').textContent='—';$('p_curso').textContent='—';return;}
+  STATE.edadMeses=m;
+  $('p_edad').textContent=textoEdad(m);
+  $('p_curso').textContent=cursoVida(m);
+  // habilitar/deshabilitar auditivo
+  const opt=$('opt-auditivo');
+  if(m>MAX_AUD_MESES){
+    opt.classList.add('disabled');opt.classList.remove('on');
+    STATE.tamiz.auditivo=false;$('aud-warn').classList.remove('hidden');
+    $('aud-sub').textContent='No disponible para esta edad (>12 años)';
+  }else{
+    opt.classList.remove('disabled');$('aud-warn').classList.add('hidden');
+    $('aud-sub').textContent='Audición y lenguaje · 0 a 12 años';
+  }
+}
+function toggleTamiz(t){
+  if(t==='auditivo'&&$('opt-auditivo').classList.contains('disabled'))return;
+  STATE.tamiz[t]=!STATE.tamiz[t];
+  $('opt-'+t).classList.toggle('on',STATE.tamiz[t]);
+}
+function validarDatos(){
+  const req=[['p_nombre','Nombre'],['p_tipodoc','Tipo de documento'],['p_doc','Número de documento'],['p_genero','Género'],['p_fnac','Fecha de nacimiento'],['p_municipio','Municipio'],['e_nombre','Nombre del evaluador']];
+  for(const [id,n] of req){ if(!$(id).value.trim()){ toast('Falta: '+n,'err'); $(id).focus(); return false; } }
+  if(!$('p_consent').checked){ toast('Debe aceptar el consentimiento de datos','err'); return false; }
+  if(!STATE.tamiz.visual&&!STATE.tamiz.auditivo){ toast('Seleccione al menos un tamizaje','err'); return false; }
+  // guardar datos comunes
+  STATE.paciente={
+    nombre:$('p_nombre').value.trim(), tipo_doc:$('p_tipodoc').value, num_doc:$('p_doc').value.trim(),
+    fecha_nacimiento:$('p_fnac').value, edad_texto:textoEdad(STATE.edadMeses), edad_meses:STATE.edadMeses,
+    curso_vida:cursoVida(STATE.edadMeses), genero:$('p_genero').value, eps:$('p_eps').value.trim(),
+    municipio:$('p_municipio').value, acudiente:$('p_acudiente').value.trim(),
+  };
+  STATE.evaluador={ nombre:$('e_nombre').value.trim(), registro:$('e_registro').value.trim(), especialidad:$('e_especialidad').value.trim() };
+  localStorage.setItem('tva_evaluador',JSON.stringify(STATE.evaluador));
+  STATE.consentimiento='Sí (Ley 1581/2012)';
+  if(STATE.tamiz.auditivo)renderVale();
+  return true;
+}
+
+/* ════════════════════ PASO 2: VISUAL ════════════════════ */
+function fillAgSelects(){
+  document.querySelectorAll('.ag-sel').forEach(sel=>{
+    if(sel.dataset.done)return;
+    let h='<option value="">—</option>';
+    AGUDEZAS.forEach(a=>h+='<option>'+a+'</option>');
+    h+='<option>'+AG_NV+'</option>';
+    sel.innerHTML=h; sel.dataset.done='1';
+  });
+}
+function toggleCC(){ $('cc-block').classList.toggle('hidden',$('v_correccion').value!=='Sí'); }
+function agIdx(a){ if(!a)return -1; if(a===AG_NV)return 999; return AGUDEZAS.indexOf(a); }
+function peorQue40(a){ const i=agIdx(a); return i>AGUDEZAS.indexOf('20/40'); }
+function evalVisual(d){
+  const eff=eye=>{ const cc=d['cc_'+eye]; if(d.usa_correccion==='Sí'&&cc)return cc; return d['sc_'+eye]; };
+  const od=eff('od'), oi=eff('oi');
+  const motivos=[];
+  if(peorQue40(od))motivos.push('Agudeza del ojo derecho ('+od+') peor que 20/40');
+  if(peorQue40(oi))motivos.push('Agudeza del ojo izquierdo ('+oi+') peor que 20/40');
+  const io=agIdx(od), ii=agIdx(oi);
+  if(od&&oi&&od!==AG_NV&&oi!==AG_NV&&Math.abs(io-ii)>=2)motivos.push('Diferencia ≥2 líneas entre ambos ojos ('+od+' vs '+oi+')');
+  if(od===AG_NV||oi===AG_NV)motivos.push('Ojo no valorable en el tamizaje');
+  const remite=motivos.length>0;
+  return {remite, motivo: remite?motivos.join('. '):'Agudeza visual dentro de parámetros normales.'};
+}
+function validarVisual(){
+  if(!$('v_optotipo').value){ toast('Seleccione el tipo de optotipo','err'); return false; }
+  if(!$('v_correccion').value){ toast('Indique si usa corrección','err'); return false; }
+  if(!$('v_sc_od').value||!$('v_sc_oi').value){ toast('Registre la agudeza sin corrección (OD y OI)','err'); return false; }
+  STATE.visual={
+    optotipo:$('v_optotipo').value, usa_correccion:$('v_correccion').value,
+    sc_od:$('v_sc_od').value, sc_oi:$('v_sc_oi').value, sc_ao:$('v_sc_ao').value,
+    cc_od:$('v_cc_od').value, cc_oi:$('v_cc_oi').value, cc_ao:$('v_cc_ao').value,
+    observaciones:$('v_obs').value.trim(),
+  };
+  return true;
+}
+
+/* ════════════════════ PASO 3: VALE ════════════════════ */
+function rangoDeMeses(m){ return VALE_RANGOS.find(r=>m>=r.min&&m<=r.max)||VALE_RANGOS[VALE_RANGOS.length-1]; }
+function vestibularDeMeses(m){ if(m<36)return null; return VALE_VESTIBULAR.find(r=>m>=r.min&&m<=r.max)||null; }
+
+// secuencias por categoría a través de todos los rangos (para retroceso)
+function catSequence(cat){
+  const seq=[];
+  VALE_RANGOS.forEach((r,ri)=>{ r.items.forEach((it,ii)=>{ if(it.cat===cat)seq.push({ri,ii,range:r,item:it,gid:r.id+'_'+ii}); }); });
+  return seq;
+}
+function renderVale(){
+  const m=STATE.edadMeses;
+  const rango=rangoDeMeses(m);
+  STATE.valeRango=rango;
+  $('vale-range').textContent='Rango de edad: '+rango.label;
+  // riesgos menores de 2 años
+  const menor=m<24;
+  $('riesgos-menor').classList.toggle('hidden',!menor);
+  if(menor){
+    $('riesgos-menor-list').innerHTML=RIESGOS_MENOR.map((r,i)=>`
+      <div class="struct-row" style="grid-template-columns:1.6fr .8fr">
+        <span class="sname" style="font-weight:500;font-size:12.5px">${esc(r)}</span>
+        <div class="mini-sino" data-riesgo="${i}">
+          <button type="button" class="si" onclick="setRiesgo(${i},'Sí',this)">Sí</button>
+          <button type="button" class="no" onclick="setRiesgo(${i},'No',this)">No</button>
+        </div>
+      </div>`).join('');
+  }
+  // estructuras
+  $('struct-list').innerHTML=ESTRUCTURAS.map((e,i)=>`
+    <div class="struct-row">
+      <span class="sname">${esc(e)}</span>
+      <div class="mini-sino" data-struct-p="${i}">
+        <button type="button" class="si" onclick="setStruct(${i},'presencia','Sí',this)">Sí</button>
+        <button type="button" class="no" onclick="setStruct(${i},'presencia','No',this)">No</button>
+      </div>
+      <div class="mini-sino" data-struct-i="${i}">
+        <button type="button" class="si" onclick="setStruct(${i},'integridad','Sí',this)">Sí</button>
+        <button type="button" class="no" onclick="setStruct(${i},'integridad','No',this)">No</button>
+      </div>
+    </div>`).join('');
+  // ítems por dimensión (del rango) + vestibular si aplica
+  const cont=$('vale-items'); cont.innerHTML='';
+  rango.items.forEach((it,ii)=>{ cont.appendChild(buildQItem(rango,it,ii)); });
+  const vest=vestibularDeMeses(m);
+  STATE.valeVest=vest;
+  if(vest){
+    const h=document.createElement('div');
+    h.innerHTML='<div class="range-badge" style="background:#fef3e2;color:#b45309;margin-top:6px">Dimensión vestibular · '+esc(vest.label)+'</div>';
+    cont.appendChild(h);
+    vest.items.forEach((it,ii)=>{ cont.appendChild(buildQItem(vest,it,ii,true)); });
+  }
+}
+function buildQItem(range,item,ii,isVest){
+  const gid=range.id+'_'+ii;
+  const div=document.createElement('div');
+  div.className='qitem'; div.id='qi_'+gid;
+  div.innerHTML=`
+    <span class="cat ${item.cat}">${item.cat} · ${CAT_NOMBRE[item.cat]}</span>
+    <div class="qrep">${esc(item.rep)}</div>
+    <div class="qobs"><b>Observación directa:</b> ${esc(item.obs)}</div>
+    <div class="sino">
+      <button type="button" class="si" onclick="setResp('${gid}','${item.cat}','Sí',this,${isVest?1:0})">Sí</button>
+      <button type="button" class="no" onclick="setResp('${gid}','${item.cat}','No',this,${isVest?1:0})">No</button>
+    </div>
+    <div class="backtrack hidden" id="bt_${gid}"></div>`;
+  return div;
+}
+function setRiesgo(i,val,btn){ STATE.vale.riesgos[i]=val; const p=btn.parentNode; p.querySelectorAll('button').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
+function setStruct(i,tipo,val,btn){ STATE.vale.struct[i]=STATE.vale.struct[i]||{}; STATE.vale.struct[i][tipo]=val; const p=btn.parentNode; p.querySelectorAll('button').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
+
+function setResp(gid,cat,val,btn,isVest){
+  STATE.vale.resp[gid]={cat,val,rep:btn.closest('.qitem').querySelector('.qrep').textContent};
+  const p=btn.parentNode; p.querySelectorAll('button').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
+  const qi=$('qi_'+gid); qi.classList.toggle('neg',val==='No');
+  // retroceso: solo para dimensiones principales (C,E,I). Vestibular no tiene retroceso encadenado por rango previo del mismo modo, pero aplicamos igual entre sus 2 items.
+  const btEl=$('bt_'+gid);
+  if(val==='No'){ mostrarRetroceso(gid,cat,btEl,isVest); }
+  else { btEl.innerHTML=''; btEl.classList.add('hidden'); limpiarRespHijas(gid); }
+}
+function mostrarRetroceso(gid,cat,btEl,isVest){
+  // localizar el item actual en la secuencia de su categoría y mostrar el anterior
+  const seq = isVest ? catSequenceVest(cat) : catSequence(cat);
+  const idx = seq.findIndex(s=>s.gid===gid);
+  if(idx<=0){ btEl.innerHTML='<div class="bt-note">↩ No hay rango anterior para esta categoría.</div>'; btEl.classList.remove('hidden'); return; }
+  const prev=seq[idx-1];
+  btEl.innerHTML=`<div class="bt-note">↩ Retroceso — verifique el ítem del rango anterior (${esc(prev.range.label)}):</div>`;
+  const q=document.createElement('div');
+  q.className='qitem'; q.id='qi_'+prev.gid;
+  q.innerHTML=`
+    <span class="cat ${cat}">${cat} · ${esc(prev.range.label)}</span>
+    <div class="qrep">${esc(prev.item.rep)}</div>
+    <div class="qobs"><b>Observación directa:</b> ${esc(prev.item.obs)}</div>
+    <div class="sino">
+      <button type="button" class="si" onclick="setResp('${prev.gid}','${cat}','Sí',this,${isVest?1:0})">Sí</button>
+      <button type="button" class="no" onclick="setResp('${prev.gid}','${cat}','No',this,${isVest?1:0})">No</button>
+    </div>
+    <div class="backtrack hidden" id="bt_${prev.gid}"></div>`;
+  btEl.appendChild(q); btEl.classList.remove('hidden');
+}
+function catSequenceVest(cat){
+  const seq=[];
+  VALE_VESTIBULAR.forEach(r=>{ r.items.forEach((it,ii)=>{ seq.push({range:r,item:it,gid:r.id+'_'+ii}); }); });
+  return seq;
+}
+function limpiarRespHijas(gid){
+  // elimina respuestas registradas de items de retroceso que cuelgan de este
+  const btEl=$('bt_'+gid); if(!btEl)return;
+  btEl.querySelectorAll('.qitem').forEach(qi=>{ const id=qi.id.replace('qi_',''); delete STATE.vale.resp[id]; });
+}
+function evalVale(){
+  const neg={C:0,E:0,I:0,V:0};
+  Object.values(STATE.vale.resp).forEach(r=>{ if(r.val==='No')neg[r.cat]=(neg[r.cat]||0)+1; });
+  const total=neg.C+neg.E+neg.I+neg.V;
+  // hallazgos estructurales / riesgos
+  const alertaEstruct = Object.values(STATE.vale.struct).some(s=>s&&(s.presencia==='No'||s.integridad==='No'));
+  const alertaRiesgo = Object.values(STATE.vale.riesgos).some(v=>v==='Sí');
+  const falla=total>=1;
+  return {neg,total,falla,alertaEstruct,alertaRiesgo};
+}
+
+/* ════════════════════ PASO 4: RESULTADO ════════════════════ */
+function renderResultado(){
+  const p=STATE.paciente;
+  $('res-paciente').innerHTML=`<b>${esc(p.nombre)}</b> · ${esc(p.tipo_doc)} ${esc(p.num_doc)} · ${esc(p.edad_texto)} · ${esc(p.municipio)}`;
+  const cont=$('res-cards'); cont.innerHTML='';
+  const dl=$('res-download'); dl.innerHTML='';
+  STATE.records=[];
+
+  if(STATE.tamiz.visual){
+    const ev=evalVisual({...STATE.visual});
+    const rec=buildRecordVisual(ev);
+    STATE.records.push({tipo:'visual',rec,ev});
+    cont.innerHTML+=`
+      <div class="result-card ${ev.remite?'fail':'pass'}">
+        <div class="rc-top"><span class="rc-ic">${ev.remite?'⚠️':'✅'}</span>
+          <div><div class="rc-title">Visual: ${ev.remite?'REMISIÓN':'NORMAL'}</div>
+          <div class="rc-sub">${ev.remite?'Remitir a optometría / oftalmología.':'Agudeza visual dentro de parámetros. Continuar controles de rutina.'}</div></div></div>
+        <div class="rc-detail">${esc(ev.motivo)}</div>
+      </div>`;
+  }
+  if(STATE.tamiz.auditivo){
+    const ev=evalVale();
+    const rec=buildRecordAuditivo(ev);
+    STATE.records.push({tipo:'auditivo',rec,ev});
+    let extra='';
+    if(ev.alertaEstruct)extra+='<div>• Se identificaron hallazgos en condiciones estructurales que ameritan valoración.</div>';
+    if(ev.alertaRiesgo)extra+='<div>• Se identificaron factores de riesgo generales (perinatales/posnatales).</div>';
+    cont.innerHTML+=`
+      <div class="result-card ${ev.falla?'fail':'pass'}">
+        <div class="rc-top"><span class="rc-ic">${ev.falla?'⚠️':'✅'}</span>
+          <div><div class="rc-title">Auditivo (VALE): ${ev.falla?'FALLA':'PASA'}</div>
+          <div class="rc-sub">${ev.falla?'Ingresar a la Ruta del grupo de riesgo y al Programa Nacional de detección temprana y atención de la hipoacusia (tamizaje auditivo con tecnología dura).':'No hay alteración. Continuar con las atenciones de la Ruta de Promoción y Mantenimiento.'}</div></div></div>
+        <div class="rc-detail">Respuestas negativas — Comprensión: ${ev.neg.C} · Expresión: ${ev.neg.E} · Interacción: ${ev.neg.I} · Vestibular: ${ev.neg.V} · <b>Total: ${ev.total}</b>${extra?'<div style="margin-top:6px">'+extra+'</div>':''}</div>
+      </div>`;
+  }
+  // botones descarga + guardar
+  STATE.records.forEach(r=>{
+    const b=document.createElement('button');
+    b.className='btn btn-green btn-block'; b.style.marginBottom='10px';
+    b.innerHTML='⬇ Descargar PDF — '+(r.tipo==='visual'?'Tamizaje visual':'Tamizaje auditivo (VALE)');
+    b.onclick=()=>{ r.tipo==='visual'?pdfVisual(r.rec):pdfAuditivo(r.rec); };
+    dl.appendChild(b);
+  });
+  const g=document.createElement('button');
+  g.className='btn btn-primary btn-block'; g.id='btn-guardar';
+  g.innerHTML='💾 Guardar en la nube y finalizar';
+  g.onclick=guardarTodo;
+  dl.appendChild(g);
+  // action bar: en resultado ocultamos siguiente
+  $('btn-next').classList.add('hidden');
+  $('btn-back').textContent='← Atrás';
+}
+
+function buildRecordVisual(ev){
+  const p=STATE.paciente,e=STATE.evaluador,v=STATE.visual;
+  return {
+    tipo_tamizaje:'VISUAL', fecha_registro:new Date().toISOString(),
+    paciente_nombre:p.nombre,tipo_doc:p.tipo_doc,num_doc:p.num_doc,fecha_nacimiento:p.fecha_nacimiento,
+    edad_texto:p.edad_texto,edad_meses:p.edad_meses,curso_vida:p.curso_vida,genero:p.genero,eps:p.eps,municipio:p.municipio,acudiente:p.acudiente,
+    evaluador_nombre:e.nombre,evaluador_registro:e.registro,evaluador_especialidad:e.especialidad,consentimiento:STATE.consentimiento,
+    optotipo:v.optotipo,usa_correccion:v.usa_correccion,
+    sc_od:v.sc_od,sc_oi:v.sc_oi,sc_ao:v.sc_ao,cc_od:v.cc_od,cc_oi:v.cc_oi,cc_ao:v.cc_ao,
+    resultado:ev.remite?'FALLA':'PASA', motivo_remision:ev.motivo, observaciones:v.observaciones,
+  };
+}
+function buildRecordAuditivo(ev){
+  const p=STATE.paciente,e=STATE.evaluador;
+  const estruct=ESTRUCTURAS.map((n,i)=>({estructura:n,presencia:(STATE.vale.struct[i]||{}).presencia||'',integridad:(STATE.vale.struct[i]||{}).integridad||''}));
+  const riesgos=RIESGOS_MENOR.map((n,i)=>({riesgo:n,valor:STATE.vale.riesgos[i]||''}));
+  const resp=Object.keys(STATE.vale.resp).map(gid=>({gid,cat:STATE.vale.resp[gid].cat,rep:STATE.vale.resp[gid].rep,val:STATE.vale.resp[gid].val}));
+  return {
+    tipo_tamizaje:'AUDITIVO', fecha_registro:new Date().toISOString(),
+    paciente_nombre:p.nombre,tipo_doc:p.tipo_doc,num_doc:p.num_doc,fecha_nacimiento:p.fecha_nacimiento,
+    edad_texto:p.edad_texto,edad_meses:p.edad_meses,curso_vida:p.curso_vida,genero:p.genero,eps:p.eps,municipio:p.municipio,acudiente:p.acudiente,
+    evaluador_nombre:e.nombre,evaluador_registro:e.registro,evaluador_especialidad:e.especialidad,consentimiento:STATE.consentimiento,
+    rango_edad_vale:STATE.valeRango?STATE.valeRango.label:'',
+    riesgo_bajo_peso:STATE.vale.riesgos[0]||'',riesgo_prematuro:STATE.vale.riesgos[1]||'',riesgo_ucin:STATE.vale.riesgos[2]||'',
+    comp_perinatales:$('a_perinatal').value.trim(),diagnosticos_riesgo:$('a_diag').value.trim(),dificultades_aprendizaje:$('a_aprend').value.trim(),
+    estructuras_json:JSON.stringify(estruct),respuestas_json:JSON.stringify(resp),
+    neg_comprension:ev.neg.C,neg_expresion:ev.neg.E,neg_interaccion:ev.neg.I,neg_vestibular:ev.neg.V,total_negativas:ev.total,
+    resultado:ev.falla?'FALLA':'PASA',
+    conducta:ev.falla?'Ingresar a Ruta de riesgo y Programa Nacional de detección temprana y atención de la hipoacusia.':'Continuar con la Ruta de Promoción y Mantenimiento.',
+    observaciones:'',
+  };
+}
+
+/* ════════════════════ GUARDAR ════════════════════ */
+async function postAppsScript(accion,datos,extra){
+  if(!APPS_SCRIPT_URL){ throw new Error('Backend no configurado'); }
+  const body=Object.assign({accion,datos},extra||{});
+  const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+  return res.json();
+}
+async function guardarTodo(){
+  const btn=$('btn-guardar'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Guardando...';
+  if(!APPS_SCRIPT_URL){
+    toast('Backend no configurado: los PDF se generan, pero no se guardó en la nube.','err');
+    btn.disabled=false; btn.innerHTML='💾 Guardar en la nube y finalizar';
+    return;
+  }
+  try{
+    for(const r of STATE.records){
+      const accion=r.tipo==='visual'?'guardar_visual':'guardar_auditivo';
+      const resp=await postAppsScript(accion,r.rec);
+      if(!resp.ok)throw new Error(resp.error||'Error al guardar');
+      r.rec.id=resp.id;
+    }
+    toast('Registro guardado correctamente','ok');
+    btn.innerHTML='✔ Guardado — descargue los PDF arriba';
+    btn.classList.remove('btn-primary'); btn.classList.add('btn-green');
+    // auto-descargar PDFs
+    STATE.records.forEach((r,i)=>setTimeout(()=>{ r.tipo==='visual'?pdfVisual(r.rec):pdfAuditivo(r.rec); }, i*400));
+    // agregar botón volver
+    if(!$('btn-finish')){
+      const f=document.createElement('button'); f.id='btn-finish'; f.className='btn btn-ghost btn-block'; f.style.marginTop='6px';
+      f.textContent='🏠 Nuevo tamizaje / Inicio'; f.onclick=()=>{ $('actionbar').classList.add('hidden'); go('home'); };
+      $('res-download').appendChild(f);
+    }
+  }catch(err){
+    toast('Error: '+err.message,'err');
+    btn.disabled=false; btn.innerHTML='💾 Reintentar guardar';
+  }
+}
+
+/* ════════════════════ PDF ════════════════════ */
+function pdfHeader(doc,titulo){
+  const W=doc.internal.pageSize.getWidth();
+  if(BANNER_DATA){ try{ const h=W*283/2000; doc.addImage(BANNER_DATA,'PNG',0,0,W,h); return h+6; }catch(e){} }
+  doc.setFillColor(15,76,129); doc.rect(0,0,W,22,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('ESE HOSPITAL REGIONAL NOROCCIDENTAL',W/2,10,{align:'center'});
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Coordinación de Salud Pública',W/2,16,{align:'center'});
+  return 28;
+}
+function pdfDatosPaciente(doc,rec,y){
+  const M=14;
+  doc.setTextColor(12,27,51);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('DATOS DEL PACIENTE',M,y); y+=5;
+  doc.setDrawColor(200,215,230); doc.line(M,y,doc.internal.pageSize.getWidth()-M,y); y+=5;
+  doc.setFontSize(9);
+  const rows=[
+    ['Nombre',rec.paciente_nombre,'Documento',(rec.tipo_doc||'')+' '+(rec.num_doc||'')],
+    ['Fecha nacimiento',rec.fecha_nacimiento,'Edad',rec.edad_texto],
+    ['Género',rec.genero,'Curso de vida',rec.curso_vida],
+    ['EPS',rec.eps||'—','Municipio',rec.municipio],
+    ['Acudiente',rec.acudiente||'—','Fecha valoración',new Date(rec.fecha_registro).toLocaleString('es-CO')],
+  ];
+  const W=doc.internal.pageSize.getWidth(), colW=(W-2*M)/2;
+  rows.forEach(r=>{
+    doc.setFont('helvetica','bold'); doc.text(r[0]+':',M,y);
+    doc.setFont('helvetica','normal'); doc.text(String(r[1]||'—'),M+32,y);
+    doc.setFont('helvetica','bold'); doc.text(r[2]+':',M+colW,y);
+    doc.setFont('helvetica','normal'); doc.text(String(r[3]||'—'),M+colW+32,y);
+    y+=5.5;
+  });
+  return y+3;
+}
+function pdfResultBox(doc,y,ok,titulo,texto){
+  const M=14,W=doc.internal.pageSize.getWidth();
+  if(ok){doc.setFillColor(231,246,239);doc.setDrawColor(5,150,105);}else{doc.setFillColor(253,236,236);doc.setDrawColor(220,38,38);}
+  const lines=doc.splitTextToSize(texto,W-2*M-8);
+  const boxH=14+lines.length*4.5;
+  doc.roundedRect(M,y,W-2*M,boxH,2,2,'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  if(ok)doc.setTextColor(5,150,105);else doc.setTextColor(220,38,38);
+  doc.text(titulo,M+4,y+8);
+  doc.setTextColor(60,60,60); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.text(lines,M+4,y+14);
+  return y+boxH+6;
+}
+function pdfFooter(doc,rec){
+  const H=doc.internal.pageSize.getHeight(),W=doc.internal.pageSize.getWidth(),M=14;
+  let y=H-30;
+  doc.setDrawColor(200,215,230); doc.line(M,y,W-M,y); y+=6;
+  doc.setFontSize(9); doc.setTextColor(12,27,51);
+  doc.setFont('helvetica','bold'); doc.text('Evaluador: ',M,y);
+  doc.setFont('helvetica','normal'); doc.text(String(rec.evaluador_nombre||'—'),M+22,y);
+  y+=5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(90,110,140);
+  doc.text('Registro: '+(rec.evaluador_registro||'—')+'   |   '+(rec.evaluador_especialidad||'—'),M,y);
+  y+=5; doc.text('Consentimiento tratamiento de datos (Ley 1581/2012): '+(rec.consentimiento||'—'),M,y);
+  doc.setFontSize(7); doc.setTextColor(140,150,165);
+  doc.text('Documento generado por el Portal de Salud Pública — ESE HRNO. Prueba tamiz; no constituye diagnóstico.',W/2,H-6,{align:'center'});
+}
+function nombreArchivo(rec,tipo){
+  const n=(rec.paciente_nombre||'paciente').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  return 'Tamizaje_'+tipo+'_'+n+'_'+(rec.num_doc||'')+'.pdf';
+}
+function pdfVisual(rec){
+  const {jsPDF}=window.jspdf; const doc=new jsPDF('p','mm','a4');
+  let y=pdfHeader(doc);
+  doc.setTextColor(15,76,129); doc.setFont('helvetica','bold'); doc.setFontSize(14);
+  doc.text('TAMIZAJE VISUAL — TABLA DE SNELLEN',doc.internal.pageSize.getWidth()/2,y+2,{align:'center'}); y+=10;
+  y=pdfDatosPaciente(doc,rec,y);
+  // datos de la prueba
+  const M=14,W=doc.internal.pageSize.getWidth();
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(12,27,51); doc.text('AGUDEZA VISUAL',M,y); y+=5;
+  doc.setDrawColor(200,215,230); doc.line(M,y,W-M,y); y+=6;
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Optotipo: '+rec.optotipo+'    |    ¿Usa corrección?: '+rec.usa_correccion,M,y); y+=7;
+  // tabla ojos
+  const th=(x,t)=>{doc.setFont('helvetica','bold');doc.text(t,x,y);};
+  th(M,'Ojo'); th(M+60,'Sin corrección'); th(M+110,'Con corrección'); y+=5;
+  doc.setDrawColor(220,228,238); doc.line(M,y-2,W-M,y-2);
+  doc.setFont('helvetica','normal');
+  [['Derecho (OD)','sc_od','cc_od'],['Izquierdo (OI)','sc_oi','cc_oi'],['Ambos (AO)','sc_ao','cc_ao']].forEach(r=>{
+    doc.text(r[0],M,y); doc.text(String(rec[r[1]]||'—'),M+60,y); doc.text(String(rec[r[2]]||'—'),M+110,y); y+=5.5;
+  });
+  y+=3;
+  const ok=rec.resultado==='PASA';
+  y=pdfResultBox(doc,y,ok,ok?'RESULTADO: NORMAL':'RESULTADO: REMISIÓN',rec.motivo_remision+(ok?'':'  Conducta: remitir a optometría / oftalmología.'));
+  if(rec.observaciones){doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(12,27,51);doc.text('Observaciones:',M,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);doc.text(doc.splitTextToSize(rec.observaciones,W-2*M),M,y);}
+  pdfFooter(doc,rec);
+  doc.save(nombreArchivo(rec,'Visual'));
+}
+function pdfAuditivo(rec){
+  const {jsPDF}=window.jspdf; const doc=new jsPDF('p','mm','a4');
+  let y=pdfHeader(doc);
+  doc.setTextColor(15,76,129); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('TAMIZAJE AUDITIVO Y COMUNICATIVO — VALE',doc.internal.pageSize.getWidth()/2,y+2,{align:'center'}); y+=10;
+  y=pdfDatosPaciente(doc,rec,y);
+  const M=14,W=doc.internal.pageSize.getWidth();
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
+  doc.text('Rango de edad valorado: '+rec.rango_edad_vale,M,y); y+=7;
+  const ok=rec.resultado==='PASA';
+  y=pdfResultBox(doc,y,ok,ok?'RESULTADO: PASA':'RESULTADO: FALLA',
+    'Respuestas negativas — Comprensión: '+rec.neg_comprension+', Expresión: '+rec.neg_expresion+', Interacción: '+rec.neg_interaccion+', Vestibular: '+rec.neg_vestibular+'. Total: '+rec.total_negativas+'.  '+rec.conducta);
+  // respuestas
+  let resp=[]; try{resp=JSON.parse(rec.respuestas_json||'[]');}catch(e){}
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(12,27,51); doc.text('RESPUESTAS APLICADAS',M,y); y+=5;
+  doc.setDrawColor(200,215,230); doc.line(M,y,W-M,y); y+=5;
+  doc.setFontSize(8);
+  resp.forEach(r=>{
+    if(y>270){doc.addPage();y=20;}
+    doc.setFont('helvetica','bold'); doc.setTextColor(r.val==='No'?220:5,r.val==='No'?38:150,r.val==='No'?38:105);
+    doc.text('['+r.cat+'] '+r.val,M,y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
+    const lines=doc.splitTextToSize(r.rep,W-2*M-24);
+    doc.text(lines,M+24,y); y+=Math.max(4.5,lines.length*4)+1;
+  });
+  // estructuras / riesgos resumen
+  let estr=[]; try{estr=JSON.parse(rec.estructuras_json||'[]');}catch(e){}
+  const anomalias=estr.filter(e=>e.presencia==='No'||e.integridad==='No');
+  if(anomalias.length){ if(y>250){doc.addPage();y=20;} y+=2; doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(180,83,9);doc.text('Hallazgos estructurales:',M,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);doc.setFontSize(8);
+    anomalias.forEach(a=>{doc.text('- '+a.estructura+': presencia '+(a.presencia||'—')+', integridad '+(a.integridad||'—'),M,y);y+=4.5;}); }
+  pdfFooter(doc,rec);
+  doc.save(nombreArchivo(rec,'Auditivo_VALE'));
+}
+
+/* ════════════════════ ADMIN ════════════════════ */
+async function doLogin(){
+  const pass=$('admin-pass').value; if(!pass){toast('Ingrese la contraseña','err');return;}
+  const btn=$('btn-login'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Verificando...';
+  try{
+    if(!APPS_SCRIPT_URL)throw new Error('Backend no configurado');
+    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({accion:'login',clave:pass})});
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'Contraseña incorrecta');
+    ADMIN_CLAVE=pass;
+    $('admin-login').classList.add('hidden'); $('admin-panel').classList.remove('hidden');
+    await loadRegistros();
+  }catch(err){ toast(err.message,'err'); }
+  btn.disabled=false; btn.innerHTML='Ingresar';
+}
+async function loadRegistros(){
+  try{
+    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({accion:'listar',clave:ADMIN_CLAVE})});
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'Error');
+    REGISTROS.visual=j.visual||[]; REGISTROS.auditivo=j.auditivo||[];
+    poblarMunicipios(); renderKpis(); renderTabla();
+    toast('Datos actualizados','ok');
+  }catch(err){ toast('Error al cargar: '+err.message,'err'); }
+}
+function allRegs(){ return REGISTROS.visual.concat(REGISTROS.auditivo).sort((a,b)=>new Date(b.fecha_registro)-new Date(a.fecha_registro)); }
+function poblarMunicipios(){
+  const set=[...new Set(allRegs().map(r=>r.municipio).filter(Boolean))].sort();
+  const sel=$('f_municipio'); const cur=sel.value;
+  sel.innerHTML='<option value="">Todos los municipios</option>'+set.map(m=>`<option>${esc(m)}</option>`).join('');
+  sel.value=cur;
+}
+function renderKpis(){
+  const all=allRegs();
+  const remis=all.filter(r=>r.resultado==='FALLA').length;
+  const pct=all.length?Math.round(remis/all.length*100):0;
+  $('admin-kpis').innerHTML=`
+    <div class="kpi"><div class="v">${all.length}</div><div class="l">Total tamizajes</div></div>
+    <div class="kpi"><div class="v">${REGISTROS.visual.length}</div><div class="l">Visuales</div></div>
+    <div class="kpi"><div class="v">${REGISTROS.auditivo.length}</div><div class="l">Auditivos</div></div>
+    <div class="kpi"><div class="v">${remis} <span style="font-size:13px;color:var(--red)">(${pct}%)</span></div><div class="l">Falla / Remisión</div></div>`;
+}
+function filtrados(){
+  const q=($('f_buscar').value||'').toLowerCase();
+  const tipo=$('f_tipo').value, resu=$('f_result').value, mun=$('f_municipio').value;
+  return allRegs().filter(r=>{
+    if(tipo&&r.tipo_tamizaje!==tipo)return false;
+    if(resu&&r.resultado!==resu)return false;
+    if(mun&&r.municipio!==mun)return false;
+    if(q){ const s=(r.paciente_nombre+' '+r.num_doc).toLowerCase(); if(!s.includes(q))return false; }
+    return true;
+  });
+}
+function renderTabla(){
+  const data=filtrados();
+  $('admin-empty').classList.toggle('hidden',data.length>0);
+  $('admin-tbody').innerHTML=data.map((r,i)=>{
+    const fecha=r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-CO'):'—';
+    const tipoBadge=r.tipo_tamizaje==='VISUAL'?'<span class="badge v">Visual</span>':'<span class="badge a">Auditivo</span>';
+    const ok=r.resultado==='PASA';
+    const resBadge=`<span class="badge ${ok?'ok':'bad'}">${ok?(r.tipo_tamizaje==='VISUAL'?'Normal':'Pasa'):(r.tipo_tamizaje==='VISUAL'?'Remisión':'Falla')}</span>`;
+    return `<tr>
+      <td>${fecha}</td><td>${tipoBadge}</td><td>${esc(r.paciente_nombre)}</td>
+      <td>${esc(r.tipo_doc)} ${esc(r.num_doc)}</td><td>${esc(r.edad_texto)}</td><td>${esc(r.curso_vida)}</td>
+      <td>${esc(r.municipio)}</td><td>${resBadge}</td><td>${esc(r.evaluador_nombre)}</td>
+      <td><button class="mini-btn" onclick="descargarRegistro('${r.tipo_tamizaje}','${esc(r.id)}')">⬇ PDF</button></td>
+    </tr>`;
+  }).join('');
+}
+function descargarRegistro(tipo,id){
+  const arr=tipo==='VISUAL'?REGISTROS.visual:REGISTROS.auditivo;
+  const rec=arr.find(r=>String(r.id)===String(id));
+  if(!rec){toast('Registro no encontrado','err');return;}
+  tipo==='VISUAL'?pdfVisual(rec):pdfAuditivo(rec);
+}
+function exportCSV(){
+  const data=filtrados();
+  if(!data.length){toast('No hay datos para exportar','err');return;}
+  const cols=['fecha_registro','tipo_tamizaje','paciente_nombre','tipo_doc','num_doc','edad_texto','curso_vida','genero','eps','municipio','resultado','evaluador_nombre'];
+  const head=cols.join(';');
+  const rows=data.map(r=>cols.map(c=>'"'+String(r[c]==null?'':r[c]).replace(/"/g,'""')+'"').join(';'));
+  const csv='﻿'+head+'\n'+rows.join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='tamizajes_hrno_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+}
+
+/* ════════════════════ INIT ════════════════════ */
+function precargarBanner(){
+  fetch('banner.png').then(r=>r.blob()).then(b=>{
+    const fr=new FileReader(); fr.onload=()=>BANNER_DATA=fr.result; fr.readAsDataURL(b);
+  }).catch(()=>{});
+}
+window.addEventListener('DOMContentLoaded',()=>{ fillAgSelects(); precargarBanner(); showView('home'); });
+</script>
+</body>
+</html>

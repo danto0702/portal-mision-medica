@@ -987,8 +987,9 @@ document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>
   // nombre de usuario persistente
   $('usrName').value=localStorage.getItem('ebs_usuario')||'';
   $('usrName').addEventListener('input',()=>localStorage.setItem('ebs_usuario',$('usrName').value.trim()));
-  // admin de sesión
-  if(sessionStorage.getItem('ebs_admin')==='1')ST.admin=true;
+  // admin de sesión (clave propia o bypass del portal)
+  if(sessionStorage.getItem('ebs_admin')==='1') ST.admin=true;
+  if(typeof portalLeerBypass==='function' && portalLeerBypass('portal_bypass_ebs')) ST.admin=true;
   await loadExps();
 })();
 </script>

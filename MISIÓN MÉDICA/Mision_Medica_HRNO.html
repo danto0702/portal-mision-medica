@@ -3229,7 +3229,14 @@ function adminLogout(){
   document.getElementById('admin-pwd').value = '';
 }
 function initAdmin(){
-  if(S.adminLoggedIn) initAdminPanel();
+  if(S.adminLoggedIn){ initAdminPanel(); return; }
+  // Bypass: si el usuario viene del portal con permiso admin en mision_medica
+  if(typeof portalLeerBypass === 'function' && portalLeerBypass('portal_bypass_mm')){
+    S.adminLoggedIn = true;
+    document.getElementById('admin-lock').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    initAdminPanel();
+  }
 }
 function showAdminPane(id){
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));

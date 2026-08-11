@@ -838,6 +838,10 @@ body {
       <span class="quick-icon">🏗️</span>
       <div><div class="quick-name">PISIS / SIAPS</div><div class="quick-sub">Reportes EBS</div></div>
     </a>
+    <a href="superadmin.html" class="quick-card" id="quickSuperadmin" style="display:none;border-color:rgba(233,69,96,.25);background:rgba(233,69,96,.04)">
+      <span class="quick-icon">⚙️</span>
+      <div><div class="quick-name" style="color:#e94560">Administración del Portal</div><div class="quick-sub">Usuarios · Permisos · Módulos públicos</div></div>
+    </a>
   </div>
 
 </main>
@@ -862,6 +866,10 @@ body {
     document.getElementById('userName').textContent   = nombre;
     document.getElementById('userChip').style.display  = 'flex';
     document.getElementById('btnLogout').style.display = 'block';
+    if (u.rol_base === 'superadmin') {
+      const qa = document.getElementById('quickSuperadmin');
+      if (qa) qa.style.display = 'flex';
+    }
   })();
 
   // ── Auto-configuración por parámetro ?api= en la URL ──────────────

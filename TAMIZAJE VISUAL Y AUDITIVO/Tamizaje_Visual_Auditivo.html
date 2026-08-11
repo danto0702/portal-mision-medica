@@ -538,7 +538,14 @@ function showView(v){
 }
 function go(dest){
   if(dest==='nuevo'){ resetNuevo(); flowIdx=0; buildFlow(); renderFlowStep(); $('actionbar').classList.remove('hidden'); }
-  else if(dest==='admin'){ showView('admin'); $('actionbar').classList.add('hidden'); }
+  else if(dest==='admin'){
+    showView('admin'); $('actionbar').classList.add('hidden');
+    // Bypass del portal: salta la pantalla de contraseña si el usuario tiene permiso admin
+    if(typeof portalLeerBypass==='function' && portalLeerBypass('portal_bypass_vale')){
+      $('admin-login').classList.add('hidden');
+      $('admin-panel').classList.remove('hidden');
+    }
+  }
   else if(dest==='home'){ showView('home'); $('actionbar').classList.add('hidden'); }
 }
 function buildFlow(){

@@ -413,20 +413,27 @@ let editandoId    = null; // uuid usuario en edición (permisos)
 // ════════════════════════════════════════════════════════
 // INICIO
 // ════════════════════════════════════════════════════════
+document.body.style.visibility = 'hidden';
+
 (async function () {
-  const sesion = await portalVerificarSesion();
-  if (!sesion) return;
+  try {
+    const sesion = await portalVerificarSesion();
+    if (!sesion) return;
 
-  // Solo superadmin puede entrar
-  if (sesion.user.rol_base !== 'superadmin') {
-    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#e94560;font-size:1rem;font-weight:700;">Acceso denegado — Solo Superadmin</div>';
-    return;
+    if (sesion.user.rol_base !== 'superadmin') {
+      document.body.style.visibility = 'visible';
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#e94560;font-size:1rem;font-weight:700;">Acceso denegado — Solo Superadmin</div>';
+      return;
+    }
+
+    document.getElementById('userName').textContent = sesion.user.nombre || sesion.user.email;
+    document.body.style.visibility = 'visible';
+
+    await Promise.all([cargarUsuarios(), cargarModulos()]);
+    cargarLog();
+  } catch(e) {
+    window.location.href = 'login.html';
   }
-
-  document.getElementById('userName').textContent = sesion.user.nombre || sesion.user.email;
-
-  await Promise.all([cargarUsuarios(), cargarModulos()]);
-  cargarLog();
 })();
 
 // ════════════════════════════════════════════════════════

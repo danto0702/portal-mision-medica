@@ -856,19 +856,28 @@ body {
 
 <script>
   // ── Guard de sesión ───────────────────────────────────────────────
+  // Ocultamos el body hasta confirmar sesión para evitar el flash de contenido
+  document.body.style.visibility = 'hidden';
+
   (async function () {
-    const sesion = await portalVerificarSesion(); // redirige a login si no hay sesión
-    if (!sesion) return;
-    const u = sesion.user;
-    const nombre = u.nombre || u.email || 'Usuario';
-    const inicial = nombre.charAt(0).toUpperCase();
-    document.getElementById('userAvatar').textContent = inicial;
-    document.getElementById('userName').textContent   = nombre;
-    document.getElementById('userChip').style.display  = 'flex';
-    document.getElementById('btnLogout').style.display = 'block';
-    if (u.rol_base === 'superadmin') {
-      const qa = document.getElementById('quickSuperadmin');
-      if (qa) qa.style.display = 'flex';
+    try {
+      const sesion = await portalVerificarSesion(); // redirige a login si no hay sesión
+      if (!sesion) return; // portalVerificarSesion ya redirigió
+      const u = sesion.user;
+      const nombre = u.nombre || u.email || 'Usuario';
+      const inicial = nombre.charAt(0).toUpperCase();
+      document.getElementById('userAvatar').textContent = inicial;
+      document.getElementById('userName').textContent   = nombre;
+      document.getElementById('userChip').style.display  = 'flex';
+      document.getElementById('btnLogout').style.display = 'block';
+      if (u.rol_base === 'superadmin') {
+        const qa = document.getElementById('quickSuperadmin');
+        if (qa) qa.style.display = 'flex';
+      }
+      document.body.style.visibility = 'visible';
+    } catch(e) {
+      // Si falla auth.js o Supabase CDN, redirigir a login en lugar de mostrar el portal
+      window.location.href = 'login.html';
     }
   })();
 

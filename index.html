@@ -886,30 +886,18 @@ body {
   })();
 
   async function _modoInvitado() {
-    const { data: publicos } = await portalSb
-      .from('portal_modulos').select('id').eq('es_publico', true);
-    const ids = new Set((publicos || []).map(function(m){ return m.id; }));
+    // 1. DENY BY DEFAULT — ocultar TODO antes de la consulta
+    document.querySelectorAll('.prog-card[data-mod]').forEach(function(c) { c.style.display = 'none'; });
+    document.querySelectorAll('.programs-grid').forEach(function(g) { g.style.display = 'none'; });
+    document.querySelectorAll('.section-header').forEach(function(h) { h.style.display = 'none'; });
+    var quickCards = document.querySelectorAll('.quick-card');
+    quickCards.forEach(function(q) { q.style.display = 'none'; });
 
-    // Ocultar tarjetas no públicas
-    document.querySelectorAll('.prog-card[data-mod]').forEach(function(card) {
-      if (!ids.has(card.getAttribute('data-mod'))) card.style.display = 'none';
-    });
-
-    // Ocultar secciones que quedaron vacías
-    document.querySelectorAll('.programs-grid').forEach(function(grid) {
-      var visible = grid.querySelectorAll('.prog-card[data-mod]:not([style*="none"])').length;
-      if (!visible) {
-        var prev = grid.previousElementSibling;
-        if (prev && prev.classList.contains('section-header')) prev.style.display = 'none';
-        grid.style.display = 'none';
-      }
-    });
-
-    // Ocultar chip/salir (no hay sesión)
+    // 2. Ocultar chip/salir (no hay sesión)
     document.getElementById('userChip').style.display  = 'none';
     document.getElementById('btnLogout').style.display = 'none';
 
-    // Añadir aviso de invitado en el header
+    // 3. Añadir chip de invitado en el header
     var hdrRight = document.querySelector('.header-right');
     var chip = document.createElement('div');
     chip.style.cssText = 'display:flex;align-items:center;gap:10px;';
@@ -918,6 +906,39 @@ body {
       '<a href="login.html" style="background:#0f4c81;color:#fff;border-radius:7px;' +
       'padding:5px 14px;font-size:11px;font-weight:700;text-decoration:none;">Iniciar sesión</a>';
     hdrRight.insertBefore(chip, hdrRight.firstChild);
+
+    // 4. Consultar módulos públicos — solo mostrar los confirmados
+    try {
+      var resp = await portalSb.from('portal_modulos').select('id').eq('es_publico', true);
+      var publicos = resp.data || [];
+      var ids = new Set(publicos.map(function(m){ return m.id; }));
+
+      if (ids.size > 0) {
+        document.querySelectorAll('.prog-card[data-mod]').forEach(function(card) {
+          if (ids.has(card.getAttribute('data-mod'))) {
+            card.style.display = '';
+            var grid = card.parentElement;
+            if (grid) {
+              grid.style.display = '';
+              var prev = grid.previousElementSibling;
+              if (prev && prev.classList.contains('section-header')) prev.style.display = '';
+            }
+          }
+        });
+      } else {
+        // Sin módulos públicos configurados: mostrar aviso
+        var main = document.querySelector('main') || document.querySelector('.container');
+        if (main) {
+          var aviso = document.createElement('div');
+          aviso.style.cssText = 'text-align:center;padding:60px 20px;color:#6b7280;';
+          aviso.innerHTML = '<p style="font-size:1.1rem;margin-bottom:8px;">Sin módulos públicos disponibles</p>' +
+            '<p style="font-size:.85rem;">Inicia sesión para acceder al portal.</p>';
+          main.appendChild(aviso);
+        }
+      }
+    } catch(err) {
+      // Fallo de red: mantener todo oculto (deny by default)
+    }
 
     document.body.style.visibility = 'visible';
   }

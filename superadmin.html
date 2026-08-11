@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Administración de Usuarios — Portal HRNO</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;--primary:#e94560;--primary-h:#c73550;
+  --green:#38c793;--yellow:#ffb432;--blue:#4a6fa5;--purple:#7c1d6f;
+  --r:10px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;}
+body{display:flex;flex-direction:column;min-height:100vh;}
+
+/* ── HEADER ── */
+.hd{background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;}
+.hd-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);}
+.hd-badge{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--primary));
+  display:flex;align-items:center;justify-content:center;font-size:16px;}
+.hd-title{font-size:.82rem;font-weight:700;color:var(--text);}
+.hd-sub{font-size:.7rem;color:var(--muted);}
+.hd-right{display:flex;align-items:center;gap:10px;}
+.user-chip{display:flex;align-items:center;gap:6px;background:rgba(233,69,96,.1);
+  border:1px solid rgba(233,69,96,.3);border-radius:7px;padding:4px 10px;
+  font-size:.75rem;font-weight:600;color:var(--primary);}
+.btn-sm{background:transparent;border:1px solid var(--border);color:var(--muted);
+  border-radius:7px;padding:5px 12px;font-size:.75rem;cursor:pointer;transition:all .15s;}
+.btn-sm:hover{border-color:var(--muted);color:var(--text);}
+.btn-primary{background:var(--primary);border:none;color:#fff;
+  border-radius:7px;padding:6px 14px;font-size:.78rem;font-weight:600;cursor:pointer;transition:background .15s;}
+.btn-primary:hover{background:var(--primary-h);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1100px;margin:0 auto;padding:28px 24px;flex:1;}
+.page-title{font-size:1.1rem;font-weight:700;margin-bottom:4px;}
+.page-sub{font-size:.78rem;color:var(--muted);margin-bottom:24px;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.tab{background:none;border:none;color:var(--muted);padding:10px 16px;
+  font-size:.8rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;
+  margin-bottom:-1px;transition:all .15s;}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;}
+.card-title{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+  padding:9px 12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+td{padding:10px 12px;border-bottom:1px solid rgba(48,54,61,.5);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:3px 10px;font-size:.7rem;font-weight:700;}
+.badge-sa{background:rgba(233,69,96,.15);color:var(--primary);}
+.badge-admin{background:rgba(124,29,111,.18);color:#c084fc;}
+.badge-coord{background:rgba(74,111,165,.18);color:#7db8f7;}
+.badge-aux{background:rgba(56,199,147,.15);color:var(--green);}
+.badge-adm{background:rgba(255,180,50,.15);color:var(--yellow);}
+.badge-ok{background:rgba(56,199,147,.15);color:var(--green);}
+.badge-off{background:rgba(139,148,158,.12);color:var(--muted);}
+
+/* ── FORM ── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.form-row.full{grid-template-columns:1fr;}
+.field label{display:block;font-size:.72rem;font-weight:600;color:var(--muted);
+  margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;
+  padding:9px 12px;font-size:.82rem;color:var(--text);outline:none;
+  transition:border-color .15s;font-family:inherit;}
+.field input:focus,.field select:focus{border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(233,69,96,.12);}
+.field select option{background:var(--surface);}
+
+/* ── PERMISOS GRID ── */
+.perm-grid{display:grid;grid-template-columns:1fr auto auto auto auto;gap:0;
+  border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.perm-header{background:var(--surface2);font-size:.68rem;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.07em;
+  padding:8px 12px;border-bottom:1px solid var(--border);}
+.perm-header:not(:first-child){text-align:center;}
+.perm-row{display:contents;}
+.perm-row:hover .perm-mod,.perm-row:hover .perm-cell{background:rgba(255,255,255,.025);}
+.perm-mod{padding:9px 12px;font-size:.78rem;color:var(--text);
+  border-bottom:1px solid rgba(48,54,61,.4);display:flex;align-items:center;gap:6px;}
+.perm-mod-group{color:var(--muted);font-size:.7rem;font-style:italic;}
+.perm-cell{padding:9px 8px;text-align:center;border-bottom:1px solid rgba(48,54,61,.4);}
+.perm-cell input[type="radio"]{accent-color:var(--primary);width:14px;height:14px;cursor:pointer;}
+.perm-none{padding:9px 8px;text-align:center;border-bottom:1px solid rgba(48,54,61,.4);}
+.perm-none input[type="radio"]{accent-color:var(--muted);width:14px;height:14px;cursor:pointer;}
+
+/* ── ALERT ── */
+.alert{border-radius:8px;padding:10px 14px;font-size:.78rem;margin-bottom:14px;display:none;}
+.alert.show{display:flex;align-items:center;gap:8px;}
+.alert-ok{background:rgba(56,199,147,.1);border:1px solid rgba(56,199,147,.3);color:var(--green);}
+.alert-err{background:rgba(233,69,96,.1);border:1px solid rgba(233,69,96,.3);color:var(--primary);}
+
+/* ── LOG ── */
+.log-row td{font-size:.75rem;}
+.log-evento{font-weight:600;color:var(--text);}
+.log-modulo{color:var(--muted);}
+.log-ts{color:var(--muted);white-space:nowrap;font-size:.7rem;}
+
+/* ── PUBLIC TOGGLE ── */
+.toggle-list{display:flex;flex-direction:column;gap:8px;}
+.toggle-item{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;}
+.toggle-label{font-size:.8rem;font-weight:600;}
+.toggle-sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
+.toggle-switch{position:relative;width:36px;height:20px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:20px;cursor:pointer;transition:.2s;}
+.toggle-slider::before{content:'';position:absolute;height:14px;width:14px;left:3px;bottom:3px;
+  background:#fff;border-radius:50%;transition:.2s;}
+.toggle-switch input:checked+.toggle-slider{background:var(--green);}
+.toggle-switch input:checked+.toggle-slider::before{transform:translateX(16px);}
+
+/* ── SPINNER ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.25);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-icon{font-size:2rem;margin-bottom:10px;}
+.empty-msg{font-size:.82rem;}
+
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;
+  align-items:center;justify-content:center;padding:20px;}
+.overlay.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:28px;}
+.modal-title{font-size:1rem;font-weight:700;margin-bottom:6px;}
+.modal-sub{font-size:.78rem;color:var(--muted);margin-bottom:22px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;}
+
+@media(max-width:640px){
+  .form-row{grid-template-columns:1fr;}
+  .perm-grid{grid-template-columns:1fr auto auto;}
+  .perm-header:nth-child(n+4),.perm-cell:nth-child(n+4),.perm-none:nth-child(n+4){display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hd">
+  <a href="index.html" class="hd-brand">
+    <div class="hd-badge">⚙️</div>
+    <div>
+      <div class="hd-title">Administración del Portal</div>
+      <div class="hd-sub">ESE HRNO · Solo Superadmin</div>
+    </div>
+  </a>
+  <div class="hd-right">
+    <div class="user-chip" id="userChip">🛡️ <span id="userName">...</span></div>
+    <button class="btn-sm" onclick="portalCerrarSesion()">Cerrar sesión</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="wrap">
+  <div class="page-title">Panel de Administración</div>
+  <div class="page-sub">Gestión de usuarios, permisos por módulo y configuración del portal</div>
+
+  <!-- ALERT GLOBAL -->
+  <div class="alert alert-ok" id="alertOk">✓ <span id="alertOkMsg"></span></div>
+  <div class="alert alert-err" id="alertErr">⚠ <span id="alertErrMsg"></span></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('usuarios')">Usuarios</button>
+    <button class="tab" onclick="switchTab('modulos')">Módulos públicos</button>
+    <button class="tab" onclick="switchTab('log')">Registro de actividad</button>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- TAB: USUARIOS                               -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="tab-panel active" id="tab-usuarios">
+    <div class="card">
+      <div class="card-title">
+        Usuarios registrados
+        <button class="btn-primary" onclick="abrirModalNuevo()">+ Nuevo usuario</button>
+      </div>
+      <div class="tbl-wrap">
+        <table id="tblUsuarios">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Rol base</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyUsuarios">
+            <tr><td colspan="5" class="empty"><div class="empty-icon">⏳</div><div class="empty-msg">Cargando usuarios...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- TAB: MÓDULOS PÚBLICOS                       -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-modulos">
+    <div class="card">
+      <div class="card-title">Visibilidad pública de módulos</div>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:16px;">
+        Los módulos marcados como públicos son accesibles sin iniciar sesión.
+        El Verificador de Población Susceptible es público por defecto.
+      </p>
+      <div class="toggle-list" id="toggleList">
+        <div class="empty"><div class="empty-icon">⏳</div><div class="empty-msg">Cargando módulos...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- TAB: LOG                                    -->
+  <!-- ─────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-log">
+    <div class="card">
+      <div class="card-title">Últimos 100 eventos</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Módulo</th>
+              <th>Evento</th>
+              <th>Fecha y hora</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyLog">
+            <tr><td colspan="4" class="empty"><div class="empty-icon">⏳</div><div class="empty-msg">Cargando...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- /wrap -->
+
+<!-- ─────────────────────────────────────────────── -->
+<!-- MODAL: CREAR / EDITAR USUARIO                   -->
+<!-- ─────────────────────────────────────────────── -->
+<div class="overlay" id="overlayUsuario">
+<div class="modal">
+  <div class="modal-title" id="modalTitulo">Nuevo usuario</div>
+  <div class="modal-sub" id="modalSub">Completa los datos del usuario y asigna sus permisos por módulo</div>
+
+  <div class="form-row">
+    <div class="field">
+      <label>Nombre completo</label>
+      <input type="text" id="inNombre" placeholder="Ej. María González">
+    </div>
+    <div class="field">
+      <label>Correo electrónico</label>
+      <input type="email" id="inEmail" placeholder="usuario@ejemplo.com">
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="field">
+      <label>Contraseña inicial</label>
+      <input type="password" id="inPass" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label>Rol base</label>
+      <select id="inRol" onchange="aplicarPlantilla()">
+        <option value="coordinador">Coordinador de programa</option>
+        <option value="auxiliar_campo">Auxiliar de campo</option>
+        <option value="administrativo">Administrativo</option>
+        <option value="admin">Admin</option>
+        <option value="superadmin">Superadmin</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">
+      Permisos por módulo
+      <span style="font-weight:400;text-transform:none;letter-spacing:0;margin-left:8px;color:var(--muted);">
+        — se precargan según el rol, puedes ajustarlos individualmente
+      </span>
+    </div>
+    <div id="permGrid" class="perm-grid">
+      <!-- Generado por JS -->
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn-sm" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn-primary" id="btnGuardar" onclick="guardarUsuario()">
+      Guardar usuario
+    </button>
+  </div>
+</div>
+</div>
+
+<!-- ─────────────────────────────────────────────── -->
+<!-- MODAL: EDITAR PERMISOS (usuario existente)      -->
+<!-- ─────────────────────────────────────────────── -->
+<div class="overlay" id="overlayPermisos">
+<div class="modal">
+  <div class="modal-title">Editar permisos</div>
+  <div class="modal-sub" id="permSub">Ajusta los permisos por módulo para este usuario</div>
+
+  <div id="permGridEdit" class="perm-grid">
+    <!-- Generado por JS -->
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn-sm" onclick="cerrarModalPermisos()">Cancelar</button>
+    <button class="btn-primary" id="btnGuardarPermisos" onclick="guardarPermisos()">Guardar permisos</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// DATOS
+// ════════════════════════════════════════════════════════
+
+const NIVELES = ['ninguno','lectura','registro','reportes','admin'];
+const NIVEL_ORD = {ninguno:-1,lectura:0,registro:1,reportes:2,admin:3};
+
+// Catálogo de módulos (id, etiqueta, grupo)
+// Solo los principales — los submódulos de CertiVac se simplificaron al padre
+const MODULOS_CATALOGO = [
+  { id:'dashboard',          label:'Dashboard central',              grupo:'Principal' },
+  { id:'mision_medica',      label:'Misión Médica',                  grupo:'Programas' },
+  { id:'certivac',           label:'CertiVac PAI (completo)',         grupo:'Programas' },
+  { id:'certivac.carnet_emblema',    label:'→ Carnet / Emblema',     grupo:'CertiVac' },
+  { id:'certivac.liquidacion',       label:'→ Liquidación',          grupo:'CertiVac' },
+  { id:'certivac.trazadores',        label:'→ Trazadores',           grupo:'CertiVac' },
+  { id:'certivac.certivac_app',      label:'→ CertiVac App',         grupo:'CertiVac' },
+  { id:'certivac.analitica',         label:'→ Analítica',            grupo:'CertiVac' },
+  { id:'ebs',                label:'Ejecución EBS · Res. 0900',      grupo:'Programas' },
+  { id:'tamizaje',           label:'Tamizaje Visual y Auditivo',     grupo:'Programas' },
+  { id:'vigilancia_sp',      label:'SIVIGILA Monitor',               grupo:'Programas' },
+  { id:'jovenes_en_paz',     label:'Jóvenes en Paz',                 grupo:'Programas' },
+  { id:'radicador',          label:'Radicador ESP-116',              grupo:'Herramientas' },
+  { id:'usuarios_sispro',    label:'Usuarios Institucionales SISPRO',grupo:'Herramientas' },
+  { id:'recursos_ser124drec',label:'Recursos SER124DREC',           grupo:'Herramientas' },
+  { id:'pci_app',            label:'PCI App',                        grupo:'Herramientas' },
+  { id:'diagramflow',        label:'DiagramFlow',                    grupo:'Herramientas' },
+  { id:'buscador_cups',      label:'Buscador CUPS',                  grupo:'Herramientas' },
+  { id:'verificador_susceptible', label:'Verificador Pob. Susceptible', grupo:'Público' },
+];
+
+// Plantillas de permisos por rol
+const PLANTILLAS = {
+  superadmin:    Object.fromEntries(MODULOS_CATALOGO.map(m=>[m.id,'admin'])),
+  admin:         Object.fromEntries(MODULOS_CATALOGO.map(m=>[m.id,'admin'])),
+  coordinador:   {
+    dashboard:'lectura', mision_medica:'reportes', certivac:'reportes',
+    'certivac.carnet_emblema':'registro','certivac.liquidacion':'reportes',
+    'certivac.trazadores':'reportes','certivac.certivac_app':'reportes',
+    'certivac.analitica':'reportes',
+    ebs:'reportes', tamizaje:'reportes', vigilancia_sp:'reportes',
+    jovenes_en_paz:'reportes', radicador:'registro', usuarios_sispro:'lectura',
+    recursos_ser124drec:'lectura', pci_app:'registro', diagramflow:'registro',
+    buscador_cups:'lectura', verificador_susceptible:'lectura'
+  },
+  auxiliar_campo: {
+    dashboard:'lectura', mision_medica:'ninguno', certivac:'ninguno',
+    'certivac.carnet_emblema':'ninguno','certivac.liquidacion':'ninguno',
+    'certivac.trazadores':'ninguno','certivac.certivac_app':'ninguno',
+    'certivac.analitica':'ninguno',
+    ebs:'registro', tamizaje:'registro', vigilancia_sp:'ninguno',
+    jovenes_en_paz:'registro', radicador:'ninguno', usuarios_sispro:'ninguno',
+    recursos_ser124drec:'ninguno', pci_app:'registro', diagramflow:'ninguno',
+    buscador_cups:'lectura', verificador_susceptible:'lectura'
+  },
+  administrativo: {
+    dashboard:'lectura', mision_medica:'registro', certivac:'ninguno',
+    'certivac.carnet_emblema':'registro','certivac.liquidacion':'ninguno',
+    'certivac.trazadores':'ninguno','certivac.certivac_app':'ninguno',
+    'certivac.analitica':'ninguno',
+    ebs:'ninguno', tamizaje:'ninguno', vigilancia_sp:'ninguno',
+    jovenes_en_paz:'ninguno', radicador:'registro', usuarios_sispro:'registro',
+    recursos_ser124drec:'registro', pci_app:'ninguno', diagramflow:'lectura',
+    buscador_cups:'lectura', verificador_susceptible:'lectura'
+  }
+};
+
+// ════════════════════════════════════════════════════════
+// ESTADO
+// ════════════════════════════════════════════════════════
+let usuariosCache = [];
+let modulosDB     = []; // filas de portal_modulos
+let editandoId    = null; // uuid usuario en edición (permisos)
+
+// ════════════════════════════════════════════════════════
+// INICIO
+// ════════════════════════════════════════════════════════
+(async function () {
+  const sesion = await portalVerificarSesion();
+  if (!sesion) return;
+
+  // Solo superadmin puede entrar
+  if (sesion.user.rol_base !== 'superadmin') {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#e94560;font-size:1rem;font-weight:700;">Acceso denegado — Solo Superadmin</div>';
+    return;
+  }
+
+  document.getElementById('userName').textContent = sesion.user.nombre || sesion.user.email;
+
+  await Promise.all([cargarUsuarios(), cargarModulos()]);
+  cargarLog();
+})();
+
+// ════════════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════════════
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const panels = ['usuarios','modulos','log'];
+    t.classList.toggle('active', panels[i] === id);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════
+// USUARIOS
+// ════════════════════════════════════════════════════════
+async function cargarUsuarios() {
+  const { data, error } = await portalSb.from('portal_usuarios')
+    .select('id,nombre,email,rol_base,activo')
+    .order('nombre');
+  if (error) { showErr('Error al cargar usuarios: ' + error.message); return; }
+  usuariosCache = data || [];
+  renderUsuarios();
+}
+
+function renderUsuarios() {
+  const tbody = document.getElementById('tbodyUsuarios');
+  if (!usuariosCache.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty"><div class="empty-icon">👤</div><div class="empty-msg">No hay usuarios registrados</div></td></tr>';
+    return;
+  }
+  const ROL_BADGE = {
+    superadmin:'badge-sa',admin:'badge-admin',coordinador:'badge-coord',
+    auxiliar_campo:'badge-aux',administrativo:'badge-adm'
+  };
+  const ROL_LABEL = {
+    superadmin:'Superadmin',admin:'Admin',coordinador:'Coordinador',
+    auxiliar_campo:'Aux. Campo',administrativo:'Administrativo'
+  };
+  tbody.innerHTML = usuariosCache.map(u => `
+    <tr>
+      <td><strong>${esc(u.nombre || '—')}</strong></td>
+      <td style="color:var(--muted)">${esc(u.email)}</td>
+      <td><span class="badge ${ROL_BADGE[u.rol_base]||'badge-adm'}">${ROL_LABEL[u.rol_base]||u.rol_base}</span></td>
+      <td><span class="badge ${u.activo?'badge-ok':'badge-off'}">${u.activo?'Activo':'Inactivo'}</span></td>
+      <td style="white-space:nowrap;display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn-sm" onclick="abrirPermisos('${u.id}','${esc(u.nombre||u.email)}')">Permisos</button>
+        <button class="btn-sm" onclick="toggleActivo('${u.id}',${u.activo})">${u.activo?'Desactivar':'Activar'}</button>
+        <button class="btn-sm" onclick="resetPass('${u.id}','${esc(u.email)}')" style="color:var(--yellow);border-color:rgba(255,180,50,.4)">Reset pass</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function toggleActivo(id, actual) {
+  const { error } = await portalSb.from('portal_usuarios')
+    .update({ activo: !actual }).eq('id', id);
+  if (error) { showErr(error.message); return; }
+  showOk(actual ? 'Usuario desactivado' : 'Usuario activado');
+  await cargarUsuarios();
+}
+
+async function resetPass(id, email) {
+  const nueva = prompt('Nueva contraseña para ' + email + ' (mínimo 8 caracteres):');
+  if (!nueva || nueva.length < 8) { alert('Contraseña muy corta o cancelada.'); return; }
+  const { error } = await portalSb.auth.admin.updateUserById(id, { password: nueva });
+  if (error) { showErr('Error al cambiar contraseña: ' + error.message); return; }
+  showOk('Contraseña actualizada para ' + email);
+}
+
+// ════════════════════════════════════════════════════════
+// CREAR USUARIO
+// ════════════════════════════════════════════════════════
+function abrirModalNuevo() {
+  editandoId = null;
+  document.getElementById('modalTitulo').textContent = 'Nuevo usuario';
+  document.getElementById('modalSub').textContent    = 'Completa los datos del usuario y asigna sus permisos por módulo';
+  document.getElementById('inNombre').value = '';
+  document.getElementById('inEmail').value  = '';
+  document.getElementById('inPass').value   = '';
+  document.getElementById('inRol').value    = 'coordinador';
+  document.getElementById('inPass').style.display = '';
+  document.querySelector('label[for="inPass"],label:has(~#inPass)');
+  aplicarPlantilla();
+  document.getElementById('overlayUsuario').classList.add('show');
+}
+
+function cerrarModal() {
+  document.getElementById('overlayUsuario').classList.remove('show');
+}
+
+function aplicarPlantilla() {
+  const rol = document.getElementById('inRol').value;
+  const plantilla = PLANTILLAS[rol] || PLANTILLAS.coordinador;
+  renderPermGrid('permGrid', plantilla);
+}
+
+function renderPermGrid(containerId, permisosIniciales) {
+  const c = document.getElementById(containerId);
+  const nivEtiq = ['Ninguno','Lectura','Registro','Reportes','Admin'];
+  let h = `
+    <div class="perm-header">Módulo</div>
+    <div class="perm-header">Ninguno</div>
+    <div class="perm-header">Lectura</div>
+    <div class="perm-header">Registro</div>
+    <div class="perm-header">Reportes</div>
+    <div class="perm-header">Admin</div>`;
+
+  let grupoAct = '';
+  MODULOS_CATALOGO.forEach(m => {
+    if (m.grupo !== grupoAct) {
+      grupoAct = m.grupo;
+      h += `<div class="perm-mod perm-mod-group" style="grid-column:1/-1;background:var(--surface2);color:var(--muted);font-size:.7rem;padding:6px 12px;">${esc(m.grupo)}</div>`;
+    }
+    const seleccionado = permisosIniciales[m.id] || 'ninguno';
+    h += `<div class="perm-mod">${esc(m.label)}</div>`;
+    NIVELES.forEach(niv => {
+      h += `<div class="perm-${niv==='ninguno'?'none':'cell'}">
+        <input type="radio" name="perm_${containerId}_${m.id}" value="${niv}" ${seleccionado===niv?'checked':''}>
+      </div>`;
+    });
+  });
+  c.innerHTML = h;
+}
+
+function leerPermisosDesdGrid(containerId) {
+  const perms = {};
+  MODULOS_CATALOGO.forEach(m => {
+    const sel = document.querySelector(`input[name="perm_${containerId}_${m.id}"]:checked`);
+    if (sel) perms[m.id] = sel.value;
+  });
+  return perms;
+}
+
+async function guardarUsuario() {
+  const nombre = document.getElementById('inNombre').value.trim();
+  const email  = document.getElementById('inEmail').value.trim();
+  const pass   = document.getElementById('inPass').value;
+  const rol    = document.getElementById('inRol').value;
+
+  if (!nombre || !email || !pass) { showErr('Completa nombre, correo y contraseña.'); return; }
+  if (pass.length < 8) { showErr('La contraseña debe tener al menos 8 caracteres.'); return; }
+
+  const btn = document.getElementById('btnGuardar');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Guardando...';
+
+  try {
+    // 1. Crear en Supabase Auth
+    const { data: authData, error: authErr } = await portalSb.auth.admin.createUser({
+      email, password: pass, email_confirm: true
+    });
+    if (authErr) throw new Error('Auth: ' + authErr.message);
+    const uid = authData.user.id;
+
+    // 2. Insertar en portal_usuarios
+    const { error: uErr } = await portalSb.from('portal_usuarios')
+      .insert({ id: uid, nombre, email, rol_base: rol, activo: true });
+    if (uErr) throw new Error('Perfil: ' + uErr.message);
+
+    // 3. Insertar permisos (solo los que no son 'ninguno')
+    const perms = leerPermisosDesdGrid('permGrid');
+    const rows = Object.entries(perms)
+      .filter(([, niv]) => niv !== 'ninguno')
+      .map(([mid, niv]) => ({ usuario_id: uid, modulo_id: mid, nivel: niv, activo: true }));
+    if (rows.length) {
+      const { error: pErr } = await portalSb.from('portal_permisos').insert(rows);
+      if (pErr) throw new Error('Permisos: ' + pErr.message);
+    }
+
+    cerrarModal();
+    showOk('Usuario ' + nombre + ' creado correctamente.');
+    await cargarUsuarios();
+  } catch(e) {
+    showErr(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar usuario';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// EDITAR PERMISOS
+// ════════════════════════════════════════════════════════
+async function abrirPermisos(uid, nombre) {
+  editandoId = uid;
+  document.getElementById('permSub').textContent = 'Usuario: ' + nombre;
+
+  // Cargar permisos actuales
+  const { data } = await portalSb.from('portal_permisos')
+    .select('modulo_id,nivel').eq('usuario_id', uid).eq('activo', true);
+  const actual = {};
+  (data || []).forEach(p => { actual[p.modulo_id] = p.nivel; });
+
+  // ¿Es superadmin?
+  const u = usuariosCache.find(x => x.id === uid);
+  if (u && u.rol_base === 'superadmin') {
+    MODULOS_CATALOGO.forEach(m => { actual[m.id] = 'admin'; });
+  }
+
+  renderPermGrid('permGridEdit', actual);
+  document.getElementById('overlayPermisos').classList.add('show');
+}
+
+function cerrarModalPermisos() {
+  document.getElementById('overlayPermisos').classList.remove('show');
+  editandoId = null;
+}
+
+async function guardarPermisos() {
+  if (!editandoId) return;
+  const btn = document.getElementById('btnGuardarPermisos');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Guardando...';
+
+  try {
+    const perms = leerPermisosDesdGrid('permGridEdit');
+
+    // Borrar permisos anteriores
+    const { error: delErr } = await portalSb.from('portal_permisos')
+      .delete().eq('usuario_id', editandoId);
+    if (delErr) throw new Error('Al borrar: ' + delErr.message);
+
+    // Insertar nuevos (solo los que no son 'ninguno')
+    const rows = Object.entries(perms)
+      .filter(([, niv]) => niv !== 'ninguno')
+      .map(([mid, niv]) => ({ usuario_id: editandoId, modulo_id: mid, nivel: niv, activo: true }));
+    if (rows.length) {
+      const { error: insErr } = await portalSb.from('portal_permisos').insert(rows);
+      if (insErr) throw new Error('Al insertar: ' + insErr.message);
+    }
+
+    // Limpiar caché de sesión de ese usuario si es el mismo (improbable en admin)
+    cerrarModalPermisos();
+    showOk('Permisos actualizados correctamente.');
+  } catch(e) {
+    showErr(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar permisos';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// MÓDULOS PÚBLICOS
+// ════════════════════════════════════════════════════════
+async function cargarModulos() {
+  const { data, error } = await portalSb.from('portal_modulos')
+    .select('id,nombre,es_publico').order('nombre');
+  if (error) { showErr('Error al cargar módulos: ' + error.message); return; }
+  modulosDB = data || [];
+  renderToggleList();
+}
+
+function renderToggleList() {
+  const cont = document.getElementById('toggleList');
+  if (!modulosDB.length) {
+    cont.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-msg">No se encontraron módulos</div></div>';
+    return;
+  }
+  cont.innerHTML = modulosDB.map(m => `
+    <div class="toggle-item">
+      <div>
+        <div class="toggle-label">${esc(m.nombre || m.id)}</div>
+        <div class="toggle-sub">${esc(m.id)}</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" ${m.es_publico?'checked':''} onchange="togglePublico('${m.id}',this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>`).join('');
+}
+
+async function togglePublico(id, valor) {
+  const { error } = await portalSb.from('portal_modulos').update({ es_publico: valor }).eq('id', id);
+  if (error) { showErr('Error al actualizar: ' + error.message); await cargarModulos(); return; }
+  showOk('Módulo ' + id + (valor ? ' ahora es público.' : ' ahora es privado.'));
+  const m = modulosDB.find(x => x.id === id);
+  if (m) m.es_publico = valor;
+}
+
+// ════════════════════════════════════════════════════════
+// LOG DE ACTIVIDAD
+// ════════════════════════════════════════════════════════
+async function cargarLog() {
+  const { data } = await portalSb.from('portal_log')
+    .select('id,usuario_id,modulo_id,evento,created_at,portal_usuarios(nombre,email)')
+    .order('created_at', { ascending: false }).limit(100);
+  const tbody = document.getElementById('tbodyLog');
+  if (!data || !data.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty"><div class="empty-icon">📋</div><div class="empty-msg">Sin eventos registrados</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = (data || []).map(r => {
+    const u = r.portal_usuarios;
+    const nombre = u ? (u.nombre || u.email) : r.usuario_id;
+    const fecha = new Date(r.created_at).toLocaleString('es-CO', { dateStyle:'short', timeStyle:'short' });
+    return `<tr>
+      <td>${esc(nombre)}</td>
+      <td class="log-modulo">${esc(r.modulo_id || '—')}</td>
+      <td class="log-evento">${esc(r.evento)}</td>
+      <td class="log-ts">${fecha}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showOk(msg) {
+  document.getElementById('alertOkMsg').textContent = msg;
+  const el = document.getElementById('alertOk');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+function showErr(msg) {
+  document.getElementById('alertErrMsg').textContent = msg;
+  const el = document.getElementById('alertErr');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+// Cerrar modales al clic fuera
+document.getElementById('overlayUsuario').addEventListener('click', function(e){ if(e.target===this) cerrarModal(); });
+document.getElementById('overlayPermisos').addEventListener('click', function(e){ if(e.target===this) cerrarModalPermisos(); });
+</script>
+</body>
+</html>

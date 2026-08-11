@@ -3048,12 +3048,14 @@ function renderConfigCap(){
     + '</div>';
 }
 
-function capSetNumPreguntas(n){
+async function capSetNumPreguntas(n){
   const num = parseInt(n);
   localStorage.setItem('mm_pretest_num', num);
   renderConfigCap();
   const statusEl = document.getElementById('cap-cfg-status');
-  if(statusEl) statusEl.textContent = `✓ Guardado: ${Math.min(num,PREGUNTAS.length)} preguntas para la próxima sesión`;
+  if(statusEl) statusEl.textContent = `Guardando para todos los dispositivos…`;
+  await bannerUpsert('mm_pretest_num', String(num));
+  if(statusEl) statusEl.textContent = `✓ Guardado globalmente: ${Math.min(num,PREGUNTAS.length)} preguntas para todos los dispositivos`;
   if(PREGUNTAS.length < num){
     const alertEl = document.getElementById('cap-cfg-alert');
     if(alertEl){ alertEl.style.display='block'; alertEl.textContent=`El banco solo tiene ${PREGUNTAS.length} preguntas. Se usarán todas las disponibles.`; }
@@ -5751,7 +5753,7 @@ async function bannersCargarDesdeSupabase(){
     const { data, error } = await supa
       .from('mm_config')
       .select('key, value')
-      .in('key', [BANNER_PRINCIPAL_KEY, BANNER_RIESGOS_KEY, BANNER_CONTINGENCIA_KEY, BANNER_INSPECCION_KEY]);
+      .in('key', [BANNER_PRINCIPAL_KEY, BANNER_RIESGOS_KEY, BANNER_CONTINGENCIA_KEY, BANNER_INSPECCION_KEY, 'mm_pretest_num']);
     if(error || !data) return;
 
     data.forEach(row => {
@@ -5779,6 +5781,12 @@ function _aplicarBannerDOM(key, value){
   if(key === BANNER_INSPECCION_KEY){
     const prev = document.getElementById('admin-banner-inspeccion-preview');
     if(prev){ prev.src=value; prev.style.display='block'; }
+  }
+  if(key === 'mm_pretest_num'){
+    localStorage.setItem('mm_pretest_num', value);
+    // Si el panel de config está visible, re-renderizarlo con el valor actualizado
+    const pane = document.getElementById('apane-config-cap');
+    if(pane && pane.classList.contains('active')) renderConfigCap();
   }
 }
 

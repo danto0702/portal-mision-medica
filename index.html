@@ -273,7 +273,7 @@ body {
   <div class="programs-grid">
 
     <!-- ── MISIÓN MÉDICA ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="mision_medica">
       <div class="prog-accent" style="background: linear-gradient(90deg, #1d4ed8, #3b82f6);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -302,7 +302,7 @@ body {
     </div>
 
     <!-- ── VIGILANCIA EPIDEMIOLÓGICA ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="vigilancia_sp">
       <div class="prog-accent" style="background: linear-gradient(90deg, #b91c1c, #e94560);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -331,7 +331,7 @@ body {
     </div>
 
     <!-- ── EBS ── -->
-    <div class="prog-card coming-soon">
+    <div class="prog-card coming-soon" data-mod="ebs_programa">
       <div class="prog-accent" style="background: linear-gradient(90deg, #7e22ce, #a855f7);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -364,7 +364,7 @@ body {
     </div>
 
     <!-- ── PAI ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="certivac">
       <div class="prog-accent" style="background: linear-gradient(90deg, #059669, #10b981);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -423,7 +423,7 @@ body {
     </div>
 
     <!-- ── PIC ── -->
-    <div class="prog-card coming-soon">
+    <div class="prog-card coming-soon" data-mod="pic">
       <div class="prog-accent" style="background: linear-gradient(90deg, #d97706, #f59e0b);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -449,7 +449,7 @@ body {
     </div>
 
     <!-- ── JÓVENES EN PAZ ── -->
-    <div class="prog-card coming-soon">
+    <div class="prog-card coming-soon" data-mod="jovenes_en_paz">
       <div class="prog-accent" style="background: linear-gradient(90deg, #dc2626, #ef4444);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -475,7 +475,7 @@ body {
     </div>
 
     <!-- ── HOPE ── -->
-    <div class="prog-card coming-soon">
+    <div class="prog-card coming-soon" data-mod="hope">
       <div class="prog-accent" style="background: linear-gradient(90deg, #0f4c81, #0891B2);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -512,7 +512,7 @@ body {
   <div class="programs-grid" style="margin-bottom:32px;">
 
     <!-- ── PCI APP ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="pci_app">
       <div class="prog-accent" style="background: linear-gradient(90deg, #0f4c81, #1976d2);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -548,7 +548,7 @@ body {
     </div>
 
     <!-- ── DIAGRAMFLOW ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="diagramflow">
       <div class="prog-accent" style="background: linear-gradient(90deg, #7e22ce, #0891B2);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -587,7 +587,7 @@ body {
     </div>
 
     <!-- ── BUSCADOR CUPS ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="buscador_cups">
       <div class="prog-accent" style="background: linear-gradient(90deg, #0891B2, #059669);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -616,7 +616,7 @@ body {
     </div>
 
     <!-- ── RADICADOR DE OFICIOS ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="radicador">
       <div class="prog-accent" style="background: linear-gradient(90deg, #0C447C, #185FA5);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -655,7 +655,7 @@ body {
     </div>
 
     <!-- ── USUARIOS INSTITUCIONALES SISPRO ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="usuarios_sispro">
       <div class="prog-accent" style="background: linear-gradient(90deg, #0f4c81, #0891B2);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -684,7 +684,7 @@ body {
     </div>
 
     <!-- ── SEGUIMIENTO DE RECURSOS SER124DREC ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="recursos_ser124drec">
       <div class="prog-accent" style="background: linear-gradient(90deg, #0f4c81, #7c3aed);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -713,7 +713,7 @@ body {
     </div>
 
     <!-- ── SEGUIMIENTO EJECUCIÓN EBS · RES 0900/2026 ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="ebs">
       <div class="prog-accent" style="background: linear-gradient(90deg, #0f4c81, #059669);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -742,7 +742,7 @@ body {
     </div>
 
     <!-- ── TAMIZAJE VISUAL Y AUDITIVO ── -->
-    <div class="prog-card">
+    <div class="prog-card" data-mod="tamizaje">
       <div class="prog-accent" style="background: linear-gradient(90deg, #0f4c81, #0891B2);"></div>
       <div class="prog-body">
         <div class="prog-top">
@@ -856,30 +856,71 @@ body {
 
 <script>
   // ── Guard de sesión ───────────────────────────────────────────────
-  // Ocultamos el body hasta confirmar sesión para evitar el flash de contenido
   document.body.style.visibility = 'hidden';
 
   (async function () {
     try {
-      const sesion = await portalVerificarSesion(); // redirige a login si no hay sesión
-      if (!sesion) return; // portalVerificarSesion ya redirigió
-      const u = sesion.user;
-      const nombre = u.nombre || u.email || 'Usuario';
-      const inicial = nombre.charAt(0).toUpperCase();
-      document.getElementById('userAvatar').textContent = inicial;
-      document.getElementById('userName').textContent   = nombre;
-      document.getElementById('userChip').style.display  = 'flex';
-      document.getElementById('btnLogout').style.display = 'block';
-      if (u.rol_base === 'superadmin') {
-        const qa = document.getElementById('quickSuperadmin');
-        if (qa) qa.style.display = 'flex';
+      const params   = new URLSearchParams(window.location.search);
+      const invitado = params.get('invitado') === '1';
+
+      if (invitado) {
+        await _modoInvitado();
+      } else {
+        const sesion = await portalVerificarSesion();
+        if (!sesion) return;
+        const u = sesion.user;
+        const nombre = u.nombre || u.email || 'Usuario';
+        document.getElementById('userAvatar').textContent = nombre.charAt(0).toUpperCase();
+        document.getElementById('userName').textContent   = nombre;
+        document.getElementById('userChip').style.display  = 'flex';
+        document.getElementById('btnLogout').style.display = 'block';
+        if (u.rol_base === 'superadmin') {
+          const qa = document.getElementById('quickSuperadmin');
+          if (qa) qa.style.display = 'flex';
+        }
+        document.body.style.visibility = 'visible';
       }
-      document.body.style.visibility = 'visible';
     } catch(e) {
-      // Si falla auth.js o Supabase CDN, redirigir a login en lugar de mostrar el portal
       window.location.href = 'login.html';
     }
   })();
+
+  async function _modoInvitado() {
+    const { data: publicos } = await portalSb
+      .from('portal_modulos').select('id').eq('es_publico', true);
+    const ids = new Set((publicos || []).map(function(m){ return m.id; }));
+
+    // Ocultar tarjetas no públicas
+    document.querySelectorAll('.prog-card[data-mod]').forEach(function(card) {
+      if (!ids.has(card.getAttribute('data-mod'))) card.style.display = 'none';
+    });
+
+    // Ocultar secciones que quedaron vacías
+    document.querySelectorAll('.programs-grid').forEach(function(grid) {
+      var visible = grid.querySelectorAll('.prog-card[data-mod]:not([style*="none"])').length;
+      if (!visible) {
+        var prev = grid.previousElementSibling;
+        if (prev && prev.classList.contains('section-header')) prev.style.display = 'none';
+        grid.style.display = 'none';
+      }
+    });
+
+    // Ocultar chip/salir (no hay sesión)
+    document.getElementById('userChip').style.display  = 'none';
+    document.getElementById('btnLogout').style.display = 'none';
+
+    // Añadir aviso de invitado en el header
+    var hdrRight = document.querySelector('.header-right');
+    var chip = document.createElement('div');
+    chip.style.cssText = 'display:flex;align-items:center;gap:10px;';
+    chip.innerHTML =
+      '<span style="font-size:11px;color:#6b7280;font-weight:600;">Invitado</span>' +
+      '<a href="login.html" style="background:#0f4c81;color:#fff;border-radius:7px;' +
+      'padding:5px 14px;font-size:11px;font-weight:700;text-decoration:none;">Iniciar sesión</a>';
+    hdrRight.insertBefore(chip, hdrRight.firstChild);
+
+    document.body.style.visibility = 'visible';
+  }
 
   // ── Auto-configuración por parámetro ?api= en la URL ──────────────
   (function(){

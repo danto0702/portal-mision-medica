@@ -170,6 +170,27 @@ input::placeholder { color: var(--border); }
 .btn-login.loading .spin { display: block; }
 .btn-login.loading .btn-txt { display: none; }
 
+/* ── Botón invitado ── */
+.btn-guest {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  text-align: center;
+  transition: all .15s;
+}
+.btn-guest:hover {
+  border-color: var(--muted);
+  color: var(--text);
+  background: rgba(255,255,255,.04);
+}
+
 /* ── Footer ── */
 .login-footer {
   margin-top: 32px;
@@ -237,6 +258,17 @@ input::placeholder { color: var(--border); }
       <span class="btn-txt">Ingresar al portal</span>
     </button>
   </form>
+
+  <div style="margin-top:18px;text-align:center;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+      <span style="font-size:.72rem;color:var(--muted);white-space:nowrap;">o continúa sin cuenta</span>
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+    </div>
+    <a href="index.html?invitado=1" class="btn-guest">
+      Ver módulos públicos
+    </a>
+  </div>
 </div>
 
 <div class="login-footer">

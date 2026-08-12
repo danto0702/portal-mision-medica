@@ -3604,7 +3604,7 @@ function generarInformeEstadistico(){
 async function loadCarnets(){
   const el = document.getElementById('apane-carnets');
   el.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner" style="display:inline-block"></span></div>`;
-  const {data,error} = await supa.from('mm_solicitudes_carnet').select('*').order('fecha_solicitud',{ascending:false});
+  const {data,error} = await supa.from('mm_solicitudes_carnet').select('id,nombres,apellidos,tipo_documento,numero_documento,cargo,municipio,correo,estado,fecha_solicitud,foto_url').order('fecha_solicitud',{ascending:false});
   if(error){ el.innerHTML=`<div style="color:var(--red)">Error: ${error.message}</div>`; return; }
 
   const estadoBadge={pendiente:'badge-yellow',autorizado:'badge-blue',foto_pendiente:'badge-purple',completado:'badge-green',rechazado:'badge-red'};
@@ -3725,7 +3725,7 @@ function verTarjeta(id){ window.location.hash=`tarjeta?id=${id}`; }
 async function loadEmblemasAdmin(){
   const el = document.getElementById('apane-emblemas-admin');
   el.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner" style="display:inline-block"></span></div>`;
-  const {data,error} = await supa.from('mm_solicitudes_emblemas').select('*').order('fecha_solicitud',{ascending:false});
+  const {data,error} = await supa.from('mm_solicitudes_emblemas').select('id,nombres,apellidos,tipo_emblema,talla,cargo,municipio,correo,fecha_fin_contrato,estado,fecha_solicitud').order('fecha_solicitud',{ascending:false});
   if(error){ el.innerHTML=`<div style="color:var(--red)">Error: ${error.message}</div>`; return; }
 
   const estadoBadge={pendiente:'badge-yellow',autorizado:'badge-blue',entregado:'badge-green',rechazado:'badge-red'};
@@ -3910,7 +3910,7 @@ async function registrarMovimiento(){
 async function loadResultados(){
   const el = document.getElementById('apane-resultados');
   el.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner" style="display:inline-block"></span></div>`;
-  const {data,error} = await supa.from('mm_prepostest').select('*').order('fecha',{ascending:false});
+  const {data,error} = await supa.from('mm_prepostest').select('id,nombres,numero_documento,municipio,perfil,tipo_evaluacion,puntaje,total_preguntas,porcentaje,fecha').order('fecha',{ascending:false});
   if(error){ el.innerHTML=`<div style="color:var(--red)">Error: ${error.message}</div>`; return; }
   window._testData = data;
 

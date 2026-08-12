@@ -6154,7 +6154,8 @@ async function inspCargarLista(){
 
   const {data, error} = await supa.from('mm_inspecciones').select('*').order('fecha',{ascending:false});
   const cont = document.getElementById('insp-lista-contenido');
-  if(error||!cont) return;
+  if(!cont) return;
+  if(error){ cont.innerHTML = `<div style="color:var(--red);padding:1rem">Error al cargar inspecciones: ${error.message}</div>`; return; }
   if(!data||data.length===0){
     cont.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--muted)">No hay inspecciones registradas aún.</div>`;
     return;
@@ -6667,8 +6668,9 @@ async function adminInsp_render(){
       </div>
       <button class="btn btn-primary" onclick="adminInsp_cargarDatos()">Generar informe</button>
     </div>
-    <div id="adminInsp-contenido"><div style="text-align:center;padding:3rem;color:var(--muted)">Selecciona filtros y pulsa "Generar informe"</div></div>
+    <div id="adminInsp-contenido"><div style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner" style="display:inline-block"></span> Cargando datos...</div></div>
   </div>`;
+  adminInsp_cargarDatos();
 }
 
 async function adminInsp_cargarDatos(){
@@ -6686,7 +6688,8 @@ async function adminInsp_cargarDatos(){
   if(fil_hasta) q = q.lte('fecha', fil_hasta);
   q = q.order('fecha', {ascending:false});
   const {data: inspeccs, error: errI} = await q;
-  if(errI||!inspeccs||!inspeccs.length){
+  if(errI){ cont.innerHTML = `<div style="color:var(--red);padding:1rem">Error al consultar datos: ${errI.message}</div>`; return; }
+  if(!inspeccs||!inspeccs.length){
     cont.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--muted)">No se encontraron inspecciones con los filtros seleccionados.</div>`;
     return;
   }

@@ -663,13 +663,36 @@ function renderGenPeriodos(){
   if(!c){ box.innerHTML='<span class="muted small">Selecciona un contratista.</span>'; return; }
   const cuentas=cuentasDe(c);
   if(!cuentas.length){ box.innerHTML='<span class="muted small" style="color:var(--red)">⚠ Falta el acta de inicio del contrato (pestaña Contratistas).</span>'; return; }
-  box.innerHTML=cuentas.map(q=>`<label class="chk"><input type="checkbox" value="${q.num}" onchange="onGenPerChange(this)"> Cuenta ${q.num}<span class="small"> (${fmtISO(q.ini)} → ${fmtISO(q.fin)}, ${q.dias} días)</span></label>`).join('');
+  box.innerHTML=cuentas.map(q=>`
+    <div class="cta-row" data-num="${q.num}" style="width:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <label class="chk" style="flex:0 0 auto"><input type="checkbox" value="${q.num}" onchange="onGenPerChange(this)"> Cuenta ${q.num}</label>
+      <span class="small" style="display:inline-flex;align-items:center;gap:6px">
+        <input type="date" class="cta-ini" value="${fmtISO(q.ini)}" onchange="onGenDateEdit(${q.num})" style="width:auto;padding:4px 6px" title="Fecha de inicio de la cuenta">
+        →
+        <input type="date" class="cta-fin" value="${fmtISO(q.fin)}" onchange="onGenDateEdit(${q.num})" style="width:auto;padding:4px 6px" title="Fecha final de la cuenta">
+        <span class="cta-dias muted">(${q.dias} días)</span>
+      </span>
+    </div>`).join('')
+    + '<div class="small muted" style="width:100%;margin-top:4px">Las fechas se calculan desde el acta de inicio; puedes ajustarlas antes de generar.</div>';
 }
 function onGenPerChange(el){ el.closest('.chk').classList.toggle('on',el.checked); setGenFechaFromPer(); calcGen(); }
+function onGenDateEdit(num){
+  const row=$('genPeriodos').querySelector('.cta-row[data-num="'+num+'"]'); if(!row)return;
+  const ini=parseISO(row.querySelector('.cta-ini').value), fin=parseISO(row.querySelector('.cta-fin').value);
+  const lbl=row.querySelector('.cta-dias');
+  if(ini&&fin){ const dias=Math.round((fin-ini)/86400000)+1; lbl.textContent='('+dias+' días)'; lbl.style.color=dias<=0?'var(--red)':''; }
+  else { lbl.textContent='(fechas incompletas)'; lbl.style.color='var(--red)'; }
+  setGenFechaFromPer(); calcGen();
+}
 function selectedGenPeriodos(){
   const c=ST.genSel; if(!c) return [];
-  const cuentas=cuentasDe(c);
-  return [...$('genPeriodos').querySelectorAll('input:checked')].map(i=>cuentas.find(q=>q.num==i.value)).filter(Boolean);
+  return [...$('genPeriodos').querySelectorAll('.cta-row')].filter(row=>{
+    const cb=row.querySelector('input[type=checkbox]'); return cb&&cb.checked;
+  }).map(row=>{
+    const num=+row.dataset.num;
+    const ini=parseISO(row.querySelector('.cta-ini').value), fin=parseISO(row.querySelector('.cta-fin').value);
+    return {num, ini, fin, dias:(ini&&fin)?Math.round((fin-ini)/86400000)+1:0};
+  }).filter(q=>q.ini&&q.fin);
 }
 function setGenFechaFromPer(){
   const sel=selectedGenPeriodos(); if(!sel.length)return;

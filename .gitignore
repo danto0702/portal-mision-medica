@@ -60,3 +60,8 @@ node_modules/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Flota Vehicular — cargas locales con datos personales, nunca versionadas
+FLOTA VEHICULAR/worker/*_local.sql
+FLOTA VEHICULAR/worker/carga_*.sql
+.wrangler/

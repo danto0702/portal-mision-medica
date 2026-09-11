@@ -12,7 +12,7 @@
  */
 
 import { resolver, totalRutas } from './router.js';
-import { cors, json, ErrorApi, sesionActual, ahora, hashClave } from './lib.js';
+import { cors, json, ErrorApi, sesionActual, ahora, hashClave, VERSION_API } from './lib.js';
 
 // El sólo hecho de importarlos registra sus rutas en el router.
 import './rutas_admin.js';
@@ -29,8 +29,8 @@ export default {
 
     // Sonda de salud, sin sesión: sirve para verificar el despliegue.
     if (url.pathname === '/api/salud') {
-      return json({ ok: true, servicio: 'flota-hrno', rutas: totalRutas(), ts: ahora() },
-                  200, cabecerasCors);
+      return json({ ok: true, servicio: 'flota-hrno', version: VERSION_API,
+                    rutas: totalRutas(), ts: ahora() }, 200, cabecerasCors);
     }
 
     // Diagnóstico: prueba cada pieza por separado y dice cuál falla.
@@ -146,6 +146,7 @@ async function instalar(request, env, cabeceras) {
 async function diagnostico(env, cabeceras) {
   const r = {
     ts: ahora(),
+    version: VERSION_API,
     enlace_db: !!env.DB,
     origenes_permitidos: env.ORIGENES_PERMITIDOS || null,
     horas_sesion: env.HORAS_SESION || null,

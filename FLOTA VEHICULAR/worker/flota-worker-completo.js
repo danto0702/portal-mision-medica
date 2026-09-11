@@ -76,6 +76,21 @@ const totalRutas = () => rutas.length;
 
 // ───────────────────────────────────────────────────────────── utilidades ───
 
+/**
+ * Versión del contrato de la API. SUBIRLA cada vez que la aplicación empiece a
+ * depender de algo que el Worker anterior no sabe hacer.
+ *
+ * El Worker se publica a mano pegándolo en el panel de Cloudflare, mientras que
+ * la aplicación se actualiza sola desde GitHub Pages. Sin este número, un
+ * Worker viejo acepta la petición, guarda lo que entiende e ignora el resto en
+ * silencio — que fue justo lo que pasó con el conductor predeterminado.
+ *
+ * Historial:
+ *   1  versión inicial
+ *   2  conductor_id en vehículos (conductor predeterminado)
+ */
+const VERSION_API = 2;
+
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const hoyISO = () => ahora().slice(0, 10);
 
@@ -1455,8 +1470,8 @@ export default {
 
     // Sonda de salud, sin sesión: sirve para verificar el despliegue.
     if (url.pathname === '/api/salud') {
-      return json({ ok: true, servicio: 'flota-hrno', rutas: totalRutas(), ts: ahora() },
-                  200, cabecerasCors);
+      return json({ ok: true, servicio: 'flota-hrno', version: VERSION_API,
+                    rutas: totalRutas(), ts: ahora() }, 200, cabecerasCors);
     }
 
     // Diagnóstico: prueba cada pieza por separado y dice cuál falla.
@@ -1572,6 +1587,7 @@ async function instalar(request, env, cabeceras) {
 async function diagnostico(env, cabeceras) {
   const r = {
     ts: ahora(),
+    version: VERSION_API,
     enlace_db: !!env.DB,
     origenes_permitidos: env.ORIGENES_PERMITIDOS || null,
     horas_sesion: env.HORAS_SESION || null,

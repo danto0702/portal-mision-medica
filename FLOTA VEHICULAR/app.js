@@ -9,6 +9,16 @@
 // En producción la aplicación se publica en GitHub Pages y la API vive en
 // Cloudflare, así que son dominios distintos. Al servirla localmente (servidor
 // de pruebas) la API va en el mismo origen, y así no hay que configurar nada.
+/**
+ * Versión mínima del Worker que esta aplicación necesita.
+ *
+ * La aplicación se actualiza sola desde GitHub Pages, pero el Worker se publica
+ * a mano en Cloudflare. Cuando quedan desfasados, el Worker viejo acepta las
+ * peticiones e ignora en silencio lo que no entiende — un campo que no se
+ * guarda y ningún mensaje de error. Por eso se comprueba y se avisa.
+ */
+const VERSION_API_REQUERIDA = 2;
+
 const esLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 const API = localStorage.getItem('flota_api') ||
             (esLocal ? location.origin : 'https://flota-hrno.danto0702.workers.dev');
@@ -223,6 +233,7 @@ async function iniciar() {
     `<button data-v="${v}" onclick="ir('${v}')">${ICONOS[v] || ''}${VISTAS[v].et}</button>`).join('');
 
   cola.pintar();
+  comprobarVersion();
   try { cat = await api('/api/catalogos'); } catch { /* se reintenta luego */ }
   if (sesion.rol !== 'conductor') {
     try { [vehiculos, personas] = await Promise.all([api('/api/vehiculos'), api('/api/personas')]); }
@@ -233,6 +244,23 @@ async function iniciar() {
   cola.sincronizar();
 
   if (sesion.debe_cambiar_clave) setTimeout(modalCambiarClave, 400);
+}
+
+/** Avisa si el Worker publicado es más viejo que lo que la aplicación espera. */
+async function comprobarVersion() {
+  let salud;
+  try { salud = await (await fetch(API + '/api/salud')).json(); }
+  catch { return; }                                   // sin red: no es el momento
+  const v = Number(salud.version || 1);
+  if (v >= VERSION_API_REQUERIDA) return;
+
+  const barra = $('#barra-version');
+  barra.innerHTML = `El servidor está desactualizado (versión ${v}; esta pantalla
+    necesita la ${VERSION_API_REQUERIDA}). Algunos cambios no se guardarán.
+    ${sesion.rol === 'principal'
+      ? 'Vuelva a publicar el Worker en Cloudflare pegando <b>flota-worker-completo.js</b>.'
+      : 'Avise a la Coordinación de Salud Pública.'}`;
+  barra.classList.add('on');
 }
 
 // ── Modal ────────────────────────────────────────────────────────────────────

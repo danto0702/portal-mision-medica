@@ -224,6 +224,13 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 }
 #barra-offline.on{display:block}
 
+#barra-version{
+  display:none;background:var(--rojo-glow);color:#8c1f18;
+  border-bottom:1px solid rgba(194,46,36,.3);
+  padding:.55rem 1rem;font-size:.8rem;font-weight:600;text-align:center;
+}
+#barra-version.on{display:block}
+
 /* ── Ingreso ────────────────────────────────────────────────── */
 #ingreso{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:linear-gradient(165deg,#eef2f7,#f6f8fa 55%,#eef4f2)}
 #ingreso .caja{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--sh-lg);padding:1.75rem 1.5rem}
@@ -273,6 +280,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
     </div>
   </header>
   <div id="barra-offline">Sin conexión · <span id="offline-n">0</span> marca(s) guardada(s) en el celular, se enviarán solas</div>
+  <div id="barra-version"></div>
   <nav class="nav" id="nav"></nav>
   <main id="main"></main>
 </div>

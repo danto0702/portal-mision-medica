@@ -15,6 +15,21 @@
 
 // ───────────────────────────────────────────────────────────── utilidades ───
 
+/**
+ * Versión del contrato de la API. SUBIRLA cada vez que la aplicación empiece a
+ * depender de algo que el Worker anterior no sabe hacer.
+ *
+ * El Worker se publica a mano pegándolo en el panel de Cloudflare, mientras que
+ * la aplicación se actualiza sola desde GitHub Pages. Sin este número, un
+ * Worker viejo acepta la petición, guarda lo que entiende e ignora el resto en
+ * silencio — que fue justo lo que pasó con el conductor predeterminado.
+ *
+ * Historial:
+ *   1  versión inicial
+ *   2  conductor_id en vehículos (conductor predeterminado)
+ */
+const VERSION_API = 2;
+
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const hoyISO = () => ahora().slice(0, 10);
 
@@ -268,6 +283,7 @@ async function resolverDestino(db, nombre, municipioId, tipo, usuarioId) {
 }
 
 export {
+  VERSION_API,
   ahora, hoyISO, cors, json, ErrorApi,
   malaPeticion, noAutorizado, prohibido, noEncontrado,
   hashClave, verificarClave,

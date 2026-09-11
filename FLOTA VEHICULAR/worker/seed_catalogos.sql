@@ -12,27 +12,31 @@
 
 -- ---------------------------------------------------------------------------
 -- MUNICIPIOS
--- Los cuatro primeros son los que aparecen en el archivo de conductores.
--- TEORAMA se incluye porque es el municipio del que SAN PABLO es corregimiento;
--- confirmar cual de los dos debe figurar como municipio. Ver pregunta P1.
+-- SAN PABLO se usa con su propio nombre por decision operativa, aunque sea
+-- corregimiento de TEORAMA: la pertenencia queda trazada en municipio_padre_id.
+-- Todo este catalogo es editable desde la pantalla de administracion.
 -- ---------------------------------------------------------------------------
-INSERT INTO cat_municipios (nombre, codigo_dane, es_base, activo) VALUES
-  ('ÁBREGO',     '54003', 1, 1),
-  ('CONVENCIÓN', '54206', 1, 1),
-  ('EL CARMEN',  '54245', 1, 1),
-  ('TEORAMA',    '54800', 1, 1),
-  ('SAN PABLO',  NULL,    1, 1),   -- corregimiento de Teorama: confirmar (P1)
-  ('CÚCUTA',     '54001', 0, 1);   -- destino externo (remisiones y tramites)
+INSERT INTO cat_municipios (nombre, codigo_dane, es_base, activo, creado_en) VALUES
+  ('ÁBREGO',     '54003', 1, 1, datetime('now')),
+  ('CONVENCIÓN', '54206', 1, 1, datetime('now')),
+  ('EL CARMEN',  '54245', 1, 1, datetime('now')),
+  ('TEORAMA',    '54800', 1, 1, datetime('now')),
+  ('SAN PABLO',  NULL,    1, 1, datetime('now')),
+  ('CÚCUTA',     '54001', 0, 1, datetime('now'));   -- destino externo
+
+-- SAN PABLO cuelga de TEORAMA sin dejar de mostrarse con su propio nombre
+UPDATE cat_municipios
+   SET municipio_padre_id = (SELECT id FROM cat_municipios WHERE nombre = 'TEORAMA')
+ WHERE nombre = 'SAN PABLO';
 
 -- ---------------------------------------------------------------------------
 -- DESTINOS
--- municipio_id queda NULO a proposito: en el archivo fuente el municipio de la
--- columna corresponde a la BASE del conductor, no al municipio del destino
--- (p. ej. CARTAGENITA la atiende un conductor de Convencion pero figura como
--- puesto de salud de El Carmen). Asignarlos requiere confirmacion. Ver P2.
+-- municipio_id queda NULO a proposito: el municipio del destino se registra al
+-- adjudicar el desplazamiento, no aqui. Estos 17 destinos entran solo como
+-- semilla del autocompletado, tomados del itinerario del 10 al 22 de septiembre.
 --
--- 'LA SIERRA' aparece atendida por conductores de tres municipios distintos:
--- puede ser una sola vereda compartida o tres lugares homonimos. Ver P3.
+-- 'LA SIERRA' es UN SOLO lugar: la atienden conductores de varios municipios
+-- porque el municipio base del conductor no restringe a donde puede desplazarse.
 -- 'CAMPO ALEGRE' se normaliza desde 'CAMPOR ALEGRE' del archivo original.
 -- ---------------------------------------------------------------------------
 INSERT INTO cat_destinos (municipio_id, nombre, tipo, activo) VALUES

@@ -1,6 +1,6 @@
 # PROJECT.md — Flota Vehicular HRNO
 
-> Borrador v0.3 · 11 sep 2026 · ESE Hospital Regional Noroccidental
+> Borrador v0.4 · 11 sep 2026 · ESE Hospital Regional Noroccidental
 > Responsable: Danilo Torrado Blanco — Coordinador de Salud Pública
 > Estado: **arquitectura, roles y modelo de datos definidos.** Pendientes las preguntas de §11
 
@@ -64,6 +64,10 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D8 | Planilla de tiempos | **No existe formato oficial**: la aplicación lo genera, imprimible y con espacio de firma |
 | D9 | Roles | Tres: **principal**, **coordinación** y **conductor** (matriz en §5.12) |
 | D10 | Itinerario | Módulo de primer nivel, reemplaza `CONDUCTORES_EBS.xlsx`, con historial visible de cambios |
+| D11 | Día disponible | **Se paga igual** que un día con desplazamiento (`dia_disponible_es_pagable = 1`) |
+| D12 | Destinos | **Catálogo vivo**: el municipio se registra al adjudicar el desplazamiento y el destino queda guardado para autocompletar |
+| D13 | Territorio del conductor | Su municipio es **base por defecto, nunca restricción**: puede desplazarse a cualquier municipio |
+| D14 | San Pablo | Se muestra con **su propio nombre**, con `municipio_padre_id` → Teorama. Catálogo editable |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -164,7 +168,30 @@ pantalla del itinerario**, no en un log de sistema. `itinerario_cambios` guarda 
 modificada el campo, el valor anterior, el nuevo, quién lo hizo, cuándo y el motivo — y se muestra
 como un historial desplegable en la propia celda.
 
-### 4.3 Datos personales fuera del repositorio
+### 4.3 Catálogos vivos, no listas cerradas (D12, D13, D14)
+
+Tres reglas que salieron de cómo opera realmente el territorio:
+
+**El destino se crea al adjudicar, no antes.** Coordinación escribe el destino al asignar el
+desplazamiento y elige su municipio en ese momento. Si ya se usó antes, aparece por autocompletado
+ordenado por frecuencia (`veces_usado`, `ultimo_uso`); si es nuevo, se crea sobre la marcha. Los
+17 destinos del archivo actual entran solo como semilla de ese autocompletado, con el municipio
+sin asignar.
+
+**Un destino usado nunca se borra.** Solo se desactiva (`activo = 0`). Si se eliminara, los
+itinerarios y trayectos históricos que lo referencian quedarían apuntando al vacío y la
+liquidación de meses anteriores dejaría de cuadrar.
+
+**El municipio del conductor no restringe nada.** `personas.municipio_id` es únicamente el valor
+que se propone por defecto al programar. Un conductor de Ábrego puede ir a El Carmen sin que el
+sistema se lo impida ni lo marque como anomalía. Por eso `LA SIERRA` es un solo lugar aunque lo
+atiendan conductores de tres bases distintas.
+
+**San Pablo** se muestra con su propio nombre, como se usa en la práctica, y queda trazada su
+pertenencia real a Teorama en `municipio_padre_id`. Municipios y destinos se editan desde la
+pantalla de administración sin tocar código.
+
+### 4.4 Datos personales fuera del repositorio
 
 El archivo `CONDUCTORES_EBS.xlsx` trae nombres, cédulas, teléfonos y placas. **Nada de eso se
 versiona en git.** Son datos personales bajo la Ley 1581 de 2012 y, en el contexto de Misión
@@ -194,6 +221,12 @@ PROPIEDAD (propio/contratista) · CONTRATISTA · VALOR DÍA · TIPO VEHÍCULO
 La misma vista de matriz que ya se usa —vehículo/conductor en las filas, días en las columnas—
 pero con lo que el Excel no da:
 
+- **Adjudicación del desplazamiento**: al asignar un día, coordinación elige vehículo,
+  conductor, tipo de jornada, **municipio y destino**. El destino se busca por autocompletado
+  entre los ya usados, o se crea en el momento indicando su municipio (D12). No hay que
+  preconfigurar un catálogo completo antes de empezar a usar la herramienta.
+- **Sin restricción por territorio**: cualquier conductor puede adjudicarse a cualquier
+  municipio (D13). El municipio de su ficha solo precarga el formulario.
 - **Celda enriquecida**: cada día no es texto libre sino `tipo_jornada` + `destino`.
   Del archivo actual se deducen seis tipos:
 
@@ -331,9 +364,15 @@ De ahí sale la tabla que interesa para el pago:
 |---------|--------|
 | Días programados | Itinerario |
 | Días ejecutados | Trayectos cerrados |
-| Días pagables | Regla configurable: si `dia_disponible_es_pagable = 1`, los días en base cuentan |
+| Días pagables | **Un día `DISPONIBLE` en base se paga igual que uno con desplazamiento** (D11) |
 | Valor día | `vehiculos.valor_dia` |
 | Total | Días pagables × valor día |
+
+Que el día disponible se pague igual tiene una consecuencia de diseño que conviene tener
+presente: el itinerario, no el GPS, es lo que determina si un día cuenta. Un vehículo en base
+sin marcar salida igual genera día pagable siempre que estuviera programado como `disponible`.
+Por eso el dashboard separa **días pagables** de **días con desplazamiento efectivo**: son dos
+números distintos y ambos importan, uno para pagar y otro para saber quién está trabajando más.
 
 Los ajustes manuales quedan marcados (`ajuste_manual`, `motivo_ajuste`, `ajustado_por`): un día
 pagado sin respaldo de ejecución tiene que ser una decisión visible y firmada, no un número
@@ -491,14 +530,14 @@ De `CONDUCTORES_EBS.xlsx` (programación del 10 al 22 de septiembre):
 - Celdas vacías = días sin programación, que es justamente lo que el contador debe distinguir de
   un día programado y no ejecutado.
 
-Inconsistencias detectadas que conviene resolver antes de la carga:
+Inconsistencias detectadas y ya resueltas:
 
-| Hallazgo | Pregunta |
-|----------|----------|
-| `SAN PABLO` figura como municipio, pero es corregimiento de Teorama | P1 |
-| El municipio de la fila es la base del conductor, no el del destino | P2 |
-| `LA SIERRA` la atienden conductores de tres municipios distintos | P3 |
-| `CAMPOR ALEGRE` parece error de digitación de `CAMPO ALEGRE` | P4 |
+| Hallazgo | Resolución |
+|----------|-----------|
+| `SAN PABLO` figura como municipio, pero es corregimiento de Teorama | Se usa con su nombre propio, con pertenencia trazada a Teorama (D14) |
+| El municipio de la fila es la base del conductor, no el del destino | El municipio del destino se registra al adjudicar (D12) |
+| `LA SIERRA` la atienden conductores de tres municipios distintos | Es un solo lugar; el municipio base no restringe (D13) |
+| `CAMPOR ALEGRE` parece error de digitación | Normalizado a `CAMPO ALEGRE`, editable desde administración |
 
 ---
 

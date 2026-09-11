@@ -16,26 +16,48 @@ PRAGMA foreign_keys = ON;
 -- 1. CATALOGOS
 -- ---------------------------------------------------------------------------
 
+-- Editable en pantalla por el rol principal: agregar, renombrar o desactivar.
+-- municipio_padre_id permite registrar un corregimiento que en la practica se
+-- maneja como municipio propio (caso SAN PABLO, corregimiento de TEORAMA):
+-- se muestra con su propio nombre pero queda trazada su pertenencia real.
 CREATE TABLE cat_municipios (
-  id            INTEGER PRIMARY KEY,
-  nombre        TEXT NOT NULL UNIQUE,
-  codigo_dane   TEXT,
-  es_base       INTEGER NOT NULL DEFAULT 0,   -- 1 si desde alli opera la flota
-  activo        INTEGER NOT NULL DEFAULT 1
+  id                 INTEGER PRIMARY KEY,
+  nombre             TEXT NOT NULL UNIQUE,
+  codigo_dane        TEXT,
+  municipio_padre_id INTEGER REFERENCES cat_municipios(id),
+  es_base            INTEGER NOT NULL DEFAULT 0,  -- 1 si desde alli opera la flota
+  activo             INTEGER NOT NULL DEFAULT 1,
+  creado_en          TEXT,
+  actualizado_por    INTEGER,
+  actualizado_en     TEXT
 );
 
+-- Catalogo VIVO, no cerrado. El municipio del destino se registra en el momento
+-- de adjudicar el desplazamiento; a partir de ahi el destino queda guardado y se
+-- sugiere por autocompletado en las siguientes adjudicaciones.
+--
+-- Un destino NUNCA se borra si ya fue usado: solo se desactiva (activo = 0), para
+-- no romper los itinerarios y trayectos historicos que lo referencian.
+--
+-- Los conductores pueden ir a cualquier municipio: el municipio base de la
+-- persona es solo un valor por defecto, jamas una restriccion.
 CREATE TABLE cat_destinos (
   id            INTEGER PRIMARY KEY,
-  municipio_id  INTEGER REFERENCES cat_municipios(id),
+  municipio_id  INTEGER REFERENCES cat_municipios(id),  -- se fija al primer uso
   nombre        TEXT NOT NULL,
   tipo          TEXT NOT NULL DEFAULT 'vereda',
                 -- vereda | corregimiento | ips | puesto_salud | cabecera |
                 -- ciudad | otro
   lat           REAL,
   lon           REAL,
+  veces_usado   INTEGER NOT NULL DEFAULT 0,   -- alimenta el orden del autocompletado
+  ultimo_uso    TEXT,
   activo        INTEGER NOT NULL DEFAULT 1,
+  creado_por    INTEGER,
+  creado_en     TEXT,
   UNIQUE (municipio_id, nombre)
 );
+CREATE INDEX idx_dest_uso ON cat_destinos(activo, veces_usado DESC);
 
 CREATE TABLE cat_ips (
   id            INTEGER PRIMARY KEY,
@@ -61,7 +83,8 @@ CREATE TABLE personas (
   correo        TEXT,
   cargo         TEXT DEFAULT 'CONDUCTOR',
   vinculacion   TEXT,                         -- planta | contrato | ops | tercero
-  municipio_id  INTEGER REFERENCES cat_municipios(id),
+  municipio_id  INTEGER REFERENCES cat_municipios(id),  -- base por defecto,
+                -- NO restringe: un conductor puede desplazarse a cualquier municipio
   territorio    TEXT,
   foto_url      TEXT,
   es_conductor  INTEGER NOT NULL DEFAULT 0,

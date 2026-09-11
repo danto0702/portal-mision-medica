@@ -50,9 +50,17 @@ const noEncontrado = m => new ErrorApi(404, m || 'No encontrado');
 
 // ──────────────────────────────────────────────────────────────── claves ────
 
-/** PBKDF2-SHA256. Formato almacenado: pbkdf2$<iter>$<salt b64>$<hash b64> */
+/**
+ * PBKDF2-SHA256. Formato almacenado: pbkdf2$<iter>$<salt b64>$<hash b64>
+ *
+ * El runtime de Workers acota el costo de PBKDF2, así que se usa un número de
+ * iteraciones conservador. Como el número queda escrito en el propio hash,
+ * verificarClave sigue aceptando claves creadas con otro valor.
+ */
+const ITERACIONES = 100000;
+
 async function hashClave(clave, saltBytes, iteraciones) {
-  const iter = iteraciones || 120000;
+  const iter = iteraciones || ITERACIONES;
   const salt = saltBytes || crypto.getRandomValues(new Uint8Array(16));
   const material = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(clave), 'PBKDF2', false, ['deriveBits']);

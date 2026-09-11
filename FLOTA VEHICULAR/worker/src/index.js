@@ -33,6 +33,12 @@ export default {
                   200, cabecerasCors);
     }
 
+    // Diagnóstico: prueba cada pieza por separado y dice cuál falla.
+    // No expone secretos, solo si están definidos.
+    if (url.pathname === '/api/diag') {
+      return diagnostico(env, cabecerasCors);
+    }
+
     // Creación del primer usuario principal. Solo funciona si la tabla de
     // usuarios está vacía y quien llama conoce el secreto CLAVE_ADMIN_INICIAL,
     // que vive fuera del repositorio. Después de eso queda inerte para siempre.
@@ -84,7 +90,9 @@ export default {
                     400, cabecerasCors);
       }
       console.error('Error no controlado:', m);
-      return json({ error: 'Error interno del servidor' }, 500, cabecerasCors);
+      // Se incluye el mensaje: es una herramienta institucional interna y sin
+      // él cada fallo cuesta un viaje de ida y vuelta para diagnosticarlo.
+      return json({ error: 'Error interno del servidor', detalle: m }, 500, cabecerasCors);
     }
   },
 };
@@ -128,4 +136,43 @@ async function instalar(request, env, cabeceras) {
     id: r.meta.last_row_id,
     nota: 'Debe cambiar la clave en el primer ingreso',
   }, 200, cabeceras);
+}
+
+/**
+ * Reporta el estado de cada dependencia del Worker: el enlace con la base, una
+ * consulta real, los secretos definidos (solo si existen, nunca su valor) y si
+ * el runtime acepta PBKDF2 con distintos números de iteraciones.
+ */
+async function diagnostico(env, cabeceras) {
+  const r = {
+    ts: ahora(),
+    enlace_db: !!env.DB,
+    origenes_permitidos: env.ORIGENES_PERMITIDOS || null,
+    horas_sesion: env.HORAS_SESION || null,
+    clave_instalacion_definida: !!env.CLAVE_ADMIN_INICIAL,
+  };
+
+  if (env.DB) {
+    try {
+      const f = await env.DB.prepare('SELECT COUNT(*) AS n FROM usuarios').first();
+      r.consulta_db = 'ok';
+      r.usuarios_registrados = f.n;
+    } catch (e) {
+      r.consulta_db = 'FALLA: ' + (e && e.message || e);
+    }
+  } else {
+    r.consulta_db = 'FALLA: no hay enlace llamado DB';
+  }
+
+  r.pbkdf2 = {};
+  for (const iter of [1000, 50000, 100000, 120000, 250000]) {
+    try {
+      await hashClave('prueba', new Uint8Array(16), iter);
+      r.pbkdf2[iter] = 'ok';
+    } catch (e) {
+      r.pbkdf2[iter] = 'FALLA: ' + (e && e.message || e);
+    }
+  }
+
+  return json(r, 200, cabeceras);
 }

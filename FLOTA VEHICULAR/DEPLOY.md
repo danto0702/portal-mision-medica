@@ -132,6 +132,25 @@ npx wrangler d1 execute flota-hrno --remote --file seed_catalogos.sql
 
 ---
 
+## Diagnóstico
+
+`GET /api/diag` informa, sin exponer ningún secreto, si existe el enlace `DB`,
+si una consulta real funciona, qué variables están definidas y qué números de
+iteraciones acepta PBKDF2 en el runtime. Es el primer sitio donde mirar cuando
+la aplicación responde 500.
+
+### Límites del runtime que no aparecen en las pruebas locales
+
+| Límite | Detalle |
+|--------|---------|
+| **PBKDF2: máximo 100.000 iteraciones** | Workers responde `Pbkdf2 failed: iteration counts above 100000 are not supported`. Node no tiene ese tope, así que la suite pasa igual y el fallo solo sale en producción. Ver `ITERACIONES` en `src/lib.js`. |
+
+Las variables de entorno se leen tal como se pegaron en el panel: un espacio o
+un tabulador de más queda guardado. `Number()` los ignora, pero conviene
+revisarlos en `/api/diag` si algo no cuadra.
+
+---
+
 ## Carga de conductores y vehículos
 
 Los datos personales **no están en el repositorio** y no deben agregarse

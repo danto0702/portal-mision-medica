@@ -114,9 +114,13 @@ const noEncontrado = m => new ErrorApi(404, m || 'No encontrado');
 /**
  * PBKDF2-SHA256. Formato almacenado: pbkdf2$<iter>$<salt b64>$<hash b64>
  *
- * El runtime de Workers acota el costo de PBKDF2, así que se usa un número de
- * iteraciones conservador. Como el número queda escrito en el propio hash,
- * verificarClave sigue aceptando claves creadas con otro valor.
+ * NO SUBIR DE 100000. El runtime de Workers lo rechaza con
+ *   "Pbkdf2 failed: iteration counts above 100000 are not supported"
+ * y el error solo aparece en producción: en Node no existe ese tope, así que
+ * las pruebas pasan igual. Verificado contra el Worker el 11 sep 2026.
+ *
+ * El número queda escrito dentro del propio hash, de modo que verificarClave
+ * sigue aceptando claves creadas con otro valor.
  */
 const ITERACIONES = 100000;
 

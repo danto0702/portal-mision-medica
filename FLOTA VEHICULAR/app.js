@@ -666,6 +666,8 @@ async function modalItinerario(id, vehiculoId, fecha) {
   const it = id ? itinDatos.find(x => x.id === id) : null;
   const conductores = personas.filter(p => p.es_conductor);
   const veh = vehiculos.find(v => v.id === vehiculoId);
+  // En una programación nueva se propone el conductor predeterminado del vehículo.
+  const condPropuesto = it ? it.conductor_id : (veh ? veh.conductor_id : null);
 
   abrirModal(it ? 'Modificar programación' : 'Adjudicar desplazamiento', `
     <div class="nota" style="margin-bottom:1rem">
@@ -679,8 +681,10 @@ async function modalItinerario(id, vehiculoId, fecha) {
       </select></div>
     <div class="campo"><label class="lb">Conductor</label>
       <select class="inp" id="it-cond"><option value="">— Sin asignar —</option>
-        ${conductores.map(p => `<option value="${p.id}" ${it && it.conductor_id == p.id ? 'selected' : ''}>${esc(p.nombres)} ${esc(p.apellidos || '')}</option>`).join('')}
-      </select></div>
+        ${conductores.map(p => `<option value="${p.id}" ${condPropuesto == p.id ? 'selected' : ''}>${esc(p.nombres)} ${esc(p.apellidos || '')}</option>`).join('')}
+      </select>
+      ${!it && veh && veh.conductor_id ? `<p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 0">
+        Propuesto: conductor predeterminado de ${esc(veh.placa)}.</p>` : ''}</div>
     <div id="it-destino-bloque">
       <div class="campo"><label class="lb">Municipio</label>
         <select class="inp" id="it-mun"><option value="">— Seleccione —</option>
@@ -1102,7 +1106,11 @@ async function cerrarEvento(id) {
 
 // ── Vehículos ────────────────────────────────────────────────────────────────
 async function verVehiculos() {
-  vehiculos = await api('/api/vehiculos?todos=1');
+  // Las personas hacen falta para el selector de conductor predeterminado.
+  [vehiculos, personas] = await Promise.all([
+    api('/api/vehiculos?todos=1'),
+    api('/api/personas'),
+  ]);
   $('#main').innerHTML = `
     <div class="cab">
       <div><h1>Vehículos</h1><p>${vehiculos.length} registrado(s)</p></div>
@@ -1132,6 +1140,7 @@ async function verVehiculos() {
 
 function modalVehiculo(id) {
   const v = id ? vehiculos.find(x => x.id === id) : null;
+  const conductores = personas.filter(p => p.es_conductor);
   const sel = (val, opciones) => opciones.map(o =>
     `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('');
 
@@ -1158,7 +1167,24 @@ function modalVehiculo(id) {
         <input class="inp" id="v-valor" type="number" value="${v?.valor_dia || ''}" placeholder="Ej: 180000"></div>
     </div>
     <div class="campo" id="v-contr-campo" style="display:${v?.propiedad === 'contratista' ? '' : 'none'}">
-      <label class="lb">Contratista</label><input class="inp" id="v-contr" value="${esc(v?.contratista || '')}"></div>
+      <label class="lb">Contratista</label>
+      <input class="inp" id="v-contr" list="lista-contratistas" value="${esc(v?.contratista || '')}"
+        placeholder="Escoja una persona o escriba la razón social">
+      <datalist id="lista-contratistas">
+        ${personas.map(p => `<option value="${esc((p.nombres + ' ' + (p.apellidos || '')).trim())}">`).join('')}
+      </datalist>
+      <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 0">
+        Se despliegan las personas registradas. Si el contrato está a nombre de una
+        empresa, escriba la razón social.</p></div>
+    <div class="campo">
+      <label class="lb">Conductor predeterminado</label>
+      <select class="inp" id="v-conductor">
+        <option value="">— Sin asignar —</option>
+        ${conductores.map(p => `<option value="${p.id}" ${v?.conductor_id == p.id ? 'selected' : ''}>${esc(p.nombres)} ${esc(p.apellidos || '')}</option>`).join('')}
+      </select>
+      <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 0">
+        Se propone solo al programar el itinerario; se puede cambiar cualquier día.
+        ${conductores.length ? '' : 'Primero registre personas marcadas como conductor.'}</p></div>
     <div class="grid g2" style="gap:0 .75rem">
       <div class="campo"><label class="lb">Estado</label>
         <select class="inp" id="v-estado">${sel(v?.estado || 'activo', ['activo', 'mantenimiento', 'taller', 'fuera_servicio', 'reserva'])}</select></div>
@@ -1182,6 +1208,7 @@ async function guardarVehiculo(id) {
     valor_dia: $('#v-valor').value ? Number($('#v-valor').value) : null,
     estado: $('#v-estado').value,
     km_actual: $('#v-km').value ? Number($('#v-km').value) : null,
+    conductor_id: $('#v-conductor').value ? Number($('#v-conductor').value) : null,
   };
   if (!id) {
     c.placa = $('#v-placa').value.trim().toUpperCase();

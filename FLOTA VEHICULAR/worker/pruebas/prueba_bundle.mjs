@@ -129,6 +129,49 @@ verificar('rechaza placa duplicada', r.estado === 409, r.datos);
 r = await api('POST', '/api/vehiculos', { placa: 'ZZZ-999' }, tCoord);
 verificar('coordinación NO crea vehículos', r.estado === 403, r.datos);
 
+console.log('\n── Conductor predeterminado ──────────────────────────────────');
+r = await api('GET', '/api/vehiculos', null, tokenPrincipal);
+verificar('un vehículo nuevo no trae conductor asignado',
+  r.datos[0] && r.datos[0].conductor_id == null, r.datos[0] && r.datos[0].conductor_id);
+
+r = await api('PUT', `/api/vehiculos/${vehiculo}`, { conductor_id: personaConductor }, tokenPrincipal);
+verificar('el principal asigna el conductor predeterminado', r.estado === 200, r.datos);
+
+r = await api('GET', '/api/vehiculos', null, tokenPrincipal);
+verificar('el vehículo devuelve su conductor', r.datos[0].conductor_id === personaConductor, r.datos[0]);
+verificar('y también su nombre para mostrarlo',
+  (r.datos[0].conductor_actual || '').includes('JEISON'), r.datos[0].conductor_actual);
+
+// Reasignar a otra persona debe cerrar la anterior, no borrarla
+r = await api('POST', '/api/personas', { nombres: 'RELEVO', es_conductor: true }, tokenPrincipal);
+const relevo = r.datos.id;
+await api('PUT', `/api/vehiculos/${vehiculo}`, { conductor_id: relevo }, tokenPrincipal);
+r = await api('GET', '/api/vehiculos', null, tokenPrincipal);
+verificar('al reasignar, queda el conductor nuevo', r.datos[0].conductor_id === relevo, r.datos[0]);
+
+r = await api('GET', '/api/auditoria', null, tokenPrincipal);
+verificar('el cambio de conductor queda en auditoría',
+  r.datos.some(a => a.entidad === 'asignaciones'), r.datos.slice(0, 3));
+
+// Dejar sin conductor
+await api('PUT', `/api/vehiculos/${vehiculo}`, { conductor_id: null }, tokenPrincipal);
+r = await api('GET', '/api/vehiculos', null, tokenPrincipal);
+verificar('se puede dejar el vehículo sin conductor', r.datos[0].conductor_id == null, r.datos[0]);
+
+// Restaurar para las pruebas siguientes
+await api('PUT', `/api/vehiculos/${vehiculo}`, { conductor_id: personaConductor }, tokenPrincipal);
+
+r = await api('PUT', `/api/vehiculos/${vehiculo}`, { conductor_id: relevo }, tCoord);
+verificar('coordinación NO cambia el conductor del vehículo', r.estado === 403, r.datos);
+
+r = await api('POST', '/api/vehiculos',
+  { placa: 'ABC-123', conductor_id: personaConductor }, tokenPrincipal);
+const veh2 = r.datos.id;
+r = await api('GET', '/api/vehiculos', null, tokenPrincipal);
+verificar('también se puede asignar al crear el vehículo',
+  r.datos.find(v => v.id === veh2)?.conductor_id === personaConductor,
+  r.datos.find(v => v.id === veh2));
+
 console.log('\n── Itinerario y destinos vivos ───────────────────────────────');
 r = await api('POST', '/api/itinerario', {
   fecha: hoy, vehiculo_id: vehiculo, conductor_id: personaConductor,
@@ -322,8 +365,10 @@ verificar('estima el valor con la tarifa por día',
   { valor: v && v.valor_estimado, dias: v && v.dias_pagables });
 verificar('cuenta el origen de las marcas',
   r.datos.origen_marcas.some(o => o.origen === 'offline_sincronizado'), r.datos.origen_marcas);
+// Se busca por contenido, no por posición: el orden cambia al agregar vehículos.
 verificar('el checklist reporta faltantes por vehículo',
-  r.datos.checklist[0] && r.datos.checklist[0].faltantes > 0, r.datos.checklist[0]);
+  r.datos.checklist.some(c => c.faltantes > 0),
+  r.datos.checklist.map(c => `${c.placa}:${c.faltantes}`));
 
 r = await api('GET', '/api/dashboard', null, tCond);
 verificar('el conductor NO ve el dashboard', r.estado === 403, r.datos);

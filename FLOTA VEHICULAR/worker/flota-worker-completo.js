@@ -474,6 +474,39 @@ ruta('DELETE', '/api/catalogos/destinos/:id', async ({ db, sesion, params }) => 
   return { ok: true, nota: 'Destino desactivado, no eliminado' };
 }, ['principal']);
 
+/**
+ * Fija el conductor predeterminado de un vehículo.
+ *
+ * No se reescribe la asignación anterior: se le pone fecha de cierre y se abre
+ * una nueva. Así queda la historia de quién manejó qué y desde cuándo, que es
+ * lo que permite explicar un trayecto de hace tres meses.
+ *
+ * Pasar personaId nulo deja el vehículo sin conductor asignado.
+ */
+async function asignarConductor(db, vehiculoId, personaId, sesion) {
+  const actual = await db.prepare(`
+    SELECT id, persona_id FROM asignaciones
+     WHERE vehiculo_id = ? AND rol = 'conductor' AND hasta IS NULL
+     ORDER BY desde DESC, id DESC LIMIT 1`).bind(vehiculoId).first();
+
+  if (actual && Number(actual.persona_id) === Number(personaId)) return;   // sin cambio
+
+  const hoy = hoyISO();
+  if (actual) {
+    await db.prepare('UPDATE asignaciones SET hasta = ? WHERE id = ?')
+      .bind(hoy, actual.id).run();
+  }
+  if (personaId) {
+    await db.prepare(`
+      INSERT INTO asignaciones (vehiculo_id, persona_id, rol, desde, creado_por, creado_en)
+      VALUES (?,?, 'conductor', ?,?,?)`)
+      .bind(vehiculoId, personaId, hoy, sesion.id, ahora()).run();
+  }
+  await auditar(db, sesion, 'editar', 'asignaciones', vehiculoId,
+                { conductor_anterior: actual ? actual.persona_id : null },
+                { conductor_nuevo: personaId || null });
+}
+
 // ── Vehículos ───────────────────────────────────────────────────────────────
 
 ruta('GET', '/api/vehiculos', async ({ db, url }) => {
@@ -486,7 +519,10 @@ ruta('GET', '/api/vehiculos', async ({ db, url }) => {
               FROM asignaciones a JOIN personas p ON p.id = a.persona_id
              WHERE a.vehiculo_id = v.id AND a.rol = 'conductor'
                AND (a.hasta IS NULL OR a.hasta >= date('now'))
-             ORDER BY a.desde DESC LIMIT 1) AS conductor_actual
+             ORDER BY a.desde DESC, a.id DESC LIMIT 1) AS conductor_actual,
+           (SELECT a.persona_id FROM asignaciones a
+             WHERE a.vehiculo_id = v.id AND a.rol = 'conductor' AND a.hasta IS NULL
+             ORDER BY a.desde DESC, a.id DESC LIMIT 1) AS conductor_id
       FROM vehiculos v
       LEFT JOIN cat_municipios m ON m.id = v.municipio_base_id
      ${todos ? '' : 'WHERE v.activo = 1'}
@@ -509,6 +545,9 @@ ruta('POST', '/api/vehiculos', async ({ db, sesion, cuerpo }) => {
           cuerpo.propiedad || 'propio', cuerpo.contratista || null,
           cuerpo.valor_dia || null, cuerpo.estado || 'activo',
           cuerpo.km_actual || null, crypto.randomUUID(), ahora()).run();
+  if (cuerpo.conductor_id) {
+    await asignarConductor(db, r.meta.last_row_id, cuerpo.conductor_id, sesion);
+  }
   await auditar(db, sesion, 'crear', 'vehiculos', r.meta.last_row_id, null, cuerpo);
   return { id: r.meta.last_row_id };
 }, ['principal']);
@@ -523,9 +562,13 @@ ruta('PUT', '/api/vehiculos/:id', async ({ db, sesion, params, cuerpo }) => {
   for (const c of campos) {
     if (cuerpo[c] !== undefined) { set.push(`${c} = ?`); valores.push(cuerpo[c]); }
   }
-  if (!set.length) return { ok: true, sin_cambios: true };
-  valores.push(params.id);
-  await db.prepare(`UPDATE vehiculos SET ${set.join(', ')} WHERE id = ?`).bind(...valores).run();
+  if (set.length) {
+    valores.push(params.id);
+    await db.prepare(`UPDATE vehiculos SET ${set.join(', ')} WHERE id = ?`).bind(...valores).run();
+  }
+  if (cuerpo.conductor_id !== undefined) {
+    await asignarConductor(db, Number(params.id), cuerpo.conductor_id, sesion);
+  }
   await auditar(db, sesion, 'editar', 'vehiculos', params.id, antes, cuerpo);
   return { ok: true };
 }, ['principal']);

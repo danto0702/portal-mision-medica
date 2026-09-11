@@ -1,0 +1,582 @@
+# PROJECT.md — Flota Vehicular HRNO
+
+> Borrador v0.4 · 11 sep 2026 · ESE Hospital Regional Noroccidental
+> Responsable: Danilo Torrado Blanco — Coordinador de Salud Pública
+> Estado: **arquitectura, roles y modelo de datos definidos.** Pendientes las preguntas de §11
+
+---
+
+## 1. Qué es
+
+Aplicación **independiente** del Portal de Salud Pública para administrar la operación de los
+vehículos del HRNO que trabajan bajo la figura de **Misión Médica** (protegidos por el DIH y la
+Resolución 4481 de 2012).
+
+Sustituye la matriz de Excel que hoy se usa para programar conductores (`CONDUCTORES_EBS.xlsx`)
+por un **itinerario digital** con historial de cambios, y le agrega la capa que el Excel no puede
+dar: la **ejecución real marcada por el conductor desde el celular con GPS**.
+
+Cubre inventario de vehículos y conductores, itinerario semanal, trayectos con hora y coordenadas
+de salida y llegada, **contabilizador de días de operación para liquidar el pago por día**,
+bitácora de eventos, **checklist de distintivos y elementos**, generación e impresión de la
+**planilla de tiempos para firma**, validación del soporte firmado y un **dashboard interactivo**
+para comparar el desempeño entre vehículos.
+
+El eje conceptual de toda la aplicación es la relación entre dos capas:
+
+| Capa | Quién la produce | Para qué sirve |
+|------|------------------|----------------|
+| **Programado** — el itinerario | Coordinación | Planear el territorio y saber quién debía ir a dónde |
+| **Ejecutado** — los trayectos | El conductor, en vivo, con GPS | Probar qué pasó realmente |
+
+El contador de días, la planilla firmada y la liquidación salen de **contrastar ambas capas**.
+Sin esa comparación la herramienta sería un Excel más bonito.
+
+### Ubicación en el repositorio
+
+```
+portal-salud-publica-hrno/
+└── FLOTA VEHICULAR/
+    ├── index.html          ← aplicación (SPA, HTML/JS vanilla, PWA)
+    ├── sw.js               ← service worker (offline)
+    ├── manifest.json
+    ├── worker/             ← backend Cloudflare (Worker + esquema D1)
+    ├── PROJECT.md          ← este documento
+    ├── AI.md               ← detalle técnico
+    └── DESIGN.md           ← sistema visual
+```
+
+Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Publica.html`.
+
+---
+
+## 2. Decisiones tomadas
+
+| # | Decisión | Valor |
+|---|----------|-------|
+| D1 | Backend | **Cloudflare Workers + D1** (SQL en el borde, gratis, sin tarjeta) |
+| D2 | Relación con el módulo de Misión Médica | **Ninguna.** Aplicación autónoma, sin leer ni escribir tablas `mm_*`, sin Supabase |
+| D3 | Catálogos (municipios, IPS, personas) | **Propios y duplicados** dentro de esta aplicación |
+| D4 | Checklist | **5 distintivos por posición del vehículo + 4 elementos adicionales** (ver §5.4) |
+| D5 | Captura de tiempos | **El conductor marca en vivo desde el celular**, con hora del servidor y GPS |
+| D6 | Escala | **Sin límites fijos** de conductores, vehículos ni traslados por día |
+| D7 | Pago | **Por día de operación**, con campo `propiedad` = propio / contratista / comodato y tarifa por día |
+| D8 | Planilla de tiempos | **No existe formato oficial**: la aplicación lo genera, imprimible y con espacio de firma |
+| D9 | Roles | Tres: **principal**, **coordinación** y **conductor** (matriz en §5.12) |
+| D10 | Itinerario | Módulo de primer nivel, reemplaza `CONDUCTORES_EBS.xlsx`, con historial visible de cambios |
+| D11 | Día disponible | **Se paga igual** que un día con desplazamiento (`dia_disponible_es_pagable = 1`) |
+| D12 | Destinos | **Catálogo vivo**: el municipio se registra al adjudicar el desplazamiento y el destino queda guardado para autocompletar |
+| D13 | Territorio del conductor | Su municipio es **base por defecto, nunca restricción**: puede desplazarse a cualquier municipio |
+| D14 | San Pablo | Se muestra con **su propio nombre**, con `municipio_padre_id` → Teorama. Catálogo editable |
+
+Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
+No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
+
+Consecuencia de D2 y D3: lo único que se reutiliza del resto del repositorio es **código y
+patrones**, nunca datos: `libs/chart.umd.min.js`, `libs/jspdf.umd.min.js`, `libs/xlsx.full.min.js`,
+el patrón de service worker del Buscador CUPS y el estilo institucional del portal.
+
+Consecuencia de D6: ninguna pantalla asume un número fijo de filas. El itinerario es una tabla
+que crece, no una cuadrícula de 13 × 13 como el Excel actual; un vehículo puede registrar los
+trayectos que necesite en un mismo día.
+
+---
+
+## 3. Arquitectura
+
+```
+Navegador / celular (PWA, HTML + JS vanilla, GitHub Pages)
+   │
+   ├── IndexedDB  ──► cola offline de marcas de tiempo y checklists
+   │                   (se sincroniza automáticamente al recuperar señal)
+   │
+   ├── fetch JSON ──► Cloudflare Worker ──► D1 (SQLite)
+   │                        │                  datos operativos
+   │                        ├── autenticación por token + rol
+   │                        ├── hora del servidor para cada marca
+   │                        └── escritura en tabla de auditoría
+   │
+   └── subida de archivos ──► Apps Script "Flota HRNO" ──► Google Drive + Gmail
+                                (proyecto nuevo, independiente del MM V13)
+```
+
+**Por qué Cloudflare Workers + D1**
+
+1. SQL real: el ranking de vehículos, los promedios por etapa de tiempo y el contador de días
+   se calculan en el servidor con `GROUP BY`, no trayendo todo al navegador.
+2. Latencia de decenas de milisegundos (hay punto de presencia en Bogotá) — el conductor pulsa
+   "salí de base" y la marca queda registrada al instante.
+3. Capa gratuita sin tarjeta de crédito: ~100.000 peticiones/día en Workers, 5 GB en D1.
+   El volumen esperado está órdenes de magnitud por debajo.
+4. No hay proyecto que se pause por inactividad.
+
+**Por qué los archivos van a Drive y no a R2**: Cloudflare R2 exige registrar un medio de pago
+aunque la capa sea gratuita. Drive no, y además deja los soportes firmados donde el equipo
+administrativo ya sabe buscarlos para auditoría y para el trámite de pago.
+
+> Los límites de capa gratuita cambian con el tiempo. Verificar las cifras al crear la cuenta.
+
+---
+
+## 4. Modelo de datos
+
+El esquema completo y ejecutable está en **[`worker/schema.sql`](worker/schema.sql)** (440 líneas,
+SQLite/D1). Los catálogos no personales ya extraídos del archivo de conductores están en
+**[`worker/seed_catalogos.sql`](worker/seed_catalogos.sql)**. Resumen de los diez grupos:
+
+| Grupo | Tablas | Qué resuelve |
+|-------|--------|--------------|
+| Catálogos | `cat_municipios`, `cat_destinos`, `cat_ips` | Propios de esta app (D3) |
+| Personas | `personas`, `documentos_persona` | Conductores y tripulación, con vigencias |
+| Vehículos | `vehiculos`, `documentos_vehiculo`, `asignaciones` | Ficha, propiedad, tarifa por día, SOAT/RTM |
+| **Itinerario** | `itinerarios`, `itinerario_cambios` | La matriz del Excel + historial visible de quién cambió qué |
+| **Trayectos** | `trayectos` | Salida y llegada marcadas en vivo, con GPS |
+| Checklist | `checklists`, `checklist_items` | 5 distintivos + 4 elementos |
+| Planilla | `planillas` | Generación, impresión, firma, carga y validación |
+| Días y pago | `dias_operacion`, `liquidaciones` | Contador de días y liquidación mensual |
+| Eventos | `eventos` | Bitácora de novedades |
+| Logística | `mantenimientos`, `tanqueos` | Costos y disponibilidad |
+| Gobierno | `usuarios`, `sesiones`, `auditoria`, `parametros` | Tres roles, trazabilidad, configuración |
+
+### 4.1 Por qué `trayectos` tiene solo dos marcas
+
+El conductor marca **salida** y **llegada** (D5), no seis hitos. Un día puede tener varios
+trayectos: la ida a la vereda y el regreso a la base son dos registros, no uno con seis marcas.
+Es más simple de operar en un celular y refleja cómo funciona realmente la ruta.
+
+Cada marca guarda seis datos, no uno:
+
+```
+ts_salida          hora del SERVIDOR          ← la que vale
+ts_salida_disp     hora del celular           ← referencia forense
+origen_salida      en_linea | offline_sincronizado | digitado
+lat_salida         latitud
+lon_salida         longitud
+precision_salida   metros reportados por el GPS
+```
+
+La hora del servidor es lo que hace defendible el registro: si valiera la del teléfono, bastaría
+con cambiar la hora del dispositivo para alterar un soporte de pago. `precision_salida` importa
+porque en zona montañosa el GPS puede reportar 500 m de error; por encima del umbral configurado
+(`gps_precision_maxima_m`, por defecto 100 m) la marca se señala como dudosa en lugar de darla
+por buena en silencio.
+
+### 4.2 Por qué el itinerario tiene su propia tabla de cambios
+
+`auditoria` registra todo técnicamente, pero coordinación necesita ver el historial **en la
+pantalla del itinerario**, no en un log de sistema. `itinerario_cambios` guarda por cada celda
+modificada el campo, el valor anterior, el nuevo, quién lo hizo, cuándo y el motivo — y se muestra
+como un historial desplegable en la propia celda.
+
+### 4.3 Catálogos vivos, no listas cerradas (D12, D13, D14)
+
+Tres reglas que salieron de cómo opera realmente el territorio:
+
+**El destino se crea al adjudicar, no antes.** Coordinación escribe el destino al asignar el
+desplazamiento y elige su municipio en ese momento. Si ya se usó antes, aparece por autocompletado
+ordenado por frecuencia (`veces_usado`, `ultimo_uso`); si es nuevo, se crea sobre la marcha. Los
+17 destinos del archivo actual entran solo como semilla de ese autocompletado, con el municipio
+sin asignar.
+
+**Un destino usado nunca se borra.** Solo se desactiva (`activo = 0`). Si se eliminara, los
+itinerarios y trayectos históricos que lo referencian quedarían apuntando al vacío y la
+liquidación de meses anteriores dejaría de cuadrar.
+
+**El municipio del conductor no restringe nada.** `personas.municipio_id` es únicamente el valor
+que se propone por defecto al programar. Un conductor de Ábrego puede ir a El Carmen sin que el
+sistema se lo impida ni lo marque como anomalía. Por eso `LA SIERRA` es un solo lugar aunque lo
+atiendan conductores de tres bases distintas.
+
+**San Pablo** se muestra con su propio nombre, como se usa en la práctica, y queda trazada su
+pertenencia real a Teorama en `municipio_padre_id`. Municipios y destinos se editan desde la
+pantalla de administración sin tocar código.
+
+### 4.4 Datos personales fuera del repositorio
+
+El archivo `CONDUCTORES_EBS.xlsx` trae nombres, cédulas, teléfonos y placas. **Nada de eso se
+versiona en git.** Son datos personales bajo la Ley 1581 de 2012 y, en el contexto de Misión
+Médica, identifican a personas expuestas en zona de conflicto junto con el vehículo y la vereda a
+la que se dirigen. El repositorio es público y su propio README ya excluye los datos operativos
+por esta razón.
+
+Lo que sí quedó versionado es el catálogo no personal: 6 municipios y 17 destinos.
+Los 13 conductores y sus 13 vehículos se cargan desde la pantalla de administración, en la fase 1,
+con una plantilla de importación de estas columnas:
+
+```
+MUNICIPIO · TERRITORIO · NOMBRE · TIPO DOC · CÉDULA · TELÉFONO · PLACA ·
+PROPIEDAD (propio/contratista) · CONTRATISTA · VALOR DÍA · TIPO VEHÍCULO
+```
+
+> En el archivo actual **5 de los 13 conductores no tienen cédula ni teléfono registrados**.
+> Sin cédula no se puede crear su usuario ni firmar la planilla; conviene completarlos antes de
+> la carga inicial.
+
+---
+
+## 5. Módulos funcionales
+
+### 5.1 Itinerario (reemplaza `CONDUCTORES_EBS.xlsx`)
+
+La misma vista de matriz que ya se usa —vehículo/conductor en las filas, días en las columnas—
+pero con lo que el Excel no da:
+
+- **Adjudicación del desplazamiento**: al asignar un día, coordinación elige vehículo,
+  conductor, tipo de jornada, **municipio y destino**. El destino se busca por autocompletado
+  entre los ya usados, o se crea en el momento indicando su municipio (D12). No hay que
+  preconfigurar un catálogo completo antes de empezar a usar la herramienta.
+- **Sin restricción por territorio**: cualquier conductor puede adjudicarse a cualquier
+  municipio (D13). El municipio de su ficha solo precarga el formulario.
+- **Celda enriquecida**: cada día no es texto libre sino `tipo_jornada` + `destino`.
+  Del archivo actual se deducen seis tipos:
+
+  | Tipo | Ejemplo en el Excel | Significado |
+  |------|---------------------|-------------|
+  | `ebs` | `SANTA INÉS` | Salida rutinaria del Equipo Básico de Salud |
+  | `jornada` | `JORNADA ASERRÍO` | Jornada extramural programada |
+  | `vacunacion` | `VACUNACIÓN HONDURAS` | Jornada de vacunación (PAI) |
+  | `disponible` | `DISPONIBLE ABREGO` | En base, sin destino asignado |
+  | `traslado_ciudad` | `CÚCUTA` | Salida fuera del territorio |
+  | `administrativo` | `IPS SAN PABLO`, `PARQUE PRINCIPAL` | Apoyo o trámite |
+
+  Separar el tipo del lugar es lo que permite contar: hoy `DISPONIBLE ABREGO` y `SANTA INÉS` son
+  dos textos indistinguibles para una fórmula.
+
+- **Historial por celda** (§4.2): al abrir una celda modificada se ve quién la cambió, cuándo,
+  qué decía antes y por qué. Es el requisito explícito del rol de coordinación.
+- **Semáforo programado vs ejecutado**: la celda cambia de color cuando el conductor cerró el
+  trayecto de ese día. Un vistazo muestra qué se cumplió y qué no.
+- **Copiar semana anterior**, para no reprogramar desde cero cada lunes.
+- **Detección de choques**: un vehículo con dos destinos el mismo día, o un conductor asignado a
+  dos vehículos, se marca en rojo al guardar.
+- **Importar y exportar Excel**, para la transición desde el archivo actual y para quien prefiera
+  seguir trabajando en hoja de cálculo.
+
+### 5.2 Maestro de vehículos
+Ficha y hoja de vida, con **`propiedad` = propio / contratista / comodato** y `valor_dia` (D7),
+que es lo que alimenta la liquidación. Foto y **QR pegado en el parabrisas** que abre el checklist
+móvil de ese vehículo. Semáforo de vencimientos: verde (> 30 días), amarillo (≤ 30 días), rojo
+(vencido), configurable en `parametros`.
+
+### 5.3 Personas
+Conductores y tripulación en una sola tabla con banderas de rol. Vigencia de licencia por
+categoría, **curso de Misión Médica** (exigido por la Res. 4481), APH, exámenes ocupacionales y
+ARL, con el mismo semáforo.
+
+### 5.4 Trayectos: marcación en vivo con GPS (D5)
+
+La pantalla del conductor tiene dos botones grandes y nada más:
+
+```
+┌───────────────────────────────┐   ┌───────────────────────────────┐
+│      REGISTRAR SALIDA         │   │     REGISTRAR LLEGADA         │
+│  municipio · lugar · GPS      │   │  municipio · lugar · GPS      │
+└───────────────────────────────┘   └───────────────────────────────┘
+```
+
+Al pulsar: el municipio y el lugar vienen precargados desde el itinerario del día (editables si
+cambió el destino), el teléfono pide la ubicación, y el Worker sella la hora. Si no hay señal, la
+marca se guarda en IndexedDB y se sincroniza sola al recuperar cobertura, quedando etiquetada como
+`offline_sincronizado` para que el dashboard no la confunda con una marca en tiempo real.
+
+Si el conductor niega el permiso de ubicación, la marca se registra igual pero **sin coordenadas y
+señalada como tal** — es preferible a perder el registro, y queda visible en la validación.
+
+### 5.5 Checklist de distintivos y elementos (D4)
+
+Antes de salir y al regresar, sobre el trayecto concreto. Dos bloques:
+
+**Bloque A — Distintivos del vehículo (5 posiciones)**
+
+| # | Posición | Estados |
+|---|----------|---------|
+| 1 | Lateral izquierdo | bueno · deteriorado · ausente · obstruido |
+| 2 | Lateral derecho | bueno · deteriorado · ausente · obstruido |
+| 3 | Frontal | bueno · deteriorado · ausente · obstruido |
+| 4 | Trasero | bueno · deteriorado · ausente · obstruido |
+| 5 | Techo | bueno · deteriorado · ausente · obstruido |
+
+El estado **obstruido** es deliberado: un distintivo tapado por barro, equipaje o una lona no
+protege, y en términos de DIH equivale a no tenerlo. Cada posición admite foto de evidencia.
+
+**Bloque B — Elementos adicionales (4)**
+
+| # | Elemento | Estados | Cantidad |
+|---|----------|---------|----------|
+| 6 | Bandera | presente · deteriorado · ausente | 1 por vehículo |
+| 7 | Chaleco | presente · deteriorado · ausente | según n° de tripulantes |
+| 8 | Carnet | presente · ausente · vencido | 1 por tripulante |
+| 9 | Carta de presentación | presente · ausente · vencida | 1 por trayecto |
+
+El parámetro `checklist_bloquea_salida` decide si un faltante **bloquea** la salida o solo
+**advierte** y queda registrado (pendiente de definir, ver P8). Si bloquea, la excepción la
+autoriza el rol principal o coordinación con justificación escrita, que queda en auditoría.
+
+El checklist de regreso permite comparar antes y después y detectar qué distintivo se perdió o se
+dañó en ruta. Tres faltantes de la misma posición en un mes escalan como novedad de mantenimiento.
+
+### 5.6 Planilla de tiempos imprimible y firmable (D8)
+
+Como no existe un formato oficial, la aplicación lo define. Se genera con jsPDF, en tamaño carta y
+pensado para imprimirse:
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  ESE HOSPITAL REGIONAL NOROCCIDENTAL                    PLT-2026-045 │
+│  PLANILLA DE TIEMPOS DE OPERACIÓN — MISIÓN MÉDICA                    │
+│  Vehículo: ____  Placa: ____  Propiedad: ____  Conductor: __________ │
+│  Período: del __ al __ de ____________ de ____                       │
+├────┬──────────┬───────────┬────────┬───────────┬────────┬────────────┤
+│ Día│ Municipio│ Destino   │ Salida │ Llegada   │ Km     │ Observación│
+├────┼──────────┼───────────┼────────┼───────────┼────────┼────────────┤
+│ 10 │ ÁBREGO   │CAPITANLARGO│ 06:12 │ 08:40     │  47    │            │
+│ …  │          │           │        │           │        │            │
+├────┴──────────┴───────────┴────────┴───────────┴────────┴────────────┤
+│  TOTAL DÍAS OPERADOS: ____    TOTAL KM: ____                         │
+├──────────────────────────────────────────────────────────────────────┤
+│  _____________________        _____________________                  │
+│  Firma del conductor          Firma del coordinador                  │
+│  C.C.                         Cargo                                  │
+├──────────────────────────────────────────────────────────────────────┤
+│  Verificación: [QR]  ·  Generada el __/__/____ por ________          │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+Dos variantes del mismo documento:
+
+1. **Prellenada** con los datos que el sistema ya tiene, para imprimir, firmar y archivar.
+2. **En blanco**, con las filas vacías, para los días en que no hubo forma de registrar en el
+   celular y hay que llenarla a mano.
+
+Flujo: `generada → impresa → cargada → en revisión → validada / rechazada`. Al cargar el escaneo
+firmado, el sistema **compara los días contados por la app contra los días declarados en el papel**
+y marca la discrepancia. El QR del pie abre la verificación pública de esa planilla.
+
+### 5.7 Contador de días y liquidación (D7)
+
+Un registro por vehículo y día en `dias_operacion`, con seis estados: `operativo`, `disponible`,
+`jornada_especial`, `mantenimiento`, `fuera_servicio`, `no_programado`. El día se marca
+**ejecutado** si hubo al menos un trayecto cerrado, y **programado** si había itinerario.
+
+De ahí sale la tabla que interesa para el pago:
+
+| Métrica | Origen |
+|---------|--------|
+| Días programados | Itinerario |
+| Días ejecutados | Trayectos cerrados |
+| Días pagables | **Un día `DISPONIBLE` en base se paga igual que uno con desplazamiento** (D11) |
+| Valor día | `vehiculos.valor_dia` |
+| Total | Días pagables × valor día |
+
+Que el día disponible se pague igual tiene una consecuencia de diseño que conviene tener
+presente: el itinerario, no el GPS, es lo que determina si un día cuenta. Un vehículo en base
+sin marcar salida igual genera día pagable siempre que estuviera programado como `disponible`.
+Por eso el dashboard separa **días pagables** de **días con desplazamiento efectivo**: son dos
+números distintos y ambos importan, uno para pagar y otro para saber quién está trabajando más.
+
+Los ajustes manuales quedan marcados (`ajuste_manual`, `motivo_ajuste`, `ajustado_por`): un día
+pagado sin respaldo de ejecución tiene que ser una decisión visible y firmada, no un número
+editado en silencio. La liquidación mensual se cierra por vehículo y se cruza con la planilla
+firmada del período.
+
+### 5.8 Eventos y novedades
+El conductor reporta desde el celular: varada, accidente, retén, bloqueo de vía, derrumbe, orden
+público, negación de paso, retraso, cancelación, tanqueo o novedad de distintivo. Con gravedad,
+ubicación con GPS, descripción, acciones y adjunto. Los de gravedad alta o crítica notifican de
+inmediato al rol principal y a coordinación.
+
+### 5.9 Mantenimiento, combustible y costos
+Plan preventivo por kilometraje con alerta anticipada; órdenes correctivas cuyos días fuera de
+servicio alimentan la disponibilidad y descuentan días pagables; tanqueos con **rendimiento
+km/galón por vehículo** para detectar desviaciones; costo por trayecto, por kilómetro y por
+municipio.
+
+### 5.10 Dashboard interactivo
+
+Tarjetas: trayectos del período, días operados, kilómetros, % de cumplimiento del itinerario,
+% de checklists completos, % de planillas validadas, costo por kilómetro.
+
+Gráficas (Chart.js, ya disponible offline en el repositorio):
+
+- **Ranking de vehículos** por días operados, trayectos y kilómetros → responde directamente a
+  *qué vehículos están trabajando más que otros*.
+- **Programado vs ejecutado** por vehículo: la brecha entre lo que coordinación planeó y lo que
+  el GPS confirma. Es el gráfico más importante de la herramienta.
+- Serie de tiempo de trayectos por día y por semana.
+- Distribución por municipio, por destino y por tipo de jornada.
+- Mapa de calor vehículo × día, réplica visual del Excel actual pero calculada.
+- Duración promedio de trayecto por destino, para detectar rutas que se están subestimando.
+- Pareto de eventos por tipo.
+- Embudo de estados de las planillas.
+- Cumplimiento del checklist por vehículo, separando los 5 distintivos de los 4 elementos.
+- Semáforo consolidado de vencimientos de vehículos y personas.
+- Mapa de puntos de salida y llegada con Leaflet + OpenStreetMap (gratuito), aprovechando el GPS.
+
+Filtros cruzados por fecha, municipio, vehículo, conductor y tipo de jornada; comparador lado a
+lado de dos o más vehículos; exportación a Excel y PDF; informe mensual automático.
+
+### 5.11 Portal del conductor
+Vista móvil reducida: su itinerario de hoy y de la semana, los dos botones de marcación, el
+checklist, el botón de novedad y sus planillas. Nada más — sin menús de administración.
+
+### 5.12 Roles y permisos (D9)
+
+| Acción | Principal | Coordinación | Conductor |
+|--------|:---------:|:------------:|:---------:|
+| Ver toda la información | ✅ | ✅ | Solo lo suyo |
+| Descargar / exportar todo | ✅ | ✅ | No |
+| Ver y descargar el dashboard | ✅ | ✅ | No |
+| Modificar el itinerario | ✅ | ✅ *(con registro)* | No |
+| Crear, editar y desactivar usuarios | ✅ **exclusivo** | No | No |
+| Modificar parámetros del sistema | ✅ **exclusivo** | No | No |
+| Crear y editar vehículos y personas | ✅ | No | No |
+| Validar planillas y soportes | ✅ | ✅ | No |
+| Ajustar manualmente días pagables | ✅ | No | No |
+| Cerrar liquidaciones | ✅ | No | No |
+| Registrar salida y llegada con GPS | ✅ | ✅ *(a nombre de)* | ✅ |
+| Reportar novedades | ✅ | ✅ | ✅ |
+| Diligenciar el checklist | ✅ | ✅ | ✅ |
+| Corregir una marca ya registrada | ✅ | ✅ *(con registro)* | No |
+| Ver la auditoría | ✅ | Solo la del itinerario | No |
+
+Tres precisiones de diseño:
+
+1. **El rol principal es el único que crea usuarios.** No hay autorregistro ni recuperación de
+   contraseña por correo que pueda crear cuentas: el principal las crea y entrega una clave
+   temporal que el usuario cambia al primer ingreso (`debe_cambiar_clave`).
+2. **Coordinación puede modificar el itinerario pero no borrar el rastro.** Cada cambio escribe en
+   `itinerario_cambios` y ese historial es de solo lectura para todos, incluido el principal.
+3. **El conductor no puede corregir su propia marca.** Puede reportar el error como novedad, y la
+   corrección la hace coordinación quedando registrada. Si pudiera editarla, el soporte de pago
+   no probaría nada.
+
+Sesiones con token opaco en `sesiones`, expiración configurable y registro de último acceso.
+
+---
+
+## 6. Complementos sugeridos
+
+1. **Ficha pública por QR**: al escanear el QR del parabrisas, cualquier autoridad en un retén ve
+   una página con el vehículo, su habilitación y el estado de sus distintivos. Es un argumento de
+   protección en terreno, no solo un registro administrativo.
+2. **Modo retén**: botón que registra evento, hora y ubicación, y notifica al instante.
+3. **Cierre de mes asistido**: lista de lo que falta (planillas, firmas, kilometrajes) antes de
+   reportar.
+4. **Alerta de itinerario incumplido**: si un vehículo lleva N días programados sin marcar salida,
+   avisa a coordinación en vez de descubrirlo al liquidar.
+5. **Verificación de coherencia GPS**: si la llegada se marca a más de X km del destino
+   programado, se señala para revisión. No acusa a nadie, solo lo pone a la vista.
+6. **Exportación del consolidado de días** en el formato que exija el área financiera.
+
+---
+
+## 7. Marco normativo
+
+- **Resolución 4481 de 2012** — Misión Médica, uso del emblema y distintivos.
+- **Resolución 3100 de 2019** — habilitación de servicios, transporte asistencial TAB/TAM.
+- **Ley 1581 de 2012** y **Decreto 1377 de 2013** — datos personales. Aplica a tres conjuntos:
+  los datos de los conductores (§4.3), la **geolocalización**, que es dato personal y exige
+  informar al trabajador para qué se usa y por cuánto tiempo se conserva, y cualquier dato de
+  paciente, que la aplicación **no almacena**.
+- **Ley 594 de 2000** — gestión documental y retención de soportes.
+
+> Recomendación: incluir en la primera pantalla del conductor un aviso breve de tratamiento de
+> datos explicando que la ubicación se registra solo al marcar salida y llegada, nunca de forma
+> continua. Técnicamente la app no rastrea en segundo plano, y conviene que eso sea explícito.
+
+---
+
+## 8. Fases de implementación
+
+| Fase | Alcance | Resultado |
+|------|---------|-----------|
+| **0** | Cuenta Cloudflare, `schema.sql` en D1, Worker con CORS, sesiones, tres roles y auditoría | Backend vivo |
+| **1** | Catálogos, vehículos, personas, importación del Excel, usuarios | Inventario cargado |
+| **2** | **Itinerario** con historial de cambios, importar/exportar Excel | El Excel queda reemplazado |
+| **3** | **Marcación en vivo con GPS**, PWA offline, checklist de 9 ítems, novedades | Operación en terreno |
+| **4** | Contador de días, planilla imprimible, carga y validación del soporte firmado | Trazabilidad para pago |
+| **5** | Dashboard interactivo, programado vs ejecutado, exportaciones | Toma de decisiones |
+| **6** | Liquidación mensual, mantenimiento, combustible, QR público, notificaciones | Ciclo completo |
+
+Las fases 2 y 3 son las que dan valor visible de inmediato: la 2 le quita a coordinación el Excel
+compartido, y la 3 es la que ninguna hoja de cálculo puede hacer.
+
+---
+
+## 9. Riesgos
+
+| Riesgo | Mitigación |
+|--------|------------|
+| Conectividad intermitente en zona rural | PWA con cola offline desde la fase 3, no al final |
+| Conductores con baja alfabetización digital | Dos botones grandes, checklist de toques, sin texto libre obligatorio |
+| GPS impreciso en zona montañosa | Se guarda la precisión y se marca la lectura dudosa en vez de darla por buena |
+| Marcas de tiempo manipulables | Hora del servidor, campo `origen`, y el conductor no puede corregir su marca |
+| Resistencia al registro por percepción de vigilancia | Aviso explícito: la ubicación se toma solo en los dos momentos, nunca en continuo |
+| Datos personales en zona de conflicto | Fuera del repositorio, cargados en la app, acceso por rol (§4.3) |
+| Que el Excel siga usándose en paralelo | Importar y exportar en la fase 2, para que la migración no sea a ciegas |
+| Límites de capa gratuita | 13 vehículos generan del orden de cientos de peticiones diarias frente a un tope de ~100.000 |
+
+---
+
+## 10. Datos ya extraídos del archivo de conductores
+
+De `CONDUCTORES_EBS.xlsx` (programación del 10 al 22 de septiembre):
+
+- **13 conductores**, cada uno con **una placa asignada** — relación 1 a 1 conductor ↔ vehículo.
+- **4 municipios base**: Ábrego (4), El Carmen (3), Convención (3), San Pablo (3).
+- **17 destinos distintos**, ya cargados en `seed_catalogos.sql`.
+- **6 tipos de jornada** deducidos de los textos de las celdas (§5.1).
+- **5 de 13 conductores sin cédula ni teléfono** registrados.
+- Celdas vacías = días sin programación, que es justamente lo que el contador debe distinguir de
+  un día programado y no ejecutado.
+
+Inconsistencias detectadas y ya resueltas:
+
+| Hallazgo | Resolución |
+|----------|-----------|
+| `SAN PABLO` figura como municipio, pero es corregimiento de Teorama | Se usa con su nombre propio, con pertenencia trazada a Teorama (D14) |
+| El municipio de la fila es la base del conductor, no el del destino | El municipio del destino se registra al adjudicar (D12) |
+| `LA SIERRA` la atienden conductores de tres municipios distintos | Es un solo lugar; el municipio base no restringe (D13) |
+| `CAMPOR ALEGRE` parece error de digitación | Normalizado a `CAMPO ALEGRE`, editable desde administración |
+
+---
+
+## 11. Preguntas abiertas
+
+### Sobre el territorio
+1. **¿San Pablo se maneja como municipio propio o como corregimiento de Teorama?** El módulo de
+   Misión Médica usa Ábrego, Convención, El Carmen y Teorama; el archivo de conductores usa
+   Ábrego, Convención, El Carmen y San Pablo.
+2. ¿A qué municipio pertenece cada uno de los 17 destinos? Es necesario para agrupar el dashboard
+   por municipio.
+3. ¿`LA SIERRA` es un solo lugar compartido o son veredas homónimas en municipios distintos?
+4. ¿`CAMPOR ALEGRE` es `CAMPO ALEGRE`?
+
+### Sobre el pago y la planilla
+5. ¿La tarifa por día es la misma para todos los vehículos o varía por contrato o municipio?
+6. **¿Un día `DISPONIBLE` en base se paga igual que un día con desplazamiento?** Es la regla que
+   más afecta la liquidación.
+7. ¿La planilla se firma por período mensual, quincenal o semanal?
+8. ¿Quién firma además del conductor: coordinación, el supervisor del contrato, ambos?
+9. ¿Qué diferencia entre días contados por la app y días del soporte firmado es aceptable?
+10. ¿La liquidación debe salir en algún formato específico que exija el área financiera?
+
+### Sobre la operación
+11. ¿Se bloquea la salida cuando falta un distintivo, o solo se advierte y se registra?
+12. ¿El checklist se hace por cada trayecto, una vez al día, o solo en la primera salida?
+13. ¿Se registra kilometraje hoy? ¿Los odómetros son confiables?
+14. ¿Hay control de combustible, con vale, tarjeta o factura?
+15. ¿Existe plan de mantenimiento preventivo, por kilómetros o por tiempo?
+16. ¿Hay GPS instalado en los vehículos? Si lo hay, ¿de qué proveedor y expone alguna API?
+17. ¿Los vehículos son ambulancias, camionetas o mixtos? El archivo solo trae placas.
+
+### Sobre los usuarios
+18. ¿Los 13 conductores tienen teléfono inteligente con datos? ¿Qué operador y qué cobertura?
+19. ¿Cuántas personas habría en el rol de coordinación?
+20. ¿Se completan las 5 cédulas y teléfonos faltantes antes de la carga inicial?
+21. ¿A qué correos deben llegar las alertas y con qué frecuencia?
+22. ¿Hay fecha límite o compromiso institucional asociado a esta herramienta?
+
+---
+
+*Documento de planeación — ESE Hospital Regional Noroccidental · Coordinación de Salud Pública*

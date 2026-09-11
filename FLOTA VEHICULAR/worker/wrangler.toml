@@ -1,0 +1,28 @@
+# ============================================================================
+# FLOTA VEHICULAR HRNO — configuracion del Worker
+# Despliegue: ver DEPLOY.md
+# ============================================================================
+
+name = "flota-hrno"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# Base de datos D1 — YA CREADA el 11 sep 2026 en la region ENAM.
+# Esquema y catalogos ya aplicados. Para recrearla desde cero:
+#   npx wrangler d1 create flota-hrno  (y pegar el nuevo id aqui)
+[[d1_databases]]
+binding = "DB"
+database_name = "flota-hrno"
+database_id = "b8b1f6ff-add1-446e-be38-3eec7fcb333c"
+
+[vars]
+# Origenes autorizados a llamar la API, separados por coma.
+# Debe incluir el dominio de GitHub Pages donde se publica la aplicacion.
+ORIGENES_PERMITIDOS = "https://danto0702.github.io,http://localhost:8788,http://127.0.0.1:5500"
+
+# Horas de vigencia de la sesion antes de exigir un nuevo ingreso.
+HORAS_SESION = "12"
+
+# NOTA: la clave del primer usuario administrador NO se pone aqui.
+# Se define como secreto, que no queda en el repositorio:
+#   npx wrangler secret put CLAVE_ADMIN_INICIAL

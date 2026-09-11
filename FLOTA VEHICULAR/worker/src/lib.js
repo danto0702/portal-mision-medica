@@ -1,0 +1,264 @@
+/**
+ * FLOTA VEHICULAR HRNO — API (Cloudflare Worker + D1)
+ *
+ * ESE Hospital Regional Noroccidental · Coordinación de Salud Pública
+ *
+ * Tres roles: principal, coordinacion, conductor. Ver PROJECT.md §5.12.
+ *
+ * Reglas transversales que este archivo hace cumplir:
+ *   1. La hora de toda marca la pone el servidor, nunca el dispositivo.
+ *   2. Solo el rol principal crea usuarios y toca parámetros.
+ *   3. El conductor no puede corregir una marca ya registrada.
+ *   4. Todo cambio de itinerario deja rastro visible en itinerario_cambios.
+ *   5. Un destino ya usado se desactiva, jamás se borra.
+ */
+
+// ───────────────────────────────────────────────────────────── utilidades ───
+
+const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+const hoyISO = () => ahora().slice(0, 10);
+
+function cors(origen, permitidos) {
+  const lista = (permitidos || '').split(',').map(o => o.trim()).filter(Boolean);
+  const ok = origen && lista.includes(origen);
+  return {
+    'Access-Control-Allow-Origin': ok ? origen : lista[0] || '*',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin',
+  };
+}
+
+const json = (data, status, headers) =>
+  new Response(JSON.stringify(data), {
+    status: status || 200,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...headers },
+  });
+
+class ErrorApi extends Error {
+  constructor(status, mensaje) {
+    super(mensaje);
+    this.status = status;
+  }
+}
+
+const malaPeticion = m => new ErrorApi(400, m);
+const noAutorizado = m => new ErrorApi(401, m || 'Sesión no válida o expirada');
+const prohibido = m => new ErrorApi(403, m || 'Su rol no permite esta acción');
+const noEncontrado = m => new ErrorApi(404, m || 'No encontrado');
+
+// ──────────────────────────────────────────────────────────────── claves ────
+
+/** PBKDF2-SHA256. Formato almacenado: pbkdf2$<iter>$<salt b64>$<hash b64> */
+async function hashClave(clave, saltBytes, iteraciones) {
+  const iter = iteraciones || 120000;
+  const salt = saltBytes || crypto.getRandomValues(new Uint8Array(16));
+  const material = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(clave), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, material, 256);
+  return `pbkdf2$${iter}$${b64(salt)}$${b64(new Uint8Array(bits))}`;
+}
+
+async function verificarClave(clave, almacenado) {
+  if (!almacenado || !almacenado.startsWith('pbkdf2$')) return false;
+  const [, iter, salt] = almacenado.split('$');
+  const calculado = await hashClave(clave, deB64(salt), Number(iter));
+  // Comparación de tiempo constante
+  if (calculado.length !== almacenado.length) return false;
+  let dif = 0;
+  for (let i = 0; i < calculado.length; i++) {
+    dif |= calculado.charCodeAt(i) ^ almacenado.charCodeAt(i);
+  }
+  return dif === 0;
+}
+
+const b64 = bytes => btoa(String.fromCharCode(...bytes));
+const deB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+// ─────────────────────────────────────────────────────────────── sesiones ───
+
+async function sesionActual(db, request) {
+  const cabecera = request.headers.get('Authorization') || '';
+  const token = cabecera.startsWith('Bearer ') ? cabecera.slice(7) : null;
+  if (!token) return null;
+
+  const fila = await db.prepare(`
+    SELECT s.id AS token, s.expira_en,
+           u.id, u.usuario, u.rol, u.persona_id, u.municipio_id,
+           u.activo, u.debe_cambiar_clave,
+           p.nombres, p.apellidos
+      FROM sesiones s
+      JOIN usuarios u ON u.id = s.usuario_id
+      LEFT JOIN personas p ON p.id = u.persona_id
+     WHERE s.id = ?`).bind(token).first();
+
+  if (!fila || !fila.activo) return null;
+  if (fila.expira_en <= ahora()) {
+    await db.prepare('DELETE FROM sesiones WHERE id = ?').bind(token).run();
+    return null;
+  }
+  return fila;
+}
+
+function exigirRol(sesion, ...roles) {
+  if (!sesion) throw noAutorizado();
+  if (!roles.includes(sesion.rol)) throw prohibido();
+  return sesion;
+}
+
+// ─────────────────────────────────────────────────────────────── auditoría ──
+
+async function auditar(db, sesion, accion, entidad, entidadId, antes, despues) {
+  await db.prepare(`
+    INSERT INTO auditoria (ts, usuario_id, rol, accion, entidad, entidad_id,
+                           valor_antes, valor_despues)
+    VALUES (?,?,?,?,?,?,?,?)`)
+    .bind(ahora(), sesion ? sesion.id : null, sesion ? sesion.rol : null,
+          accion, entidad, entidadId || null,
+          antes ? JSON.stringify(antes) : null,
+          despues ? JSON.stringify(despues) : null)
+    .run();
+}
+
+// ────────────────────────────────────── recálculo de días de operación ──────
+
+/**
+ * Recalcula dias_operacion para un vehículo y fecha.
+ *
+ * Regla de pago (D11): un día DISPONIBLE en base se paga igual que uno con
+ * desplazamiento. Por eso se guardan dos señales distintas, `ejecutado` y
+ * `dia_pagable`: la primera dice quién se movió de verdad, la segunda qué se
+ * liquida. Confundirlas haría invisible el vehículo subutilizado.
+ *
+ * Nunca pisa un día con ajuste_manual = 1: esa es una decisión humana firmada.
+ */
+async function recalcularDia(db, fecha, vehiculoId) {
+  const manual = await db.prepare(
+    'SELECT ajuste_manual FROM dias_operacion WHERE fecha = ? AND vehiculo_id = ?')
+    .bind(fecha, vehiculoId).first();
+  if (manual && manual.ajuste_manual) return;
+
+  const itin = await db.prepare(`
+    SELECT tipo_jornada, conductor_id FROM itinerarios
+     WHERE fecha = ? AND vehiculo_id = ? AND estado != 'cancelado'`)
+    .bind(fecha, vehiculoId).first();
+
+  const t = await db.prepare(`
+    SELECT COUNT(*) AS n,
+           SUM(CASE WHEN estado = 'cerrado' THEN 1 ELSE 0 END) AS cerrados,
+           SUM(CASE WHEN km_final IS NOT NULL AND km_inicial IS NOT NULL
+                    THEN km_final - km_inicial ELSE 0 END) AS km,
+           SUM(CASE WHEN ts_llegada IS NOT NULL AND ts_salida IS NOT NULL
+                    THEN (julianday(ts_llegada) - julianday(ts_salida)) * 24
+                    ELSE 0 END) AS horas,
+           MAX(conductor_id) AS conductor_id
+      FROM trayectos
+     WHERE fecha_operacion = ? AND vehiculo_id = ? AND estado != 'anulado'`)
+    .bind(fecha, vehiculoId).first();
+
+  const programado = itin ? 1 : 0;
+  const ejecutado = t && t.cerrados > 0 ? 1 : 0;
+  const tipo = itin ? itin.tipo_jornada : null;
+
+  let estadoDia = 'no_programado';
+  if (tipo === 'disponible') estadoDia = 'disponible';
+  else if (tipo === 'jornada' || tipo === 'vacunacion') estadoDia = 'jornada_especial';
+  else if (programado) estadoDia = 'operativo';
+  else if (ejecutado) estadoDia = 'operativo';
+
+  const param = await db.prepare(
+    "SELECT valor FROM parametros WHERE clave = 'dia_disponible_es_pagable'").first();
+  const disponiblePaga = !param || param.valor === '1';
+
+  const pagable = (ejecutado || (tipo === 'disponible' && disponiblePaga)) && programado ? 1 : 0;
+
+  await db.prepare(`
+    INSERT INTO dias_operacion (fecha, vehiculo_id, conductor_id, estado_dia,
+                                programado, ejecutado, num_trayectos,
+                                horas_operacion, km_dia, dia_pagable, ajuste_manual)
+    VALUES (?,?,?,?,?,?,?,?,?,?,0)
+    ON CONFLICT (fecha, vehiculo_id) DO UPDATE SET
+      conductor_id    = excluded.conductor_id,
+      estado_dia      = excluded.estado_dia,
+      programado      = excluded.programado,
+      ejecutado       = excluded.ejecutado,
+      num_trayectos   = excluded.num_trayectos,
+      horas_operacion = excluded.horas_operacion,
+      km_dia          = excluded.km_dia,
+      dia_pagable     = excluded.dia_pagable`)
+    .bind(fecha, vehiculoId,
+          (itin && itin.conductor_id) || (t && t.conductor_id) || null,
+          estadoDia, programado, ejecutado,
+          (t && t.n) || 0, (t && t.horas) || 0, (t && t.km) || 0, pagable)
+    .run();
+}
+
+/** Registra el uso de un destino para alimentar el autocompletado (D12). */
+async function marcarUsoDestino(db, destinoId) {
+  if (!destinoId) return;
+  await db.prepare(`
+    UPDATE cat_destinos
+       SET veces_usado = veces_usado + 1, ultimo_uso = ?
+     WHERE id = ?`).bind(ahora(), destinoId).run();
+}
+
+// ─────────────────────────────────────────────────────────────── consecutivos ─
+
+async function siguienteConsecutivo(db, prefijo, tabla) {
+  const anio = hoyISO().slice(0, 4);
+  const fila = await db.prepare(
+    `SELECT COUNT(*) AS n FROM ${tabla} WHERE consecutivo LIKE ?`)
+    .bind(`${prefijo}-${anio}-%`).first();
+  const n = String((fila ? fila.n : 0) + 1).padStart(6, '0');
+  return `${prefijo}-${anio}-${n}`;
+}
+
+/**
+ * Resuelve un destino por nombre al adjudicar un desplazamiento (D12).
+ *
+ * Tres casos, en este orden:
+ *   1. Ya existe con ese municipio          -> se reutiliza.
+ *   2. Existe sin municipio asignado         -> se ADOPTA y se le fija el municipio.
+ *      Es el caso de los destinos de la semilla, que nacen con municipio NULL
+ *      porque en el archivo de origen la columna municipio era la base del
+ *      conductor, no la del destino.
+ *   3. No existe, o existe en OTRO municipio -> se crea uno nuevo.
+ *      Un mismo nombre en dos municipios distintos son dos lugares distintos.
+ *
+ * Devuelve el id del destino, ya reactivado si estaba desactivado.
+ */
+async function resolverDestino(db, nombre, municipioId, tipo, usuarioId) {
+  if (!nombre) return null;
+  const limpio = String(nombre).trim().toUpperCase();
+  const mun = municipioId || null;
+
+  const candidato = await db.prepare(`
+    SELECT id, municipio_id FROM cat_destinos
+     WHERE nombre = ? AND (municipio_id = ? OR municipio_id IS NULL)
+     ORDER BY CASE WHEN municipio_id IS NULL THEN 1 ELSE 0 END
+     LIMIT 1`).bind(limpio, mun).first();
+
+  if (candidato) {
+    await db.prepare(`
+      UPDATE cat_destinos
+         SET activo = 1, municipio_id = COALESCE(municipio_id, ?)
+       WHERE id = ?`).bind(mun, candidato.id).run();
+    return candidato.id;
+  }
+
+  const nuevo = await db.prepare(`
+    INSERT INTO cat_destinos (municipio_id, nombre, tipo, activo, creado_por, creado_en)
+    VALUES (?,?,?,1,?,?)`)
+    .bind(mun, limpio, tipo || 'vereda', usuarioId || null, ahora()).run();
+  return nuevo.meta.last_row_id;
+}
+
+export {
+  ahora, hoyISO, cors, json, ErrorApi,
+  malaPeticion, noAutorizado, prohibido, noEncontrado,
+  hashClave, verificarClave,
+  sesionActual, exigirRol, auditar,
+  recalcularDia, marcarUsoDestino, resolverDestino, siguienteConsecutivo,
+};

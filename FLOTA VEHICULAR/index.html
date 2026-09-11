@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e5aa8">
+<title>Flota Vehicular · ESE HRNO</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231e5aa8'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' transform='translate(2.4 2.4) scale(.8)'%3E%3Cpath d='M14 17H6V5h11l4 6v6h-3'/%3E%3Ccircle cx='17.5' cy='17.5' r='2.5'/%3E%3Ccircle cx='6.5' cy='17.5' r='2.5'/%3E%3C/g%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f6f8; --surface:#fff; --surface-2:#f7f9fb; --surface-3:#eef1f5;
+  --border:#dde3ea; --border-soft:#e9edf2;
+  --text:#16202b; --text-soft:#4a5867; --muted:#75828f;
+  --azul:#1e5aa8; --azul-dark:#15447f; --azul-glow:rgba(30,90,168,.09);
+  --verde:#0a7d57; --verde-glow:rgba(10,125,87,.10);
+  --rojo:#c22e24; --rojo-glow:rgba(194,46,36,.09);
+  --ambar:#a2620a; --ambar-glow:rgba(162,98,10,.11);
+  --morado:#6d3aad; --morado-glow:rgba(109,58,173,.09);
+  --r:10px; --r-lg:14px;
+  --sh-sm:0 1px 2px rgba(16,32,48,.06),0 1px 3px rgba(16,32,48,.05);
+  --sh-md:0 4px 12px rgba(16,32,48,.08),0 2px 4px rgba(16,32,48,.05);
+  --sh-lg:0 12px 32px rgba(16,32,48,.13);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font:400 15px/1.5 'Inter',system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+h1,h2,h3{font-family:'Source Serif 4',Georgia,serif;margin:0;line-height:1.25}
+h1{font-size:1.5rem;font-weight:700}
+h2{font-size:1.15rem;font-weight:700}
+h3{font-size:1rem;font-weight:600}
+a{color:var(--azul)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+/* ── Estructura ─────────────────────────────────────────────── */
+.topbar{
+  position:sticky;top:0;z-index:40;background:rgba(255,255,255,.94);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--border);
+  padding:.6rem 1rem;display:flex;align-items:center;gap:.75rem;
+  padding-top:calc(.6rem + env(safe-area-inset-top));
+}
+.topbar .marca{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:.9rem;letter-spacing:-.01em}
+.topbar .marca svg{color:var(--azul);flex:none}
+.topbar .sub{color:var(--muted);font-size:.72rem;font-weight:500;display:block;letter-spacing:0}
+.topbar .der{margin-left:auto;display:flex;align-items:center;gap:.5rem}
+.chip-rol{
+  font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  padding:.2rem .5rem;border-radius:999px;background:var(--azul-glow);
+  color:var(--azul);border:1px solid rgba(30,90,168,.2);white-space:nowrap;
+}
+.nav{
+  display:flex;gap:.25rem;padding:0 .75rem;background:var(--surface);
+  border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;
+}
+.nav::-webkit-scrollbar{display:none}
+.nav button{
+  border:0;background:none;padding:.7rem .7rem;font:600 .82rem 'Inter',sans-serif;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
+  white-space:nowrap;display:flex;align-items:center;gap:.35rem;
+}
+.nav button:hover{color:var(--text-soft)}
+.nav button.on{color:var(--azul);border-bottom-color:var(--azul)}
+main{max-width:1240px;margin:0 auto;padding:1rem}
+.vista{display:none;animation:sube .22s ease}
+.vista.on{display:block}
+@keyframes sube{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.cab{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.cab p{margin:.2rem 0 0;color:var(--muted);font-size:.82rem}
+
+/* ── Tarjetas ───────────────────────────────────────────────── */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  box-shadow:var(--sh-sm);padding:1rem;
+}
+.card+.card{margin-top:.85rem}
+.grid{display:grid;gap:.85rem}
+@media(min-width:640px){.g2{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:900px){.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}}
+
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:.85rem 1rem;box-shadow:var(--sh-sm)}
+.kpi .et{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.kpi .val{font-size:1.7rem;font-weight:800;letter-spacing:-.02em;margin-top:.15rem;font-variant-numeric:tabular-nums}
+.kpi .pie{font-size:.74rem;color:var(--muted);margin-top:.1rem}
+.kpi.azul .val{color:var(--azul)} .kpi.verde .val{color:var(--verde)}
+.kpi.ambar .val{color:var(--ambar)} .kpi.rojo .val{color:var(--rojo)}
+
+/* ── Formularios ────────────────────────────────────────────── */
+label.lb{display:block;font-size:.74rem;font-weight:700;color:var(--text-soft);margin-bottom:.28rem;letter-spacing:.01em}
+.inp,select.inp,textarea.inp{
+  width:100%;padding:.55rem .7rem;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--surface-2);color:var(--text);font:400 .9rem 'Inter',sans-serif;
+}
+.inp:focus{outline:0;border-color:var(--azul);background:#fff;box-shadow:0 0 0 3px var(--azul-glow)}
+.campo{margin-bottom:.75rem}
+.req{color:var(--rojo)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.4rem;
+  padding:.55rem .95rem;border:1px solid transparent;border-radius:var(--r);
+  font:600 .87rem 'Inter',sans-serif;cursor:pointer;transition:filter .15s,transform .1s;
+  background:var(--azul);color:#fff;
+}
+.btn:hover{filter:brightness(1.08)} .btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:none;transform:none}
+.btn.sec{background:var(--surface);color:var(--text-soft);border-color:var(--border)}
+.btn.sec:hover{background:var(--surface-3)}
+.btn.verde{background:var(--verde)} .btn.rojo{background:var(--rojo)}
+.btn.ambar{background:var(--ambar)} .btn.sm{padding:.35rem .6rem;font-size:.78rem}
+.btn.bloque{width:100%}
+
+/* ── Botones grandes del conductor ──────────────────────────── */
+.btn-gigante{
+  width:100%;border:0;border-radius:18px;padding:1.5rem 1rem;cursor:pointer;
+  color:#fff;font:800 1.3rem 'Inter',sans-serif;letter-spacing:-.01em;
+  display:flex;flex-direction:column;align-items:center;gap:.35rem;
+  box-shadow:var(--sh-md);transition:transform .1s,filter .15s;
+}
+.btn-gigante:active{transform:scale(.98)}
+.btn-gigante:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-gigante small{font-weight:600;font-size:.8rem;opacity:.9;letter-spacing:0}
+.btn-gigante.salida{background:linear-gradient(160deg,#0e9468,#0a7d57)}
+.btn-gigante.llegada{background:linear-gradient(160deg,#2a6cc0,#1e5aa8)}
+
+/* ── Tablas ─────────────────────────────────────────────────── */
+.tabla-env{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th{
+  text-align:left;padding:.6rem .7rem;background:var(--surface-2);color:var(--muted);
+  font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;
+}
+td{padding:.55rem .7rem;border-bottom:1px solid var(--border-soft);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.placa{font-weight:700;letter-spacing:.02em}
+
+.etq{
+  display:inline-block;padding:.13rem .45rem;border-radius:6px;font-size:.7rem;font-weight:700;
+  border:1px solid;white-space:nowrap;
+}
+.etq.verde{background:var(--verde-glow);color:var(--verde);border-color:rgba(10,125,87,.25)}
+.etq.azul{background:var(--azul-glow);color:var(--azul);border-color:rgba(30,90,168,.25)}
+.etq.rojo{background:var(--rojo-glow);color:var(--rojo);border-color:rgba(194,46,36,.25)}
+.etq.ambar{background:var(--ambar-glow);color:var(--ambar);border-color:rgba(162,98,10,.28)}
+.etq.morado{background:var(--morado-glow);color:var(--morado);border-color:rgba(109,58,173,.25)}
+.etq.gris{background:var(--surface-3);color:var(--muted);border-color:var(--border)}
+
+/* ── Itinerario ─────────────────────────────────────────────── */
+.itin-celda{
+  min-width:112px;padding:.4rem .45rem;border-radius:8px;cursor:pointer;
+  border:1px solid var(--border);background:var(--surface-2);font-size:.74rem;
+  transition:border-color .15s,box-shadow .15s;
+}
+.itin-celda:hover{border-color:var(--azul);box-shadow:0 0 0 3px var(--azul-glow)}
+.itin-celda .dest{font-weight:700;display:block;line-height:1.25;color:var(--text)}
+.itin-celda .tj{font-size:.63rem;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.itin-celda.vacia{background:transparent;border-style:dashed;color:var(--muted);text-align:center}
+.itin-celda.ebs{border-left:3px solid var(--azul)}
+.itin-celda.jornada{border-left:3px solid var(--morado)}
+.itin-celda.vacunacion{border-left:3px solid var(--verde)}
+.itin-celda.disponible{border-left:3px solid var(--muted)}
+.itin-celda.traslado_ciudad{border-left:3px solid var(--ambar)}
+.itin-celda.administrativo{border-left:3px solid var(--border)}
+.itin-celda .marcas{display:flex;gap:.2rem;align-items:center;margin-top:.2rem}
+.punto{width:7px;height:7px;border-radius:50%;display:inline-block}
+.punto.ok{background:var(--verde)} .punto.no{background:var(--border)}
+.mini-cambios{font-size:.6rem;color:var(--ambar);font-weight:700}
+
+/* ── Checklist ──────────────────────────────────────────────── */
+.chk-item{
+  display:flex;align-items:center;gap:.6rem;padding:.6rem .7rem;
+  border:1px solid var(--border);border-radius:var(--r);background:var(--surface);margin-bottom:.5rem;
+}
+.chk-item .nm{flex:1;font-weight:600;font-size:.87rem}
+.chk-item select{width:auto;min-width:118px;padding:.35rem .5rem;font-size:.8rem}
+.chk-sec{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:.9rem 0 .5rem}
+
+/* ── Modal ──────────────────────────────────────────────────── */
+.modal{
+  position:fixed;inset:0;z-index:80;background:rgba(16,32,48,.45);
+  display:none;align-items:flex-end;justify-content:center;padding:0;
+}
+.modal.on{display:flex}
+@media(min-width:640px){.modal{align-items:center;padding:1.5rem}}
+.modal-caja{
+  background:var(--surface);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;
+  border-radius:18px 18px 0 0;box-shadow:var(--sh-lg);animation:sale .2s ease;
+}
+@media(min-width:640px){.modal-caja{border-radius:var(--r-lg)}}
+@keyframes sale{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.modal-cab{padding:1rem 1.1rem .75rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-cab h3{flex:1}
+.modal-cab button{background:none;border:0;cursor:pointer;color:var(--muted);padding:.25rem;line-height:0}
+.modal-cpo{padding:1.1rem}
+.modal-pie{padding:.85rem 1.1rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface)}
+
+/* ── Avisos ─────────────────────────────────────────────────── */
+#avisos{position:fixed;left:50%;transform:translateX(-50%);bottom:1rem;z-index:100;width:calc(100% - 2rem);max-width:420px;display:flex;flex-direction:column;gap:.5rem}
+.aviso{
+  background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--azul);
+  border-radius:var(--r);padding:.7rem .85rem;box-shadow:var(--sh-md);font-size:.85rem;
+  animation:sale .2s ease;
+}
+.aviso.ok{border-left-color:var(--verde)} .aviso.mal{border-left-color:var(--rojo)}
+.aviso.avi{border-left-color:var(--ambar)}
+.aviso b{display:block;margin-bottom:.1rem}
+
+.nota{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:.7rem .85rem;font-size:.82rem;color:var(--text-soft)}
+.nota.avi{background:var(--ambar-glow);border-color:rgba(162,98,10,.25);color:#7a4a08}
+.vacio{text-align:center;padding:2.5rem 1rem;color:var(--muted)}
+.vacio svg{opacity:.35;margin-bottom:.5rem}
+.cargando{text-align:center;padding:2rem;color:var(--muted);font-size:.85rem}
+
+#barra-offline{
+  display:none;background:var(--ambar-glow);color:#7a4a08;border-bottom:1px solid rgba(162,98,10,.25);
+  padding:.45rem 1rem;font-size:.78rem;font-weight:600;text-align:center;
+}
+#barra-offline.on{display:block}
+
+/* ── Ingreso ────────────────────────────────────────────────── */
+#ingreso{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:linear-gradient(165deg,#eef2f7,#f6f8fa 55%,#eef4f2)}
+#ingreso .caja{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--sh-lg);padding:1.75rem 1.5rem}
+#ingreso .logo{display:flex;align-items:center;gap:.6rem;margin-bottom:.25rem}
+#ingreso .logo svg{color:var(--azul)}
+#ingreso h1{font-size:1.3rem}
+#ingreso .lema{color:var(--muted);font-size:.78rem;margin:.15rem 0 1.35rem}
+.grafica-env{position:relative;height:260px}
+</style>
+</head>
+<body>
+
+<!-- ══ INGRESO ══════════════════════════════════════════════ -->
+<div id="ingreso">
+  <form class="caja" onsubmit="entrar(event)">
+    <div class="logo">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 17H6V5h11l4 6v6h-3"/><circle cx="17.5" cy="17.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/></svg>
+      <div><h1>Flota Vehicular</h1></div>
+    </div>
+    <p class="lema">ESE Hospital Regional Noroccidental · Misión Médica</p>
+    <div class="campo">
+      <label class="lb" for="in-usuario">Usuario</label>
+      <input class="inp" id="in-usuario" autocomplete="username" autocapitalize="none" required>
+    </div>
+    <div class="campo">
+      <label class="lb" for="in-clave">Clave</label>
+      <input class="inp" id="in-clave" type="password" autocomplete="current-password" required>
+    </div>
+    <div id="in-error" class="nota avi" style="display:none;margin-bottom:.75rem"></div>
+    <button class="btn bloque" id="in-btn" type="submit">Entrar</button>
+    <p style="text-align:center;margin:.9rem 0 0;font-size:.72rem;color:var(--muted)">
+      ¿Problemas para entrar? Comuníquese con la Coordinación de Salud Pública.
+    </p>
+  </form>
+</div>
+
+<!-- ══ APLICACIÓN ═══════════════════════════════════════════ -->
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="marca">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 17H6V5h11l4 6v6h-3"/><circle cx="17.5" cy="17.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/></svg>
+      <div>Flota Vehicular<span class="sub">ESE HRNO · Misión Médica</span></div>
+    </div>
+    <div class="der">
+      <span class="chip-rol" id="tb-rol"></span>
+      <button class="btn sec sm" onclick="salir()">Salir</button>
+    </div>
+  </header>
+  <div id="barra-offline">Sin conexión · <span id="offline-n">0</span> marca(s) guardada(s) en el celular, se enviarán solas</div>
+  <nav class="nav" id="nav"></nav>
+  <main id="main"></main>
+</div>
+
+<div class="modal" id="modal" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal-caja">
+    <div class="modal-cab"><h3 id="modal-tit"></h3>
+      <button onclick="cerrarModal()" aria-label="Cerrar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-cpo" id="modal-cpo"></div>
+    <div class="modal-pie" id="modal-pie"></div>
+  </div>
+</div>
+
+<div id="avisos"></div>
+<script src="libs/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

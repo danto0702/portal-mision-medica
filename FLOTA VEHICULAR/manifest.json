@@ -1,0 +1,14 @@
+{
+  "name": "Flota Vehicular · ESE HRNO",
+  "short_name": "Flota HRNO",
+  "description": "Gestión de vehículos de Misión Médica — ESE Hospital Regional Noroccidental",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#1e5aa8",
+  "lang": "es-CO",
+  "icons": [
+    { "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%231e5aa8'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='11' stroke-linecap='round' stroke-linejoin='round' transform='translate(36 36) scale(5)'%3E%3Cpath d='M14 17H6V5h11l4 6v6h-3'/%3E%3Ccircle cx='17.5' cy='17.5' r='2.5'/%3E%3Ccircle cx='6.5' cy='17.5' r='2.5'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

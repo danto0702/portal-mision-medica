@@ -14,6 +14,36 @@ const GESTION = ['principal', 'coordinacion'];
 
 // ═══════════════════════════════════════════════════════ ITINERARIO ═════════
 
+/**
+ * Cuenta los viajes ya registrados para un día y vehículo.
+ *
+ * Se consulta antes de borrar o mover una programación: si el conductor ya
+ * marcó, tocar el día descuadraría el contador de días y la liquidación sin
+ * que nadie se entere. Se prefiere bloquear y explicar.
+ */
+async function viajesDelDia(db, fecha, vehiculoId) {
+  const r = await db.prepare(`
+    SELECT COUNT(*) AS n FROM trayectos
+     WHERE fecha_operacion = ? AND vehiculo_id = ? AND estado != 'anulado'`)
+    .bind(fecha, vehiculoId).first();
+  return r ? r.n : 0;
+}
+
+/** Aplica un predeterminado sobre los campos de una programación. */
+async function aplicarPredeterminado(db, id) {
+  if (!id) return null;
+  const p = await db.prepare(
+    'SELECT * FROM itinerario_predeterminados WHERE id = ? AND activo = 1').bind(id).first();
+  if (!p) throw malaPeticion('El predeterminado no existe o está desactivado');
+  await db.prepare(`
+    UPDATE itinerario_predeterminados
+       SET veces_usado = veces_usado + 1, ultimo_uso = ? WHERE id = ?`)
+    .bind(ahora(), id).run();
+  return p;
+}
+
+
+
 ruta('GET', '/api/itinerario', async ({ db, url, sesion }) => {
   const desde = url.searchParams.get('desde') || hoyISO();
   const hasta = url.searchParams.get('hasta') || desde;
@@ -50,6 +80,16 @@ ruta('GET', '/api/itinerario', async ({ db, url, sesion }) => {
  * El municipio base del conductor NO restringe: puede ir a cualquier parte (D13).
  */
 ruta('POST', '/api/itinerario', async ({ db, sesion, cuerpo }) => {
+  const pre = await aplicarPredeterminado(db, cuerpo.predeterminado_id);
+  if (pre) {
+    cuerpo = {
+      ...cuerpo,
+      tipo_jornada: cuerpo.tipo_jornada || pre.tipo_jornada,
+      municipio_id: cuerpo.municipio_id ?? pre.municipio_id,
+      destino_id: cuerpo.destino_id ?? pre.destino_id,
+      observaciones: cuerpo.observaciones ?? pre.observaciones,
+    };
+  }
   const { fecha, vehiculo_id, conductor_id, municipio_id, tipo_jornada } = cuerpo;
   if (!fecha || !vehiculo_id) throw malaPeticion('Fecha y vehículo son obligatorios');
 
@@ -152,10 +192,44 @@ ruta('GET', '/api/itinerario/:id/cambios', async ({ db, params }) => {
   return r.results;
 }, TODOS);
 
-ruta('DELETE', '/api/itinerario/:id', async ({ db, sesion, params, cuerpo }) => {
+/**
+ * Cancelar o borrar una programación.
+ *
+ * Cancelar la deja registrada con estado 'cancelado' y conserva su historial:
+ * es lo que hace coordinación. Borrar la elimina de veras y solo puede hacerlo
+ * el administrador, pasando ?definitivo=1.
+ *
+ * En ambos casos, si el conductor ya registró viajes ese día la operación se
+ * bloquea: sin la programación, el contador de días y la liquidación quedarían
+ * descuadrados en silencio.
+ */
+ruta('DELETE', '/api/itinerario/:id', async ({ db, sesion, params, cuerpo, url }) => {
   const antes = await db.prepare('SELECT * FROM itinerarios WHERE id = ?')
     .bind(params.id).first();
   if (!antes) throw noEncontrado('Programación no encontrada');
+
+  const viajes = await viajesDelDia(db, antes.fecha, antes.vehiculo_id);
+  if (viajes) {
+    throw malaPeticion(
+      `Ese día ya tiene ${viajes} viaje(s) registrado(s) por el conductor. ` +
+      'Anule primero los viajes desde la pantalla de Trayectos.');
+  }
+
+  const definitivo = url.searchParams.get('definitivo') === '1';
+  if (definitivo) {
+    if (sesion.rol !== 'principal') {
+      throw prohibido('Solo el administrador puede borrar definitivamente');
+    }
+    // El historial de cambios y los trayectos cuelgan del itinerario; al no
+    // haber viajes, lo único que se pierde es su propio rastro de ediciones.
+    await db.prepare('DELETE FROM itinerario_cambios WHERE itinerario_id = ?')
+      .bind(params.id).run();
+    await db.prepare('DELETE FROM itinerarios WHERE id = ?').bind(params.id).run();
+    await recalcularDia(db, antes.fecha, antes.vehiculo_id);
+    await auditar(db, sesion, 'eliminar', 'itinerarios', params.id, antes, null);
+    return { ok: true, borrado: true };
+  }
+
   await db.prepare("UPDATE itinerarios SET estado = 'cancelado' WHERE id = ?")
     .bind(params.id).run();
   await db.prepare(`
@@ -166,7 +240,7 @@ ruta('DELETE', '/api/itinerario/:id', async ({ db, sesion, params, cuerpo }) => 
           (cuerpo && cuerpo.motivo) || null).run();
   await recalcularDia(db, antes.fecha, antes.vehiculo_id);
   await auditar(db, sesion, 'anular', 'itinerarios', params.id, antes, null);
-  return { ok: true };
+  return { ok: true, borrado: false };
 }, GESTION);
 
 /** Copia la programación de un rango a otro, para no reprogramar desde cero. */
@@ -204,6 +278,264 @@ ruta('POST', '/api/itinerario/copiar', async ({ db, sesion, cuerpo }) => {
                 { copiados: creados, omitidos });
   return { creados, omitidos };
 }, GESTION);
+
+
+/**
+ * Mover o duplicar una programación arrastrándola en la matriz.
+ *
+ * Al soltar sobre una celda ocupada las dos se INTERCAMBIAN. Como la tabla
+ * tiene UNIQUE(fecha, vehiculo_id), el intercambio pasa por un valor temporal:
+ * no existe un estado intermedio válido en el que ambas ocupen la misma celda.
+ *
+ * No se permite mover ni duplicar sobre un día que ya tenga viajes: la marca
+ * del conductor quedaría apuntando a una programación que ya no describe
+ * lo que hizo.
+ */
+ruta('POST', '/api/itinerario/mover', async ({ db, sesion, cuerpo }) => {
+  const { id, fecha, vehiculo_id, duplicar } = cuerpo;
+  if (!id || !fecha || !vehiculo_id) {
+    throw malaPeticion('Se requieren id, fecha y vehiculo_id de destino');
+  }
+
+  const origen = await db.prepare('SELECT * FROM itinerarios WHERE id = ?').bind(id).first();
+  if (!origen) throw noEncontrado('Programación no encontrada');
+  if (origen.fecha === fecha && Number(origen.vehiculo_id) === Number(vehiculo_id) && !duplicar) {
+    return { ok: true, sin_cambios: true };
+  }
+
+  const destino = await db.prepare(
+    "SELECT * FROM itinerarios WHERE fecha = ? AND vehiculo_id = ? AND estado != 'cancelado'")
+    .bind(fecha, vehiculo_id).first();
+
+  const viajesDestino = await viajesDelDia(db, fecha, vehiculo_id);
+  if (viajesDestino) {
+    throw malaPeticion('El día de destino ya tiene viajes registrados; no se puede ocupar.');
+  }
+
+  // ── Duplicar ──
+  if (duplicar) {
+    if (destino) throw malaPeticion('Ese día ya tiene programación. Muévala o bórrela primero.');
+    const r = await db.prepare(`
+      INSERT INTO itinerarios (fecha, vehiculo_id, conductor_id, municipio_id, destino_id,
+                               destino_texto, tipo_jornada, observaciones, estado,
+                               creado_por, creado_en)
+      VALUES (?,?,?,?,?,?,?,?, 'programado', ?,?)`)
+      .bind(fecha, vehiculo_id, origen.conductor_id, origen.municipio_id, origen.destino_id,
+            origen.destino_texto, origen.tipo_jornada, origen.observaciones,
+            sesion.id, ahora()).run();
+    await recalcularDia(db, fecha, vehiculo_id);
+    await auditar(db, sesion, 'crear', 'itinerarios', r.meta.last_row_id, null,
+                  { duplicado_de: id, fecha, vehiculo_id });
+    return { ok: true, id: r.meta.last_row_id, duplicado: true };
+  }
+
+  // ── Mover ──
+  const viajesOrigen = await viajesDelDia(db, origen.fecha, origen.vehiculo_id);
+  if (viajesOrigen) {
+    throw malaPeticion(
+      `El día de origen ya tiene ${viajesOrigen} viaje(s) registrado(s); no se puede mover.`);
+  }
+
+  const fechaOrigen = origen.fecha, vehiculoOrigen = origen.vehiculo_id;
+
+  if (destino) {
+    // Intercambio en tres pasos: el temporal evita chocar con UNIQUE.
+    const TEMP = '1900-01-01';
+    await db.prepare('UPDATE itinerarios SET fecha = ? WHERE id = ?').bind(TEMP, origen.id).run();
+    await db.prepare('UPDATE itinerarios SET fecha = ?, vehiculo_id = ? WHERE id = ?')
+      .bind(fechaOrigen, vehiculoOrigen, destino.id).run();
+    await db.prepare('UPDATE itinerarios SET fecha = ?, vehiculo_id = ? WHERE id = ?')
+      .bind(fecha, vehiculo_id, origen.id).run();
+    await registrarMovimiento(db, sesion, destino.id, destino.fecha, destino.vehiculo_id,
+                              fechaOrigen, vehiculoOrigen, cuerpo.motivo);
+  } else {
+    await db.prepare('UPDATE itinerarios SET fecha = ?, vehiculo_id = ? WHERE id = ?')
+      .bind(fecha, vehiculo_id, origen.id).run();
+  }
+
+  await registrarMovimiento(db, sesion, origen.id, fechaOrigen, vehiculoOrigen,
+                            fecha, vehiculo_id, cuerpo.motivo);
+
+  for (const [f, v] of [[fechaOrigen, vehiculoOrigen], [fecha, vehiculo_id]]) {
+    await recalcularDia(db, f, v);
+  }
+  await auditar(db, sesion, 'editar', 'itinerarios', origen.id,
+                { fecha: fechaOrigen, vehiculo_id: vehiculoOrigen },
+                { fecha, vehiculo_id, intercambio: !!destino });
+  return { ok: true, intercambio: !!destino };
+}, GESTION);
+
+/** Deja el movimiento en el historial visible de la celda. */
+async function registrarMovimiento(db, sesion, itinerarioId, fAntes, vAntes, fDespues, vDespues, motivo) {
+  const ts = ahora();
+  if (fAntes !== fDespues) {
+    await db.prepare(`
+      INSERT INTO itinerario_cambios (itinerario_id, ts, usuario_id, campo,
+                                      valor_antes, valor_despues, motivo)
+      VALUES (?,?,?, 'fecha', ?,?,?)`)
+      .bind(itinerarioId, ts, sesion.id, fAntes, fDespues, motivo || 'Movida en el itinerario').run();
+  }
+  if (Number(vAntes) !== Number(vDespues)) {
+    await db.prepare(`
+      INSERT INTO itinerario_cambios (itinerario_id, ts, usuario_id, campo,
+                                      valor_antes, valor_despues, motivo)
+      VALUES (?,?,?, 'vehiculo_id', ?,?,?)`)
+      .bind(itinerarioId, ts, sesion.id, String(vAntes), String(vDespues),
+            motivo || 'Movida en el itinerario').run();
+  }
+}
+
+/**
+ * Aplica en bloque los cambios de la plantilla de Excel, ya revisados por el
+ * usuario en la vista previa. Cada operación se intenta por separado y se
+ * informa cuáles fallaron: un archivo con una fila mala no debe tumbar el resto.
+ */
+ruta('POST', '/api/itinerario/lote', async ({ db, sesion, cuerpo }) => {
+  const ops = Array.isArray(cuerpo.operaciones) ? cuerpo.operaciones : [];
+  if (!ops.length) throw malaPeticion('No hay operaciones que aplicar');
+  if (ops.length > 600) throw malaPeticion('Demasiadas operaciones en un solo envío');
+
+  const resultados = { creadas: 0, actualizadas: 0, borradas: 0, errores: [] };
+  const dias = new Set();
+
+  for (const op of ops) {
+    try {
+      const destinoId = op.destino_nombre
+        ? await resolverDestino(db, op.destino_nombre, op.municipio_id, null, sesion.id)
+        : (op.destino_id ?? null);
+
+      if (op.accion === 'crear') {
+        if (await viajesDelDia(db, op.fecha, op.vehiculo_id)) {
+          throw new Error('el día ya tiene viajes registrados');
+        }
+        await db.prepare(`
+          INSERT INTO itinerarios (fecha, vehiculo_id, conductor_id, municipio_id, destino_id,
+                                   tipo_jornada, observaciones, estado, creado_por, creado_en)
+          VALUES (?,?,?,?,?,?,?, 'programado', ?,?)`)
+          .bind(op.fecha, op.vehiculo_id, op.conductor_id ?? null, op.municipio_id ?? null,
+                destinoId, op.tipo_jornada || 'ebs', op.observaciones ?? null,
+                sesion.id, ahora()).run();
+        await marcarUsoDestino(db, destinoId);
+        resultados.creadas++;
+
+      } else if (op.accion === 'actualizar') {
+        const antes = await db.prepare('SELECT * FROM itinerarios WHERE id = ?')
+          .bind(op.id).first();
+        if (!antes) throw new Error('la programación ya no existe');
+        if (await viajesDelDia(db, antes.fecha, antes.vehiculo_id)) {
+          throw new Error('el día ya tiene viajes registrados');
+        }
+        await db.prepare(`
+          UPDATE itinerarios SET municipio_id = ?, destino_id = ?, tipo_jornada = ?,
+                                 observaciones = ?, conductor_id = ?
+           WHERE id = ?`)
+          .bind(op.municipio_id ?? antes.municipio_id, destinoId ?? antes.destino_id,
+                op.tipo_jornada || antes.tipo_jornada,
+                op.observaciones !== undefined ? op.observaciones : antes.observaciones,
+                op.conductor_id ?? antes.conductor_id, op.id).run();
+        // La operación de actualizar solo trae el id; el día a recalcular sale
+        // del registro, no del archivo.
+        op.fecha = antes.fecha; op.vehiculo_id = antes.vehiculo_id;
+        for (const [campo, val] of [['municipio_id', op.municipio_id],
+                                    ['destino_id', destinoId],
+                                    ['tipo_jornada', op.tipo_jornada]]) {
+          if (val == null || String(antes[campo] ?? '') === String(val)) continue;
+          await db.prepare(`
+            INSERT INTO itinerario_cambios (itinerario_id, ts, usuario_id, campo,
+                                            valor_antes, valor_despues, motivo)
+            VALUES (?,?,?,?,?,?, 'Carga desde plantilla de Excel')`)
+            .bind(op.id, ahora(), sesion.id, campo,
+                  antes[campo] != null ? String(antes[campo]) : null, String(val)).run();
+        }
+        await marcarUsoDestino(db, destinoId);
+        resultados.actualizadas++;
+
+      } else if (op.accion === 'borrar') {
+        const antes = await db.prepare('SELECT * FROM itinerarios WHERE id = ?')
+          .bind(op.id).first();
+        if (!antes) throw new Error('la programación ya no existe');
+        if (await viajesDelDia(db, antes.fecha, antes.vehiculo_id)) {
+          throw new Error('el día ya tiene viajes registrados');
+        }
+        await db.prepare('DELETE FROM itinerario_cambios WHERE itinerario_id = ?')
+          .bind(op.id).run();
+        await db.prepare('DELETE FROM itinerarios WHERE id = ?').bind(op.id).run();
+        op.fecha = antes.fecha; op.vehiculo_id = antes.vehiculo_id;
+        resultados.borradas++;
+      }
+      dias.add(`${op.fecha}|${op.vehiculo_id}`);
+    } catch (e) {
+      resultados.errores.push({ fecha: op.fecha, vehiculo_id: op.vehiculo_id,
+                                motivo: e.message });
+    }
+  }
+
+  for (const clave of dias) {
+    const [f, v] = clave.split('|');
+    if (!f || f === 'undefined' || !Number(v)) continue;   // operación que falló
+    await recalcularDia(db, f, Number(v));
+  }
+  await auditar(db, sesion, 'crear', 'itinerarios', null, null,
+                { origen: 'plantilla de Excel', ...resultados,
+                  errores: resultados.errores.length });
+  return resultados;
+}, GESTION);
+
+// ══════════════════════════════════ BANCO DE PREDETERMINADOS ════════════════
+
+ruta('GET', '/api/predeterminados', async ({ db }) => {
+  const r = await db.prepare(`
+    SELECT p.*, m.nombre AS municipio, d.nombre AS destino
+      FROM itinerario_predeterminados p
+      LEFT JOIN cat_municipios m ON m.id = p.municipio_id
+      LEFT JOIN cat_destinos d   ON d.id = p.destino_id
+     WHERE p.activo = 1
+     ORDER BY p.veces_usado DESC, p.nombre`).all();
+  return r.results;
+}, TODOS);
+
+ruta('POST', '/api/predeterminados', async ({ db, sesion, cuerpo }) => {
+  if (!cuerpo.nombre) throw malaPeticion('El nombre es obligatorio');
+  const destinoId = cuerpo.destino_nombre
+    ? await resolverDestino(db, cuerpo.destino_nombre, cuerpo.municipio_id, null, sesion.id)
+    : (cuerpo.destino_id ?? null);
+  const r = await db.prepare(`
+    INSERT INTO itinerario_predeterminados (nombre, tipo_jornada, municipio_id, destino_id,
+                                            observaciones, activo, creado_por, creado_en)
+    VALUES (?,?,?,?,?,1,?,?)`)
+    .bind(cuerpo.nombre.trim(), cuerpo.tipo_jornada || 'ebs', cuerpo.municipio_id ?? null,
+          destinoId, cuerpo.observaciones ?? null, sesion.id, ahora()).run();
+  await auditar(db, sesion, 'crear', 'itinerario_predeterminados', r.meta.last_row_id, null, cuerpo);
+  return { id: r.meta.last_row_id, destino_id: destinoId };
+}, GESTION);
+
+ruta('PUT', '/api/predeterminados/:id', async ({ db, sesion, params, cuerpo }) => {
+  const antes = await db.prepare('SELECT * FROM itinerario_predeterminados WHERE id = ?')
+    .bind(params.id).first();
+  if (!antes) throw noEncontrado('Predeterminado no encontrado');
+  const destinoId = cuerpo.destino_nombre
+    ? await resolverDestino(db, cuerpo.destino_nombre, cuerpo.municipio_id, null, sesion.id)
+    : (cuerpo.destino_id !== undefined ? cuerpo.destino_id : antes.destino_id);
+  await db.prepare(`
+    UPDATE itinerario_predeterminados
+       SET nombre = ?, tipo_jornada = ?, municipio_id = ?, destino_id = ?, observaciones = ?
+     WHERE id = ?`)
+    .bind(cuerpo.nombre?.trim() || antes.nombre, cuerpo.tipo_jornada || antes.tipo_jornada,
+          cuerpo.municipio_id !== undefined ? cuerpo.municipio_id : antes.municipio_id,
+          destinoId,
+          cuerpo.observaciones !== undefined ? cuerpo.observaciones : antes.observaciones,
+          params.id).run();
+  await auditar(db, sesion, 'editar', 'itinerario_predeterminados', params.id, antes, cuerpo);
+  return { ok: true };
+}, GESTION);
+
+/** Se desactiva, no se borra: los itinerarios pasados lo pudieron haber usado. */
+ruta('DELETE', '/api/predeterminados/:id', async ({ db, sesion, params }) => {
+  await db.prepare('UPDATE itinerario_predeterminados SET activo = 0 WHERE id = ?')
+    .bind(params.id).run();
+  await auditar(db, sesion, 'editar', 'itinerario_predeterminados', params.id, null, { activo: 0 });
+  return { ok: true };
+}, ['principal']);
 
 // ═════════════════════════════════════════════════════════ TRAYECTOS ════════
 

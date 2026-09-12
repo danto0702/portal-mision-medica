@@ -173,6 +173,36 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .punto.ok{background:var(--verde)} .punto.no{background:var(--border)}
 .mini-cambios{font-size:.6rem;color:var(--ambar);font-weight:700}
 
+/* Barra de desplazamiento espejo, encima de la tabla del itinerario */
+.scroll-arriba{overflow-x:auto;overflow-y:hidden;height:14px;margin-bottom:.3rem}
+.scroll-arriba>div{height:1px}
+
+/* Arrastrar y soltar en la matriz */
+.itin-celda[draggable="true"]{cursor:grab}
+.itin-celda.arrastrando{opacity:.4;cursor:grabbing}
+.itin-celda.destino-ok{border-color:var(--verde);box-shadow:0 0 0 3px var(--verde-glow);background:var(--verde-glow)}
+.itin-celda.destino-cambio{border-color:var(--ambar);box-shadow:0 0 0 3px var(--ambar-glow);background:var(--ambar-glow)}
+.itin-celda.destino-no{border-color:var(--rojo);box-shadow:0 0 0 3px var(--rojo-glow);cursor:not-allowed}
+.itin-celda.bloqueada{border-left-width:3px;background:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(16,32,48,.035) 5px,rgba(16,32,48,.035) 10px)}
+
+/* Fichas del banco de predeterminados */
+.pred-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.9rem}
+.pred-chip{
+  border:1px solid var(--border);background:var(--surface-2);border-radius:999px;
+  padding:.3rem .7rem;font:600 .78rem 'Inter',sans-serif;cursor:pointer;color:var(--text-soft);
+}
+.pred-chip:hover{border-color:var(--azul);color:var(--azul);background:var(--azul-glow)}
+.pred-chip .veces{font-weight:500;color:var(--muted);font-size:.68rem;margin-left:.25rem}
+
+/* Vista previa de la carga desde Excel */
+.previa-fila{display:grid;grid-template-columns:auto 1fr;gap:.5rem;padding:.35rem .5rem;
+  border-bottom:1px solid var(--border-soft);font-size:.8rem;align-items:baseline}
+.previa-fila:last-child{border-bottom:0}
+.previa-res{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.85rem}
+.previa-res .r{border:1px solid var(--border);border-radius:var(--r);padding:.45rem .7rem;
+  background:var(--surface-2);font-size:.8rem}
+.previa-res .r b{display:block;font-size:1.2rem;font-variant-numeric:tabular-nums}
+
 /* ── Checklist ──────────────────────────────────────────────── */
 .chk-item{
   display:flex;align-items:center;gap:.6rem;padding:.6rem .7rem;
@@ -299,6 +329,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 
 <div id="avisos"></div>
 <script src="libs/chart.umd.min.js"></script>
+<script src="libs/xlsx.full.min.js"></script>
+<script src="libs/jszip.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

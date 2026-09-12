@@ -184,6 +184,25 @@ CREATE TABLE itinerarios (
 CREATE INDEX idx_itin_fecha ON itinerarios(fecha);
 CREATE INDEX idx_itin_cond  ON itinerarios(conductor_id, fecha);
 
+-- Banco de predeterminados: combinaciones de jornada y destino que se repiten,
+-- guardadas con un nombre para adjudicar con un solo clic. El nombre es tambien
+-- el valor que se escribe en la plantilla de Excel, de modo que una celda del
+-- archivo siempre significa exactamente una cosa.
+CREATE TABLE itinerario_predeterminados (
+  id            INTEGER PRIMARY KEY,
+  nombre        TEXT NOT NULL UNIQUE,
+  tipo_jornada  TEXT NOT NULL DEFAULT 'ebs',
+  municipio_id  INTEGER REFERENCES cat_municipios(id),
+  destino_id    INTEGER REFERENCES cat_destinos(id),
+  observaciones TEXT,
+  veces_usado   INTEGER NOT NULL DEFAULT 0,
+  ultimo_uso    TEXT,
+  activo        INTEGER NOT NULL DEFAULT 1,
+  creado_por    INTEGER,
+  creado_en     TEXT NOT NULL
+);
+CREATE INDEX idx_pred_uso ON itinerario_predeterminados(activo, veces_usado DESC);
+
 -- Historial visible de cambios del itinerario: quien modifico y cuando.
 -- Se muestra en la interfaz, no solo en la auditoria tecnica.
 CREATE TABLE itinerario_cambios (

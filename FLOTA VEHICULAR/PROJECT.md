@@ -1,6 +1,6 @@
 # PROJECT.md — Flota Vehicular HRNO
 
-> Borrador v0.4 · 11 sep 2026 · ESE Hospital Regional Noroccidental
+> Borrador v0.5 · 12 sep 2026 · ESE Hospital Regional Noroccidental
 > Responsable: Danilo Torrado Blanco — Coordinador de Salud Pública
 > Estado: **arquitectura, roles y modelo de datos definidos.** Pendientes las preguntas de §11
 
@@ -68,6 +68,10 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D12 | Destinos | **Catálogo vivo**: el municipio se registra al adjudicar el desplazamiento y el destino queda guardado para autocompletar |
 | D13 | Territorio del conductor | Su municipio es **base por defecto, nunca restricción**: puede desplazarse a cualquier municipio |
 | D14 | San Pablo | Se muestra con **su propio nombre**, con `municipio_padre_id` → Teorama. Catálogo editable |
+| D15 | Borrar programaciones | Coordinación **cancela**; solo el administrador **borra**. Ninguno puede tocar un día con viajes registrados |
+| D16 | Arrastrar | Mover con arrastre, duplicar con Ctrl. Soltar sobre una celda ocupada **intercambia** las dos |
+| D17 | Predeterminados | Banco de combinaciones con nombre propio, que además son los valores válidos de la plantilla de Excel |
+| D18 | Plantilla de Excel | Matriz como el archivo original, con fechas ISO, lista desplegable y **vista previa antes de aplicar** |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -251,6 +255,35 @@ pero con lo que el Excel no da:
   dos vehículos, se marca en rojo al guardar.
 - **Importar y exportar Excel**, para la transición desde el archivo actual y para quien prefiera
   seguir trabajando en hoja de cálculo.
+
+### 5.1.1 Edición rápida del itinerario (D15 a D18)
+
+**Arrastrar.** Una celda se mueve arrastrándola; con **Ctrl** se duplica. Si se suelta sobre
+una celda ocupada, las dos se intercambian — reorganizar dos conductores es un solo gesto.
+Los días ya ejecutados aparecen rayados y no se pueden arrastrar.
+
+**Banco de predeterminados.** Las combinaciones que se repiten se guardan con un nombre
+("Vacunación Honduras") y se aplican con un clic. El mismo nombre es lo que se escribe en la
+plantilla de Excel, de modo que una celda del archivo significa exactamente una cosa.
+
+**Plantilla de Excel.** Se descarga la matriz del período, se llena en Excel y se vuelve a
+cargar. Tres cosas la hacen reversible sin pérdida:
+
+| | |
+|---|---|
+| Fecha en formato ISO (`2026-09-14`) en la fila de encabezado | No depende del idioma ni del formato de fecha de Excel |
+| Prefijo de jornada cuando no es ruta EBS (`VACUNACIÓN: HONDURAS`) | Sin él, descargar y volver a cargar convertía en ruta EBS decenas de días de vacunación |
+| Hoja OPCIONES + lista desplegable en cada celda | El valor de una celda siempre se puede resolver a una programación concreta |
+
+Descargar la plantilla y volver a cargarla sin tocarla produce **cero cambios**; es la prueba
+que se ejecuta en cada revisión.
+
+Al cargar, la aplicación muestra **qué va a crear, cambiar y borrar** y no aplica nada hasta que
+se confirma. Los días en los que el conductor ya marcó salida aparecen listados como intocables.
+
+**Borrar.** Coordinación cancela una programación (queda registrada); el administrador puede
+además borrarla del todo. Ninguno de los dos puede tocar un día con viajes registrados: el
+contador de días y la liquidación quedarían descuadrados sin que nadie se entere.
 
 ### 5.2 Maestro de vehículos
 Ficha y hoja de vida, con **`propiedad` = propio / contratista / comodato** y `valor_dia` (D7),

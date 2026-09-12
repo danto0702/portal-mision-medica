@@ -17,7 +17,7 @@
  * peticiones e ignora en silencio lo que no entiende — un campo que no se
  * guarda y ningún mensaje de error. Por eso se comprueba y se avisa.
  */
-const VERSION_API_REQUERIDA = 2;
+const VERSION_API_REQUERIDA = 3;
 
 const esLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 const API = localStorage.getItem('flota_api') ||
@@ -593,7 +593,7 @@ async function guardarEvento() {
 // ITINERARIO — la matriz que reemplaza el Excel
 // ═══════════════════════════════════════════════════════════════════════════
 
-let itinDesde = null, itinDatos = [];
+let itinDesde = null, itinDatos = [], predeterminados = [];
 
 async function verItinerario() {
   if (!itinDesde) {
@@ -605,7 +605,10 @@ async function verItinerario() {
 
   $('#main').innerHTML = '<div class="cargando">Cargando itinerario...</div>';
   try {
-    itinDatos = await api(`/api/itinerario?desde=${itinDesde}&hasta=${hasta}`);
+    [itinDatos, predeterminados] = await Promise.all([
+      api(`/api/itinerario?desde=${itinDesde}&hasta=${hasta}`),
+      api('/api/predeterminados'),
+    ]);
   } catch (e) {
     return $('#main').innerHTML = `<div class="card"><div class="nota avi">${esc(e.message)}</div></div>`;
   }
@@ -617,8 +620,10 @@ async function verItinerario() {
 
   const celda = (v, f) => {
     const it = porClave[f + '|' + v.id];
+    const suelta = `ondragover="itinSobre(event,${v.id},'${f}')"
+      ondragleave="itinSale(event)" ondrop="itinSoltar(event,${v.id},'${f}')"`;
     if (!it) {
-      return `<td style="padding:.2rem"><div class="itin-celda vacia"
+      return `<td style="padding:.2rem"><div class="itin-celda vacia" ${suelta}
         onclick="modalItinerario(null,${v.id},'${f}')">+</div></td>`;
     }
     const tj = TIPOS_JORNADA[it.tipo_jornada] || TIPOS_JORNADA.ebs;
@@ -626,7 +631,13 @@ async function verItinerario() {
     const enBase = it.tipo_jornada === 'disponible';
     const titulo = enBase ? 'Disponible' : (it.destino || tj.et);
     const pie = enBase ? (it.municipio || 'en base') : tj.et;
-    return `<td style="padding:.2rem"><div class="itin-celda ${it.tipo_jornada}"
+    // Un día ya ejecutado no se arrastra: la marca del conductor quedaría
+    // apuntando a una programación que ya no describe lo que hizo.
+    return `<td style="padding:.2rem"><div
+      class="itin-celda ${it.tipo_jornada}${ejec ? ' bloqueada' : ''}"
+      ${ejec ? '' : `draggable="true" ondragstart="itinTomar(event,${it.id})" ondragend="itinSoltarFin(event)"`}
+      ${suelta}
+      title="${ejec ? 'Ya ejecutado: no se puede mover' : 'Arrastre para mover · con Ctrl para duplicar'}"
       onclick="modalItinerario(${it.id},${v.id},'${f}')">
       <span class="dest">${esc(titulo)}</span>
       <span class="tj" style="color:var(--${tj.color === 'gris' ? 'muted' : tj.color})">${esc(pie)}</span>
@@ -653,6 +664,11 @@ async function verItinerario() {
         <button class="btn sec sm" onclick="moverItin(-14)">← Anterior</button>
         <button class="btn sec sm" onclick="itinDesde=null;verItinerario()">Hoy</button>
         <button class="btn sec sm" onclick="moverItin(14)">Siguiente →</button>
+        <button class="btn sec sm" onclick="modalPredeterminados()">Predeterminados</button>
+        <button class="btn sec sm" onclick="descargarPlantilla()">Descargar Excel</button>
+        <button class="btn sec sm" onclick="$('#archivo-itin').click()">Cargar Excel</button>
+        <input type="file" id="archivo-itin" accept=".xlsx,.xls" style="display:none"
+          onchange="cargarPlantilla(this)">
         <button class="btn sm" onclick="modalCopiarSemana()">Copiar quincena</button>
       </div>
     </div>
@@ -664,7 +680,8 @@ async function verItinerario() {
           ? '<button class="btn" onclick="ir(\'vehiculos\')">Registrar el primero</button>'
           : '<p style="font-size:.85rem">El administrador debe registrarlos primero.</p>'}
       </div></div>` : `
-      <div class="tabla-env"><table>
+      <div class="scroll-arriba" id="scroll-arriba"><div id="scroll-ancho"></div></div>
+      <div class="tabla-env" id="itin-env"><table>
         <thead><tr>
           <th style="position:sticky;left:0;background:var(--surface-2);z-index:2;min-width:150px">Vehículo</th>
           ${dias.map(rotulo).join('')}
@@ -684,9 +701,108 @@ async function verItinerario() {
           `<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--${t.color === 'gris' ? 'muted' : t.color});vertical-align:middle"></span> ${t.et}</span>`).join('')}
         <span><span class="punto ok"></span> ejecutado (el conductor marcó salida)</span>
         <span><span class="mini-cambios">✎</span> modificado</span>
+        <span>Arrastre una celda para moverla · mantenga <b>Ctrl</b> para duplicarla</span>
       </div>`}
   `;
+  sincronizarScroll();
 }
+
+/**
+ * Barra de desplazamiento espejo encima de la tabla.
+ *
+ * Con 14 columnas la barra del navegador queda al pie, fuera de la pantalla:
+ * hay que bajar hasta el último vehículo para poder desplazarse. Esta es una
+ * segunda barra arriba, sincronizada con la tabla en ambos sentidos.
+ */
+let observadorScroll = null;
+
+function sincronizarScroll() {
+  // Cada redibujado crea una tabla nueva; sin esto quedan observadores vivos
+  // apuntando a elementos que ya se fueron del documento.
+  observadorScroll?.disconnect();
+  observadorScroll = null;
+
+  const arriba = $('#scroll-arriba'), env = $('#itin-env');
+  if (!arriba || !env) return;
+  const tabla = env.querySelector('table');
+  if (!tabla) return;
+
+  const ajustar = () => {
+    const ancho = $('#scroll-ancho');
+    if (ancho) ancho.style.width = tabla.scrollWidth + 'px';
+  };
+  ajustar();
+  if (window.ResizeObserver) {
+    observadorScroll = new ResizeObserver(ajustar);
+    observadorScroll.observe(tabla);
+  }
+
+  let eco = false;                       // evita que se empujen mutuamente
+  arriba.onscroll = () => { if (eco) return; eco = true; env.scrollLeft = arriba.scrollLeft; eco = false; };
+  env.onscroll = () => { if (eco) return; eco = true; arriba.scrollLeft = env.scrollLeft; eco = false; };
+}
+
+// ── Arrastrar y soltar ───────────────────────────────────────────────────────
+let itinArrastrado = null;
+
+function itinTomar(ev, id) {
+  itinArrastrado = id;
+  ev.currentTarget.classList.add('arrastrando');
+  ev.dataTransfer.effectAllowed = 'copyMove';
+  ev.dataTransfer.setData('text/plain', String(id));   // Firefox exige un dato
+}
+
+function itinSoltarFin(ev) {
+  ev.currentTarget.classList.remove('arrastrando');
+  itinArrastrado = null;
+  $$('.itin-celda').forEach(c => c.classList.remove('destino-ok', 'destino-cambio', 'destino-no'));
+}
+
+function itinSobre(ev, vehiculoId, fecha) {
+  if (!itinArrastrado) return;
+  const origen = itinDatos.find(x => x.id === itinArrastrado);
+  if (!origen) return;
+  const destino = itinDatos.find(x => x.fecha === fecha && x.vehiculo_id === vehiculoId
+                                     && x.estado !== 'cancelado');
+  const duplicando = ev.ctrlKey || ev.metaKey || ev.altKey;
+
+  // No se puede soltar sobre un día ya ejecutado, ni duplicar sobre uno ocupado.
+  const prohibido = (destino && destino.trayectos_cerrados > 0) || (duplicando && destino);
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = prohibido ? 'none' : (duplicando ? 'copy' : 'move');
+
+  const c = ev.currentTarget;
+  c.classList.remove('destino-ok', 'destino-cambio', 'destino-no');
+  c.classList.add(prohibido ? 'destino-no' : destino ? 'destino-cambio' : 'destino-ok');
+}
+
+function itinSale(ev) {
+  ev.currentTarget.classList.remove('destino-ok', 'destino-cambio', 'destino-no');
+}
+
+async function itinSoltar(ev, vehiculoId, fecha) {
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('destino-ok', 'destino-cambio', 'destino-no');
+  const id = itinArrastrado;
+  itinArrastrado = null;
+  if (!id) return;
+
+  const duplicar = ev.ctrlKey || ev.metaKey || ev.altKey;
+  try {
+    const r = await api('/api/itinerario/mover', {
+      metodo: 'POST', cuerpo: { id, fecha, vehiculo_id: vehiculoId, duplicar },
+    });
+    if (r.sin_cambios) return;
+    aviso(duplicar ? 'Programación duplicada'
+      : r.intercambio ? 'Las dos programaciones se intercambiaron' : 'Programación movida',
+      'ok', 'Listo');
+    verItinerario();
+  } catch (e) {
+    aviso(e.message, 'mal', 'No se pudo mover');
+  }
+}
+
+// ── Navegación del rango ────────────────────────────────────────────────────
 
 function moverItin(n) { itinDesde = nDias(itinDesde, n); verItinerario(); }
 
@@ -702,6 +818,17 @@ async function modalItinerario(id, vehiculoId, fecha) {
       <b>${esc(veh?.placa || '')}</b> · ${diaSemana(fecha)}
       ${new Date(fecha + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })}
     </div>
+    ${predeterminados.length ? `
+      <label class="lb">Predeterminados</label>
+      <div class="pred-chips">
+        ${predeterminados.map(p => `<button type="button" class="pred-chip"
+          onclick="aplicarChip(${p.id})">${esc(p.nombre)}${p.veces_usado
+            ? `<span class="veces">${p.veces_usado}</span>` : ''}</button>`).join('')}
+      </div>` : `
+      <div class="nota" style="margin-bottom:1rem">
+        Aún no hay predeterminados. Llene los campos y use
+        <b>Guardar como predeterminado</b> para no repetirlos cada vez.
+      </div>`}
     <div class="campo"><label class="lb">Tipo de jornada <span class="req">*</span></label>
       <select class="inp" id="it-tipo" onchange="itinToggleDestino()">
         ${Object.entries(TIPOS_JORNADA).map(([k, t]) =>
@@ -734,7 +861,9 @@ async function modalItinerario(id, vehiculoId, fecha) {
       <input class="inp" id="it-motivo" placeholder="Por qué se modifica (queda registrado)"></div>` : ''}
     ${it?.num_cambios ? `<button class="btn sec sm" onclick="verCambios(${it.id})">
       Ver historial de cambios (${it.num_cambios})</button>` : ''}`,
-    `${it ? `<button class="btn sec" onclick="cancelarItinerario(${it.id})">Cancelar programación</button>` : ''}
+    `${it ? `<button class="btn sec" onclick="borrarItinerario(${it.id})">${
+        sesion.rol === 'principal' ? 'Borrar' : 'Cancelar'}</button>` : ''}
+     <button class="btn sec" onclick="guardarComoPredeterminado()">Guardar como predeterminado</button>
      <button class="btn sec" onclick="cerrarModal()">Cerrar</button>
      <button class="btn" id="it-btn" onclick="guardarItinerario(${id || 'null'},${vehiculoId},'${fecha}')">Guardar</button>`);
   itinToggleDestino();
@@ -761,6 +890,7 @@ async function guardarItinerario(id, vehiculoId, fecha) {
   }
   if (id) cuerpo.motivo = $('#it-motivo')?.value.trim() || undefined;
 
+
   try {
     if (id) await api('/api/itinerario/' + id, { metodo: 'PUT', cuerpo });
     else await api('/api/itinerario', { metodo: 'POST', cuerpo });
@@ -774,13 +904,131 @@ async function guardarItinerario(id, vehiculoId, fecha) {
   }
 }
 
-async function cancelarItinerario(id) {
-  const motivo = prompt('Motivo de la cancelación:');
-  if (motivo === null) return;
+/**
+ * Coordinación cancela (queda registrada); el administrador puede además
+ * borrar de verdad. Si el día ya tiene viajes, el servidor rechaza las dos.
+ */
+async function borrarItinerario(id) {
+  const admin = sesion.rol === 'principal';
+  abrirModal(admin ? 'Quitar programación' : 'Cancelar programación', `
+    <div class="campo"><label class="lb">Motivo</label>
+      <input class="inp" id="bo-motivo" placeholder="Por qué se quita (queda registrado)"></div>
+    ${admin ? `
+      <div class="campo">
+        <label style="display:flex;gap:.5rem;align-items:flex-start;font-size:.86rem;cursor:pointer">
+          <input type="checkbox" id="bo-definitivo" style="margin-top:.2rem">
+          <span><b>Borrar definitivamente</b><br>
+            <span style="color:var(--muted);font-size:.8rem">Sin esta casilla queda cancelada y
+            visible en el historial. Con ella se elimina junto con su historial de cambios.</span>
+          </span></label>
+      </div>` : `
+      <div class="nota">Queda marcada como cancelada y se puede consultar después.
+        Solo el administrador puede borrarla del todo.</div>`}`,
+    `<button class="btn sec" onclick="cerrarModal()">Volver</button>
+     <button class="btn rojo" id="bo-btn" onclick="confirmarBorrado(${id})">Confirmar</button>`);
+}
+
+async function confirmarBorrado(id) {
+  const btn = $('#bo-btn'); btn.disabled = true; btn.textContent = 'Quitando...';
+  const definitivo = $('#bo-definitivo')?.checked;
   try {
-    await api('/api/itinerario/' + id, { metodo: 'DELETE', cuerpo: { motivo } });
-    cerrarModal(); aviso('Programación cancelada', 'ok', 'Listo'); verItinerario();
-  } catch (e) { aviso(e.message, 'mal', 'No se pudo cancelar'); }
+    await api(`/api/itinerario/${id}${definitivo ? '?definitivo=1' : ''}`, {
+      metodo: 'DELETE', cuerpo: { motivo: $('#bo-motivo').value.trim() || null },
+    });
+    cerrarModal();
+    aviso(definitivo ? 'Programación borrada' : 'Programación cancelada', 'ok', 'Listo');
+    verItinerario();
+  } catch (e) {
+    aviso(e.message, 'mal', 'No se pudo quitar');
+    btn.disabled = false; btn.textContent = 'Confirmar';
+  }
+}
+
+// ── Banco de predeterminados ─────────────────────────────────────────────────
+
+/** Vuelca un predeterminado sobre los campos del formulario abierto. */
+function aplicarChip(id) {
+  const p = predeterminados.find(x => x.id === id);
+  if (!p) return;
+  $('#it-tipo').value = p.tipo_jornada;
+  $('#it-mun').value = p.municipio_id || '';
+  $('#it-dest').value = p.destino || '';
+  if (p.observaciones) $('#it-obs').value = p.observaciones;
+  itinToggleDestino();
+  aviso(`Aplicado: ${p.nombre}`, 'ok');
+}
+
+function guardarComoPredeterminado() {
+  const tipo = $('#it-tipo').value, dest = $('#it-dest').value.trim();
+  const mun = $('#it-mun').value;
+  const sugerido = tipo === 'disponible'
+    ? 'Disponible ' + (cat.municipios.find(m => m.id == mun)?.nombre || '')
+    : `${TIPOS_JORNADA[tipo].et} ${dest}`.trim();
+
+  abrirModal('Guardar como predeterminado', `
+    <p style="font-size:.87rem;color:var(--text-soft);margin:0 0 1rem">
+      Queda en el banco para adjudicarlo con un clic, y es el valor que se escribe
+      en la plantilla de Excel.</p>
+    <div class="campo"><label class="lb">Nombre <span class="req">*</span></label>
+      <input class="inp" id="gp-nombre" value="${esc(sugerido)}"></div>
+    <div class="nota">
+      ${TIPOS_JORNADA[tipo].et}${dest ? ' · ' + esc(dest) : ''}${
+        mun ? ' · ' + esc(cat.municipios.find(m => m.id == mun)?.nombre || '') : ''}
+    </div>`,
+    `<button class="btn sec" onclick="cerrarModal()">Cancelar</button>
+     <button class="btn" id="gp-btn" onclick="crearPredeterminado('${tipo}','${esc(dest)}',${mun || 'null'})">Guardar</button>`);
+}
+
+async function crearPredeterminado(tipo, destino, municipioId) {
+  const nombre = $('#gp-nombre').value.trim();
+  if (!nombre) return aviso('Póngale un nombre', 'mal');
+  const btn = $('#gp-btn'); btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    await api('/api/predeterminados', {
+      metodo: 'POST',
+      cuerpo: {
+        nombre, tipo_jornada: tipo,
+        municipio_id: municipioId || null,
+        destino_nombre: tipo === 'disponible' ? null : (destino || null),
+        observaciones: null,
+      },
+    });
+    cerrarModal();
+    aviso('Guardado en el banco', 'ok', 'Listo');
+    predeterminados = await api('/api/predeterminados');
+  } catch (e) {
+    aviso(e.message, 'mal', 'No se pudo guardar');
+    btn.disabled = false; btn.textContent = 'Guardar';
+  }
+}
+
+async function modalPredeterminados() {
+  predeterminados = await api('/api/predeterminados');
+  abrirModal('Banco de predeterminados', `
+    <p style="font-size:.87rem;color:var(--text-soft);margin:0 0 1rem">
+      Combinaciones de jornada y destino que se repiten. Se aplican con un clic al
+      adjudicar, y son los valores que acepta la plantilla de Excel.</p>
+    ${predeterminados.length ? `<div class="tabla-env" style="border:0"><table>
+      <thead><tr><th>Nombre</th><th>Jornada</th><th>Destino</th><th class="num">Usos</th><th></th></tr></thead>
+      <tbody>${predeterminados.map(p => `
+        <tr>
+          <td><b>${esc(p.nombre)}</b></td>
+          <td><span class="etq ${TIPOS_JORNADA[p.tipo_jornada]?.color || 'gris'}">${TIPOS_JORNADA[p.tipo_jornada]?.et || esc(p.tipo_jornada)}</span></td>
+          <td>${esc(p.destino || '—')}<br><span style="font-size:.7rem;color:var(--muted)">${esc(p.municipio || '')}</span></td>
+          <td class="num">${p.veces_usado}</td>
+          <td>${sesion.rol === 'principal'
+            ? `<button class="btn sec sm" onclick="quitarPredeterminado(${p.id})">Quitar</button>`
+            : ''}</td>
+        </tr>`).join('')}</tbody></table></div>`
+      : '<div class="vacio">Todavía no hay predeterminados. Se crean al adjudicar un desplazamiento, con el botón <b>Guardar como predeterminado</b>.</div>'}`);
+}
+
+async function quitarPredeterminado(id) {
+  try {
+    await api('/api/predeterminados/' + id, { metodo: 'DELETE' });
+    aviso('Quitado del banco', 'ok');
+    modalPredeterminados();
+  } catch (e) { aviso(e.message, 'mal'); }
 }
 
 async function verCambios(id) {
@@ -1506,4 +1754,417 @@ async function verAuditoria() {
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* opcional */ });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PLANTILLA DE EXCEL
+//
+// Matriz igual a la que ya usaba Coordinación (vehículos en filas, días en
+// columnas), con tres añadidos que la hacen inequívoca al volver a cargarla:
+//
+//   1. La fila de encabezado lleva la fecha en formato ISO (2026-09-14). Es la
+//      llave de lectura: no depende del idioma ni del formato de fecha de Excel.
+//   2. Cada celda admite UN valor de una lista cerrada — el nombre de un
+//      predeterminado o de un destino — en vez de texto libre como
+//      "DISPONIBLE ABREGO", que mezclaba tipo de jornada y lugar.
+//   3. Una hoja OPCIONES con los valores válidos y su significado, que además
+//      alimenta la lista desplegable de las celdas.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SEP_OBS = '//';          // "EBS Santa Inés // llevar termo" -> valor + observación
+
+/**
+ * Prefijo que lleva la celda cuando la jornada NO es una ruta EBS corriente.
+ *
+ * Sin él la exportación sería irreversible: un día de vacunación a Honduras se
+ * escribiría solo "HONDURAS" y al volver a cargarlo se registraría como ruta
+ * EBS, cambiando en silencio decenas de días que nadie tocó.
+ */
+const PREFIJO_JORNADA = {
+  jornada:         'JORNADA',
+  vacunacion:      'VACUNACIÓN',
+  traslado_ciudad: 'FUERA DEL ÁREA',
+  administrativo:  'ADMINISTRATIVO',
+};
+const POR_PREFIJO = Object.fromEntries(
+  Object.entries(PREFIJO_JORNADA).map(([k, v]) => [v, k]));
+
+/** Texto con el que una programación viaja a la celda de Excel. */
+function etiquetaCelda(it, destino) {
+  // Si hay un predeterminado que calza exacto, se usa su nombre: es el valor
+  // que la lista desplegable ofrece y el más cómodo de escoger.
+  const pre = predeterminados.find(p =>
+    p.tipo_jornada === it.tipo_jornada &&
+    (p.destino || '') === (destino || '') &&
+    (p.municipio_id || null) === (it.municipio_id || null));
+  if (pre) return pre.nombre;
+
+  if (it.tipo_jornada === 'disponible') return 'DISPONIBLE';
+  if (it.tipo_jornada === 'ebs') return destino || '';
+  return `${PREFIJO_JORNADA[it.tipo_jornada] || it.tipo_jornada}: ${destino || ''}`.trim();
+}
+
+/** Valores que la plantilla acepta en una celda, con lo que significa cada uno. */
+function opcionesPlantilla() {
+  const filas = [];
+  filas.push(['DISPONIBLE', 'El vehículo queda en base, sin desplazamiento',
+              'Disponible', '', '']);
+  for (const [tipo, prefijo] of Object.entries(PREFIJO_JORNADA)) {
+    filas.push([`${prefijo}: <destino>`,
+                `Escriba el prefijo, dos puntos y el destino. Ej: ${prefijo}: ASERRÍO`,
+                TIPOS_JORNADA[tipo].et, '', '']);
+  }
+  for (const p of predeterminados) {
+    filas.push([p.nombre, 'Predeterminado del banco',
+                TIPOS_JORNADA[p.tipo_jornada]?.et || p.tipo_jornada,
+                p.municipio || '', p.destino || '']);
+  }
+  for (const d of cat.destinos) {
+    if (predeterminados.some(p => p.destino === d.nombre)) continue;
+    filas.push([d.nombre, 'Destino del catálogo (se registra como ruta EBS)',
+                'Ruta EBS', d.municipio || '', d.nombre]);
+  }
+  return filas;
+}
+
+async function descargarPlantilla() {
+  const hasta = nDias(itinDesde, 13);
+  const dias = Array.from({ length: 14 }, (_, i) => nDias(itinDesde, i));
+  const activos = vehiculos.filter(v => v.activo !== 0);
+  const porClave = {};
+  itinDatos.forEach(i => { porClave[i.fecha + '|' + i.vehiculo_id] = i; });
+
+  // ── Hoja ITINERARIO ──
+  const filas = [
+    ['FLOTA VEHICULAR · ESE HOSPITAL REGIONAL NOROCCIDENTAL'],
+    [`Itinerario del ${itinDesde} al ${hasta}`],
+    ['Escriba en cada celda un valor de la hoja OPCIONES. Deje vacío si no hay programación.'],
+    [`Para una nota puntual: VALOR ${SEP_OBS} su observación`],
+    [],
+    ['', '', ...dias.map(diaSemana)],
+    ['PLACA', 'CONDUCTOR', ...dias],
+  ];
+  for (const v of activos) {
+    filas.push([v.placa, v.conductor_actual?.trim() || '', ...dias.map(f => {
+      const it = porClave[f + '|' + v.id];
+      if (!it) return '';
+      const base = etiquetaCelda(it, it.destino);
+      return it.observaciones ? `${base} ${SEP_OBS} ${it.observaciones}` : base;
+    })]);
+  }
+
+  const libro = XLSX.utils.book_new();
+  const hoja = XLSX.utils.aoa_to_sheet(filas);
+  hoja['!cols'] = [{ wch: 12 }, { wch: 24 }, ...dias.map(() => ({ wch: 20 }))];
+  hoja['!freeze'] = { xSplit: 2, ySplit: 7 };
+  XLSX.utils.book_append_sheet(libro, hoja, 'ITINERARIO');
+
+  // ── Hoja OPCIONES ──
+  const opciones = opcionesPlantilla();
+  const hojaOp = XLSX.utils.aoa_to_sheet([
+    ['VALOR', 'QUÉ SIGNIFICA', 'TIPO DE JORNADA', 'MUNICIPIO', 'DESTINO'],
+    ...opciones,
+  ]);
+  hojaOp['!cols'] = [{ wch: 30 }, { wch: 44 }, { wch: 16 }, { wch: 16 }, { wch: 22 }];
+  XLSX.utils.book_append_sheet(libro, hojaOp, 'OPCIONES');
+
+  // ── Hoja INSTRUCCIONES ──
+  const hojaIns = XLSX.utils.aoa_to_sheet([
+    ['CÓMO LLENAR ESTA PLANTILLA'],
+    [],
+    ['1.', 'Trabaje solo en la hoja ITINERARIO.'],
+    ['2.', 'No cambie la fila de PLACA ni la fila de fechas: son las que el sistema lee.'],
+    ['3.', 'En cada celda escriba un valor de la hoja OPCIONES, o escójalo de la lista.'],
+    ['4.', 'Celda vacía significa que ese día no hay programación.'],
+    ['5.', `Para agregar una nota: VALOR ${SEP_OBS} su observación.`],
+    ['6.', 'Si escribe un destino que no está en OPCIONES, se creará como destino nuevo.'],
+    ['7.', 'Un destino a secas se registra como ruta EBS. Para otra jornada, use el'],
+    ['', 'prefijo: VACUNACIÓN: HONDURAS, JORNADA: ASERRÍO, FUERA DEL ÁREA: CÚCUTA.'],
+    ['8.', 'Lo más cómodo es guardar predeterminados en la aplicación: aparecen en la'],
+    ['', 'lista desplegable con un nombre propio y no hay que escribir prefijos.'],
+    [],
+    ['AL CARGARLO'],
+    ['', 'La aplicación le muestra primero qué va a crear, cambiar y borrar.'],
+    ['', 'Nada se aplica hasta que usted confirme.'],
+    ['', 'Los días en los que el conductor ya marcó salida no se tocan: aparecen'],
+    ['', 'como bloqueados, porque cambiarlos descuadraría la liquidación.'],
+    [],
+    ['Generado el', new Date().toLocaleString('es-CO')],
+  ]);
+  hojaIns['!cols'] = [{ wch: 6 }, { wch: 78 }];
+  XLSX.utils.book_append_sheet(libro, hojaIns, 'INSTRUCCIONES');
+
+  // Se escribe el archivo y luego se le inyecta la lista desplegable, que
+  // SheetJS no sabe generar por sí solo.
+  let datos = XLSX.write(libro, { bookType: 'xlsx', type: 'array' });
+  try {
+    datos = await inyectarLista(datos, activos.length, dias.length, opciones.length);
+  } catch {
+    // Si algo falla, la plantilla sirve igual: la validación real ocurre al cargarla.
+  }
+
+  const url = URL.createObjectURL(new Blob([datos],
+    { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = `itinerario_${itinDesde}_a_${hasta}.xlsx`; a.click();
+  URL.revokeObjectURL(url);
+  aviso('Plantilla descargada', 'ok', 'Listo');
+}
+
+/**
+ * Añade al .xlsx una lista desplegable en las celdas de días, tomada de la hoja
+ * OPCIONES. Se hace abriendo el archivo como ZIP porque la versión libre de
+ * SheetJS no escribe validación de datos.
+ *
+ * Se usa errorStyle="warning": avisa si el valor no está en la lista, pero deja
+ * escribirlo — hace falta para poder registrar un destino nuevo.
+ */
+async function inyectarLista(datos, numVehiculos, numDias, numOpciones) {
+  const zip = await JSZip.loadAsync(datos);
+  const ruta = Object.keys(zip.files).find(n => /xl\/worksheets\/sheet1\.xml$/.test(n));
+  if (!ruta) return datos;
+
+  let xml = await zip.file(ruta).async('string');
+  if (xml.includes('<dataValidations')) return datos;
+
+  const col = n => {                       // 0 -> A, 26 -> AA
+    let s = '';
+    for (n += 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s;
+    return s;
+  };
+  const rango = `C8:${col(2 + numDias - 1)}${7 + numVehiculos}`;
+  const validacion =
+    `<dataValidations count="1"><dataValidation type="list" allowBlank="1"` +
+    ` showInputMessage="1" showErrorMessage="1" errorStyle="warning"` +
+    ` error="Ese valor no está en la hoja OPCIONES. Si es un destino nuevo, puede continuar."` +
+    ` errorTitle="Valor fuera de la lista" sqref="${rango}">` +
+    `<formula1>OPCIONES!$A$2:$A$${numOpciones + 1}</formula1></dataValidation></dataValidations>`;
+
+  xml = xml.replace('</worksheet>', validacion + '</worksheet>');
+  zip.file(ruta, xml);
+  // 'uint8array', no 'array': JSZip devolvería un arreglo de números y el Blob
+  // lo escribiría como texto, produciendo un archivo que Excel no puede abrir.
+  return zip.generateAsync({ type: 'uint8array' });
+}
+
+// ── Carga de la plantilla ────────────────────────────────────────────────────
+
+/** Traduce el texto de una celda a los campos de una programación. */
+function interpretarCelda(texto) {
+  const bruto = String(texto ?? '').trim();
+  if (!bruto) return null;
+
+  const corte = bruto.indexOf(SEP_OBS);
+  const valor = (corte >= 0 ? bruto.slice(0, corte) : bruto).trim();
+  const observaciones = corte >= 0 ? bruto.slice(corte + SEP_OBS.length).trim() : null;
+  if (!valor) return null;
+
+  const igual = a => a.trim().toLocaleUpperCase('es') === valor.toLocaleUpperCase('es');
+
+  if (igual('DISPONIBLE')) {
+    return { tipo_jornada: 'disponible', destino_nombre: null, municipio_id: null,
+             observaciones, etiqueta: 'Disponible' };
+  }
+  const pre = predeterminados.find(p => igual(p.nombre));
+  if (pre) {
+    return { tipo_jornada: pre.tipo_jornada, destino_nombre: pre.destino || null,
+             municipio_id: pre.municipio_id || null,
+             observaciones: observaciones ?? pre.observaciones,
+             etiqueta: pre.nombre };
+  }
+  // "VACUNACIÓN: HONDURAS" -> tipo vacunacion + destino HONDURAS
+  const dosPuntos = valor.indexOf(':');
+  if (dosPuntos > 0) {
+    const prefijo = valor.slice(0, dosPuntos).trim().toLocaleUpperCase('es');
+    const tipo = POR_PREFIJO[prefijo];
+    if (tipo) {
+      const nombreDest = valor.slice(dosPuntos + 1).trim();
+      const d = cat.destinos.find(x =>
+        x.nombre.trim().toLocaleUpperCase('es') === nombreDest.toLocaleUpperCase('es'));
+      return { tipo_jornada: tipo, destino_nombre: nombreDest || null,
+               municipio_id: d?.municipio_id || null, observaciones,
+               etiqueta: valor, nuevo: !d && !!nombreDest };
+    }
+  }
+
+  const dest = cat.destinos.find(d => igual(d.nombre));
+  if (dest) {
+    return { tipo_jornada: 'ebs', destino_nombre: dest.nombre,
+             municipio_id: dest.municipio_id || null, observaciones,
+             etiqueta: dest.nombre };
+  }
+  // Destino que todavía no existe: se crea al aplicar.
+  return { tipo_jornada: 'ebs', destino_nombre: valor, municipio_id: null,
+           observaciones, etiqueta: valor, nuevo: true };
+}
+
+async function cargarPlantilla(input) {
+  const archivo = input.files?.[0];
+  input.value = '';                                  // permite recargar el mismo archivo
+  if (!archivo) return;
+
+  let filas;
+  try {
+    const libro = XLSX.read(await archivo.arrayBuffer(), { type: 'array' });
+    const hoja = libro.Sheets['ITINERARIO'] || libro.Sheets[libro.SheetNames[0]];
+    filas = XLSX.utils.sheet_to_json(hoja, { header: 1, blankrows: false, defval: '' });
+  } catch (e) {
+    return aviso('No se pudo leer el archivo: ' + e.message, 'mal', 'Archivo ilegible');
+  }
+
+  const iCab = filas.findIndex(f => String(f[0] ?? '').trim().toUpperCase() === 'PLACA');
+  if (iCab < 0) {
+    return aviso('No encontré la fila que empieza con PLACA. ¿Es la plantilla descargada?',
+                 'mal', 'Formato no reconocido');
+  }
+
+  // Fechas ISO del encabezado, desde la tercera columna
+  const cols = [];
+  for (let c = 2; c < filas[iCab].length; c++) {
+    const v = String(filas[iCab][c] ?? '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) cols.push({ c, fecha: v });
+  }
+  if (!cols.length) {
+    return aviso('La fila de PLACA no trae fechas en formato 2026-09-14.',
+                 'mal', 'Formato no reconocido');
+  }
+
+  // Se recarga el itinerario del rango del archivo, no el de la pantalla
+  const desde = cols[0].fecha, hasta = cols[cols.length - 1].fecha;
+  const actual = await api(`/api/itinerario?desde=${desde}&hasta=${hasta}`);
+  const porClave = {};
+  actual.forEach(i => { porClave[i.fecha + '|' + i.vehiculo_id] = i; });
+
+  const ops = [], avisos = [], bloqueadas = [];
+  let sinCambio = 0;
+
+  for (let r = iCab + 1; r < filas.length; r++) {
+    const placa = String(filas[r][0] ?? '').trim().toUpperCase();
+    if (!placa) continue;
+    const veh = vehiculos.find(v => v.placa.toUpperCase() === placa);
+    if (!veh) { avisos.push(`Placa desconocida, fila omitida: ${placa}`); continue; }
+
+    for (const { c, fecha } of cols) {
+      const nueva = interpretarCelda(filas[r][c]);
+      const vieja = porClave[fecha + '|' + veh.id];
+
+      if (vieja && vieja.trayectos_cerrados > 0) {
+        const quiereCambio = !nueva
+          || nueva.tipo_jornada !== vieja.tipo_jornada
+          || (nueva.destino_nombre || '') !== (vieja.destino || '');
+        if (quiereCambio) bloqueadas.push(`${placa} · ${fecha} (el conductor ya marcó)`);
+        continue;
+      }
+
+      if (!nueva && vieja) {
+        ops.push({ accion: 'borrar', id: vieja.id, placa, fecha,
+                   antes: vieja.destino || TIPOS_JORNADA[vieja.tipo_jornada]?.et });
+      } else if (nueva && !vieja) {
+        ops.push({ accion: 'crear', fecha, vehiculo_id: veh.id,
+                   conductor_id: veh.conductor_id || null,
+                   tipo_jornada: nueva.tipo_jornada, municipio_id: nueva.municipio_id,
+                   destino_nombre: nueva.destino_nombre,
+                   observaciones: nueva.observaciones,
+                   placa, despues: nueva.etiqueta, nuevo: nueva.nuevo });
+      } else if (nueva && vieja) {
+        const cambia = nueva.tipo_jornada !== vieja.tipo_jornada
+          || (nueva.destino_nombre || '') !== (vieja.destino || '')
+          || (nueva.observaciones || '') !== (vieja.observaciones || '');
+        if (!cambia) { sinCambio++; continue; }
+        ops.push({ accion: 'actualizar', id: vieja.id, fecha, vehiculo_id: veh.id,
+                   tipo_jornada: nueva.tipo_jornada, municipio_id: nueva.municipio_id,
+                   destino_nombre: nueva.destino_nombre,
+                   observaciones: nueva.observaciones,
+                   placa, antes: vieja.destino || TIPOS_JORNADA[vieja.tipo_jornada]?.et,
+                   despues: nueva.etiqueta, nuevo: nueva.nuevo });
+      }
+    }
+  }
+
+  mostrarPrevia(ops, avisos, bloqueadas, sinCambio, desde, hasta);
+}
+
+function mostrarPrevia(ops, avisos, bloqueadas, sinCambio, desde, hasta) {
+  const porAccion = a => ops.filter(o => o.accion === a);
+  const crear = porAccion('crear'), actualizar = porAccion('actualizar'), borrar = porAccion('borrar');
+  const destinosNuevos = [...new Set(ops.filter(o => o.nuevo).map(o => o.despues))];
+
+  const lista = (titulo, arr, color, render) => arr.length ? `
+    <div class="chk-sec" style="color:var(--${color})">${titulo} (${arr.length})</div>
+    <div style="max-height:190px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)">
+      ${arr.map(render).join('')}
+    </div>` : '';
+
+  abrirModal('Vista previa de la carga', `
+    <p style="font-size:.87rem;color:var(--text-soft);margin:0 0 .85rem">
+      Del <b>${desde}</b> al <b>${hasta}</b>. Nada se ha guardado todavía.</p>
+
+    <div class="previa-res">
+      <div class="r" style="border-color:rgba(10,125,87,.3)"><b style="color:var(--verde)">${crear.length}</b>a crear</div>
+      <div class="r" style="border-color:rgba(162,98,10,.3)"><b style="color:var(--ambar)">${actualizar.length}</b>a cambiar</div>
+      <div class="r" style="border-color:rgba(194,46,36,.3)"><b style="color:var(--rojo)">${borrar.length}</b>a borrar</div>
+      <div class="r"><b style="color:var(--muted)">${sinCambio}</b>sin cambio</div>
+    </div>
+
+    ${bloqueadas.length ? `<div class="nota avi" style="margin-bottom:.85rem">
+      <b>${bloqueadas.length} día(s) no se tocarán</b> porque el conductor ya marcó salida.
+      Cambiarlos descuadraría el contador de días y la liquidación.
+      <div style="margin-top:.3rem;font-size:.78rem">${bloqueadas.slice(0, 6).map(esc).join('<br>')}
+      ${bloqueadas.length > 6 ? `<br>y ${bloqueadas.length - 6} más` : ''}</div>
+    </div>` : ''}
+
+    ${avisos.length ? `<div class="nota avi" style="margin-bottom:.85rem">
+      ${avisos.slice(0, 5).map(esc).join('<br>')}</div>` : ''}
+
+    ${destinosNuevos.length ? `<div class="nota" style="margin-bottom:.85rem">
+      Se crearán ${destinosNuevos.length} destino(s) nuevo(s):
+      <b>${destinosNuevos.slice(0, 8).map(esc).join(', ')}</b>${destinosNuevos.length > 8 ? '…' : ''}
+      <br><span style="font-size:.78rem">Revise que no sean errores de digitación de un destino que ya existe.</span>
+    </div>` : ''}
+
+    ${lista('Se van a crear', crear, 'verde', o => `<div class="previa-fila">
+      <b class="placa">${esc(o.placa)}</b>
+      <span>${esc(o.fecha)} · ${esc(o.despues)}</span></div>`)}
+
+    ${lista('Van a cambiar', actualizar, 'ambar', o => `<div class="previa-fila">
+      <b class="placa">${esc(o.placa)}</b>
+      <span>${esc(o.fecha)} · <s style="color:var(--muted)">${esc(o.antes || 'vacío')}</s> → ${esc(o.despues)}</span></div>`)}
+
+    ${lista('Se van a borrar', borrar, 'rojo', o => `<div class="previa-fila">
+      <b class="placa">${esc(o.placa)}</b>
+      <span>${esc(o.fecha)} · ${esc(o.antes || '')}</span></div>`)}
+
+    ${!ops.length ? '<div class="vacio">El archivo no trae ningún cambio respecto a lo que ya está registrado.</div>' : ''}`,
+    `<button class="btn sec" onclick="cerrarModal()">Cancelar</button>
+     ${ops.length ? `<button class="btn" id="pv-btn" onclick="aplicarPrevia()">Aplicar ${ops.length} cambio(s)</button>` : ''}`);
+
+  window._opsPrevia = ops;
+}
+
+async function aplicarPrevia() {
+  const ops = window._opsPrevia || [];
+  const btn = $('#pv-btn'); btn.disabled = true; btn.textContent = 'Aplicando...';
+  try {
+    const r = await api('/api/itinerario/lote', {
+      metodo: 'POST',
+      cuerpo: {
+        operaciones: ops.map(({ placa, antes, despues, nuevo, ...o }) => o),
+      },
+    });
+    cerrarModal();
+    const partes = [];
+    if (r.creadas) partes.push(`${r.creadas} creada(s)`);
+    if (r.actualizadas) partes.push(`${r.actualizadas} cambiada(s)`);
+    if (r.borradas) partes.push(`${r.borradas} borrada(s)`);
+    aviso(partes.join(' · ') || 'Sin cambios', 'ok', 'Itinerario actualizado');
+    if (r.errores?.length) {
+      aviso(`${r.errores.length} fila(s) no se pudieron aplicar: ${r.errores[0].motivo}`,
+            'avi', 'Con reparos');
+    }
+    cat = await api('/api/catalogos');
+    verItinerario();
+  } catch (e) {
+    aviso(e.message, 'mal', 'No se pudo aplicar');
+    btn.disabled = false; btn.textContent = 'Aplicar';
+  }
 }

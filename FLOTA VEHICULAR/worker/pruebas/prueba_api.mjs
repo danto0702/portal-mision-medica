@@ -207,6 +207,134 @@ verificar('el historial dice quién y qué cambió',
 r = await api('PUT', `/api/itinerario/${itinerario}`, { tipo_jornada: 'ebs' }, tCond);
 verificar('el conductor NO modifica el itinerario', r.estado === 403, r.datos);
 
+console.log('\n── Predeterminados ───────────────────────────────────────────');
+r = await api('POST', '/api/predeterminados', {
+  nombre: 'EBS Santa Inés', tipo_jornada: 'ebs', municipio_id: 3,
+  destino_nombre: 'SANTA INÉS', observaciones: 'Ruta habitual',
+}, tCoord);
+verificar('coordinación crea un predeterminado', r.estado === 200 && r.datos.id, r.datos);
+const pred = r.datos.id;
+
+r = await api('GET', '/api/predeterminados', null, tCond);
+verificar('el conductor puede leerlos', r.estado === 200 && r.datos.length === 1, r.datos);
+verificar('trae el destino resuelto', r.datos[0].destino === 'SANTA INÉS', r.datos[0]);
+
+r = await api('POST', '/api/itinerario', {
+  fecha: '2026-11-03', vehiculo_id: vehiculo, predeterminado_id: pred,
+}, tCoord);
+verificar('adjudicar con un predeterminado', r.estado === 200, r.datos);
+const itPred = r.datos.id;
+
+r = await api('GET', '/api/itinerario?desde=2026-11-03&hasta=2026-11-03', null, tCoord);
+verificar('el predeterminado llenó tipo, municipio y destino',
+  r.datos[0] && r.datos[0].tipo_jornada === 'ebs' && r.datos[0].destino === 'SANTA INÉS'
+  && r.datos[0].municipio_id === 3, r.datos[0]);
+
+r = await api('GET', '/api/predeterminados', null, tCoord);
+verificar('cuenta cuántas veces se ha usado', r.datos[0].veces_usado === 1, r.datos[0]);
+
+r = await api('DELETE', `/api/predeterminados/${pred}`, null, tCoord);
+verificar('coordinación NO borra predeterminados', r.estado === 403, r.datos);
+r = await api('DELETE', `/api/predeterminados/${pred}`, null, tokenPrincipal);
+verificar('el administrador sí, y solo lo desactiva', r.estado === 200, r.datos);
+r = await api('GET', '/api/predeterminados', null, tCoord);
+verificar('desactivado deja de aparecer', r.datos.length === 0, r.datos);
+
+console.log('\n── Mover y duplicar ──────────────────────────────────────────');
+r = await api('POST', '/api/itinerario/mover', {
+  id: itPred, fecha: '2026-11-04', vehiculo_id: vehiculo,
+}, tCoord);
+verificar('mueve a un día libre', r.estado === 200 && !r.datos.intercambio, r.datos);
+
+r = await api('GET', '/api/itinerario?desde=2026-11-03&hasta=2026-11-04', null, tCoord);
+verificar('quedó solo en el día nuevo',
+  r.datos.length === 1 && r.datos[0].fecha === '2026-11-04', r.datos.map(x => x.fecha));
+
+r = await api('GET', `/api/itinerario/${itPred}/cambios`, null, tCoord);
+verificar('el movimiento queda en el historial',
+  r.datos.some(c => c.campo === 'fecha' && c.valor_despues === '2026-11-04'), r.datos);
+
+r = await api('POST', '/api/itinerario/mover', {
+  id: itPred, fecha: '2026-11-05', vehiculo_id: vehiculo, duplicar: true,
+}, tCoord);
+verificar('duplica en otro día', r.estado === 200 && r.datos.duplicado, r.datos);
+const itDup = r.datos.id;
+
+r = await api('GET', '/api/itinerario?desde=2026-11-04&hasta=2026-11-05', null, tCoord);
+verificar('ahora hay dos, con el mismo destino',
+  r.datos.length === 2 && r.datos[0].destino === r.datos[1].destino,
+  r.datos.map(x => `${x.fecha}:${x.destino}`));
+
+r = await api('POST', '/api/itinerario/mover', {
+  id: itPred, fecha: '2026-11-05', vehiculo_id: vehiculo, duplicar: true,
+}, tCoord);
+verificar('no duplica sobre una celda ocupada', r.estado === 400, r.datos);
+
+// Intercambio: las dos existentes cambian de lugar
+r = await api('POST', '/api/itinerario/mover', {
+  id: itPred, fecha: '2026-11-05', vehiculo_id: vehiculo,
+}, tCoord);
+verificar('mover sobre celda ocupada intercambia', r.estado === 200 && r.datos.intercambio, r.datos);
+
+r = await api('GET', '/api/itinerario?desde=2026-11-04&hasta=2026-11-05', null, tCoord);
+const porFecha = Object.fromEntries(r.datos.map(x => [x.fecha, x.id]));
+verificar('cada una quedó en el lugar de la otra',
+  porFecha['2026-11-05'] === itPred && porFecha['2026-11-04'] === itDup, porFecha);
+verificar('ninguna se perdió en el intercambio', r.datos.length === 2, r.datos.length);
+
+console.log('\n── Borrado definitivo ────────────────────────────────────────');
+r = await api('DELETE', `/api/itinerario/${itDup}?definitivo=1`, null, tCoord);
+verificar('coordinación NO borra definitivamente', r.estado === 403, r.datos);
+
+r = await api('DELETE', `/api/itinerario/${itDup}`, { motivo: 'prueba' }, tCoord);
+verificar('coordinación sí puede cancelar', r.estado === 200 && r.datos.borrado === false, r.datos);
+
+r = await api('DELETE', `/api/itinerario/${itPred}?definitivo=1`, null, tokenPrincipal);
+verificar('el administrador borra definitivamente', r.estado === 200 && r.datos.borrado, r.datos);
+
+r = await api('GET', '/api/itinerario?desde=2026-11-04&hasta=2026-11-05', null, tCoord);
+verificar('el borrado desaparece de verdad', r.datos.length === 1, r.datos.map(x => x.id));
+
+console.log('\n── Carga por lote (plantilla de Excel) ───────────────────────');
+r = await api('POST', '/api/itinerario/lote', {
+  operaciones: [
+    { accion: 'crear', fecha: '2026-12-10', vehiculo_id: vehiculo, municipio_id: 1,
+      destino_nombre: 'LA LAGUNA', tipo_jornada: 'ebs' },
+    { accion: 'crear', fecha: '2026-12-11', vehiculo_id: vehiculo, tipo_jornada: 'disponible' },
+    { accion: 'crear', fecha: '2026-12-12', vehiculo_id: 999999, tipo_jornada: 'ebs' },
+  ],
+}, tCoord);
+verificar('el lote crea lo válido', r.estado === 200 && r.datos.creadas === 2, r.datos);
+verificar('y reporta la fila mala sin tumbar el resto',
+  r.datos.errores.length === 1, r.datos.errores);
+
+r = await api('GET', '/api/itinerario?desde=2026-12-10&hasta=2026-12-12', null, tCoord);
+verificar('quedaron las dos en el itinerario', r.datos.length === 2, r.datos.length);
+const idLote = r.datos.find(x => x.fecha === '2026-12-10').id;
+
+r = await api('POST', '/api/itinerario/lote', {
+  operaciones: [{ accion: 'actualizar', id: idLote, tipo_jornada: 'vacunacion',
+                  municipio_id: 1, destino_nombre: 'HONDURAS' }],
+}, tCoord);
+verificar('el lote actualiza', r.estado === 200 && r.datos.actualizadas === 1, r.datos);
+
+r = await api('GET', `/api/itinerario/${idLote}/cambios`, null, tCoord);
+verificar('la actualización por lote deja historial',
+  r.datos.some(c => c.motivo && c.motivo.includes('Excel')), r.datos);
+
+r = await api('POST', '/api/itinerario/lote', {
+  operaciones: [{ accion: 'borrar', id: idLote }],
+}, tCoord);
+verificar('el lote borra', r.estado === 200 && r.datos.borradas === 1, r.datos);
+
+r = await api('POST', '/api/itinerario/lote', { operaciones: [] }, tCoord);
+verificar('un lote vacío se rechaza', r.estado === 400, r.datos);
+
+r = await api('POST', '/api/itinerario/lote', {
+  operaciones: [{ accion: 'crear', fecha: '2027-01-05', vehiculo_id: vehiculo }],
+}, tCond);
+verificar('el conductor NO puede cargar lotes', r.estado === 403, r.datos);
+
 console.log('\n── Marcación con GPS ─────────────────────────────────────────');
 r = await api('GET', '/api/mi-dia', null, tCond);
 verificar('el conductor ve su programación de hoy',
@@ -270,6 +398,26 @@ verificar('un faltante genera novedad automática',
 r = await api('GET', `/api/checklists?trayecto_id=${trayecto}`, null, tCoord);
 verificar('el checklist se recupera con sus ítems',
   r.estado === 200 && r.datos[0] && r.datos[0].items.length === 9, r.datos[0] && r.datos[0].items.length);
+
+console.log('\n── Protección de días ya ejecutados ──────────────────────────');
+// Aquí el conductor ya marcó salida y llegada del día de hoy.
+r = await api('DELETE', `/api/itinerario/${itinerario}?definitivo=1`, null, tokenPrincipal);
+verificar('no deja borrar un día con viajes registrados', r.estado === 400, r.datos);
+verificar('y lo explica nombrando los viajes', /viaje/i.test(r.datos.error || ''), r.datos.error);
+
+r = await api('DELETE', `/api/itinerario/${itinerario}`, { motivo: 'x' }, tCoord);
+verificar('tampoco deja cancelarlo', r.estado === 400, r.datos);
+
+r = await api('POST', '/api/itinerario/mover', {
+  id: itinerario, fecha: '2026-11-20', vehiculo_id: vehiculo,
+}, tCoord);
+verificar('tampoco deja moverlo', r.estado === 400, r.datos);
+
+r = await api('POST', '/api/itinerario/lote', {
+  operaciones: [{ accion: 'borrar', id: itinerario }],
+}, tCoord);
+verificar('ni borrarlo desde la plantilla de Excel',
+  r.estado === 200 && r.datos.borradas === 0 && r.datos.errores.length === 1, r.datos);
 
 console.log('\n── Bloqueo configurable de salida ────────────────────────────');
 await api('PUT', '/api/parametros/checklist_bloquea_salida', { valor: 'bloquear' }, tokenPrincipal);

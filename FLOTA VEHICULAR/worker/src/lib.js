@@ -27,8 +27,9 @@
  * Historial:
  *   1  versión inicial
  *   2  conductor_id en vehículos (conductor predeterminado)
+ *   3  banco de predeterminados, mover/duplicar, borrado definitivo y carga por lote
  */
-const VERSION_API = 2;
+const VERSION_API = 3;
 
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const hoyISO = () => ahora().slice(0, 10);

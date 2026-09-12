@@ -368,8 +368,22 @@ input::placeholder { color: var(--border); }
 </div>
 
 <script>
+// ── Detectar recovery ANTES que cualquier otra cosa ──────────────────
+// Supabase pone type=recovery en el hash cuando el usuario llega desde
+// el enlace del correo. Hay que interceptarlo antes del redirect de sesión.
+portalSb.auth.onAuthStateChange(function (event) {
+  if (event === 'PASSWORD_RECOVERY') mostrarPanel('reset');
+});
+
 (async function () {
-  // ── Si ya hay sesión activa, redirigir directamente ──────────────
+  // ── Si la URL tiene un token de recuperación, mostrar panel reset ─
+  const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+  if (hashParams.get('type') === 'recovery') {
+    mostrarPanel('reset');
+    return; // No redirigir, esperar a que el usuario cambie su contraseña
+  }
+
+  // ── Si ya hay sesión activa normal, redirigir directamente ────────
   const existente = await portalVerificarSesion({ publico: true });
   if (existente) {
     window.location.href = 'index.html';
@@ -461,11 +475,6 @@ input::placeholder { color: var(--border); }
   // Enter en campo de contraseña envía el form
   passEl.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-  });
-
-  // ── Detectar evento PASSWORD_RECOVERY de Supabase ────────────────
-  portalSb.auth.onAuthStateChange(function (event) {
-    if (event === 'PASSWORD_RECOVERY') mostrarPanel('reset');
   });
 })();
 

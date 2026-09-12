@@ -2572,19 +2572,28 @@ async function descargarPDF() {
   // Medidas en milímetros
   const colVeh = 34, colDia = Math.max(19, Math.min(30, 260 / dias.length));
   const margen = 8;
-  const altoBanner = banner ? 16 : 0;
   const altoFila = 11, altoCab = 11;
+  const altoTitulo = 13, altoLeyenda = 12;
   const ancho = margen * 2 + colVeh + colDia * dias.length;
-  const alto = margen * 2 + altoBanner + 16 + altoCab + altoFila * activos.length + 16;
+
+  // El banner va centrado y acotado a 110 mm: a lo ancho de la hoja tapaba
+  // media página y empujaba la tabla fuera del papel.
+  const anchoBanner = Math.min(110, ancho - margen * 2);
+  const altoBanner = banner ? anchoBanner * BANNER_ALTO / BANNER_ANCHO + 4 : 0;
+
+  // La altura se calcula con las mismas medidas con las que luego se dibuja.
+  // Cuando no coinciden, las últimas filas caen fuera de la página y
+  // desaparecen sin aviso: es exactamente lo que pasaba antes.
+  const alto = margen * 2 + altoBanner + altoTitulo + altoCab
+             + altoFila * activos.length + altoLeyenda;
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [ancho, alto] });
   let y = margen;
 
   if (banner) {
-    const anchoB = ancho - margen * 2;
-    doc.addImage(bannerUrl(), anchoB > 0 ? undefined : 'PNG',
-                 margen, y, anchoB, anchoB * BANNER_ALTO / BANNER_ANCHO);
-    y += anchoB * BANNER_ALTO / BANNER_ANCHO + 3;
+    doc.addImage(bannerUrl(), (ancho - anchoBanner) / 2, y,
+                 anchoBanner, anchoBanner * BANNER_ALTO / BANNER_ANCHO);
+    y += altoBanner;
   }
 
   doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
@@ -2595,7 +2604,7 @@ async function descargarPDF() {
   doc.text(`Generado el ${new Date().toLocaleString('es-CO')} por ${sesion.nombre}`,
            ancho - margen, y + 9, { align: 'right' });
   doc.setTextColor(0);
-  y += 13;
+  y += altoTitulo;
 
   // ── Encabezado de la tabla ──
   const x0 = margen;
@@ -2701,6 +2710,14 @@ async function descargarPDF() {
   doc.setFillColor(10, 125, 87); doc.circle(xl + 1, yl - 0.8, 0.8, 'F');
   doc.text('ejecutado (el conductor marcó salida)', xl + 3.4, yl);
 
+  // Red de seguridad: si el cálculo y el dibujo se desalinean, se avisa en vez
+  // de entregar un PDF al que le faltan vehículos sin que nadie lo note.
+  const yFinal = y + altoFila * activos.length + altoLeyenda;
+  if (yFinal > alto + 0.5) {
+    aviso(`El PDF quedó ${Math.ceil(yFinal - alto)} mm corto; avise para corregirlo.`,
+          'mal', 'Revise el PDF');
+  }
+
   doc.save(`itinerario_${itinDesde}_a_${hasta}.pdf`);
-  aviso('PDF generado', 'ok', 'Listo');
+  aviso(`PDF generado con ${activos.length} vehículos`, 'ok', 'Listo');
 }

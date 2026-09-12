@@ -6,8 +6,9 @@
  * marcación sería peor que no tener dato. Las marcas tomadas sin cobertura
  * las guarda la propia aplicación y las envía al recuperar la señal.
  */
-const CACHE = 'flota-v1';
-const ARMAZON = ['./', './index.html', './app.js', './manifest.json', './libs/chart.umd.min.js'];
+const CACHE = 'flota-v4';
+const ARMAZON = ['./', './index.html', './app.js', './manifest.json', './libs/chart.umd.min.js', './libs/xlsx.full.min.js',
+  './libs/jszip.min.js', './libs/jspdf.umd.min.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARMAZON)).then(() => self.skipWaiting()));

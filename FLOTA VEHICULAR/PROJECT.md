@@ -1,6 +1,6 @@
 # PROJECT.md — Flota Vehicular HRNO
 
-> Borrador v0.5 · 12 sep 2026 · ESE Hospital Regional Noroccidental
+> Borrador v0.6 · 12 sep 2026 · ESE Hospital Regional Noroccidental
 > Responsable: Danilo Torrado Blanco — Coordinador de Salud Pública
 > Estado: **arquitectura, roles y modelo de datos definidos.** Pendientes las preguntas de §11
 
@@ -72,6 +72,9 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D16 | Arrastrar | Mover con arrastre, duplicar con Ctrl. Soltar sobre una celda ocupada **intercambia** las dos |
 | D17 | Predeterminados | Banco de combinaciones con nombre propio, que además son los valores válidos de la plantilla de Excel |
 | D18 | Plantilla de Excel | Matriz como el archivo original, con fechas ISO, lista desplegable y **vista previa antes de aplicar** |
+| D19 | Móvil | Página adaptable e **instalable** en Android e iPhone. No hay apps de tienda: en la matriz de 14 columnas no cabe un celular, así que ahí se muestra una lista por día |
+| D20 | Banner | Imagen 2000 × 289 configurable en Ajustes, presente en el ingreso, el encabezado y el PDF. Se guarda en la base, redimensionada en el navegador |
+| D21 | PDF | Todo el período en **una sola hoja**, con el tamaño de papel elegido según cuántos días haya |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -284,6 +287,34 @@ se confirma. Los días en los que el conductor ya marcó salida aparecen listado
 **Borrar.** Coordinación cancela una programación (queda registrada); el administrador puede
 además borrarla del todo. Ninguno de los dos puede tocar un día con viajes registrados: el
 contador de días y la liquidación quedarían descuadrados sin que nadie se entere.
+
+### 5.1.2 Programar más rápido
+
+**Pincel.** Se escoge un predeterminado de la barra y se arrastra sobre los días: en un trazo
+se programa una semana entera. Sustituye trece aperturas de formulario por un gesto.
+
+**Deshacer** devuelve el último arrastre a su sitio, o borra el duplicado que acaba de crearse.
+
+**Resumen por fila.** Cada vehículo muestra cuántos días lleva programados en el período y
+cuántos con desplazamiento, en color cuando se aparta del promedio de la flota. Sirve para
+repartir la carga mientras se programa, en vez de descubrir el desbalance después en el dashboard.
+
+**Aviso de vencimientos.** Al adjudicar, si el vehículo tiene el SOAT vencido, está en
+mantenimiento, o el conductor no tiene vigente el curso de Misión Médica, sale la advertencia
+en ese momento. No bloquea: queda a criterio de quien programa.
+
+**Período** de una semana, dos o un mes, y el PDF y el Excel siguen el período elegido.
+
+### 5.1.3 En el celular (D19)
+
+El arrastre usa Pointer Events, no la API de arrastre de HTML5: así el mismo código funciona
+con el ratón y con el dedo. En táctil, mover exige **sostener el dedo 350 ms**, porque de lo
+contrario el gesto sería indistinguible de desplazar la tabla.
+
+Por debajo de 700 px la matriz se reemplaza por una **lista agrupada por día**, que es como se
+consulta en terreno. La aplicación se instala en la pantalla de inicio en Android y en iPhone, y
+se abre sin barra del navegador. Los campos usan letra de 16 px para que iOS no haga zoom al
+enfocar, y los márgenes respetan el *notch*.
 
 ### 5.2 Maestro de vehículos
 Ficha y hoja de vida, con **`propiedad` = propio / contratista / comodato** y `valor_dia` (D7),

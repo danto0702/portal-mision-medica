@@ -89,8 +89,9 @@ const totalRutas = () => rutas.length;
  *   1  versión inicial
  *   2  conductor_id en vehículos (conductor predeterminado)
  *   3  banco de predeterminados, mover/duplicar, borrado definitivo y carga por lote
+ *   4  banner institucional y tipos de documento vencido en vehículos y personas
  */
-const VERSION_API = 3;
+const VERSION_API = 4;
 
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const hoyISO = () => ahora().slice(0, 10);
@@ -531,6 +532,8 @@ ruta('GET', '/api/vehiculos', async ({ db, url }) => {
     SELECT v.*, m.nombre AS municipio_base,
            (SELECT COUNT(*) FROM documentos_vehiculo dv
              WHERE dv.vehiculo_id = v.id AND dv.vencimiento < date('now')) AS docs_vencidos,
+           (SELECT group_concat(dv.tipo, ', ') FROM documentos_vehiculo dv
+             WHERE dv.vehiculo_id = v.id AND dv.vencimiento < date('now')) AS docs_vencidos_tipos,
            (SELECT p.nombres || ' ' || IFNULL(p.apellidos,'')
               FROM asignaciones a JOIN personas p ON p.id = a.persona_id
              WHERE a.vehiculo_id = v.id AND a.rol = 'conductor'
@@ -596,7 +599,9 @@ ruta('GET', '/api/personas', async ({ db, url }) => {
   const r = await db.prepare(`
     SELECT p.*, m.nombre AS municipio,
            (SELECT COUNT(*) FROM documentos_persona dp
-             WHERE dp.persona_id = p.id AND dp.vencimiento < date('now')) AS docs_vencidos
+             WHERE dp.persona_id = p.id AND dp.vencimiento < date('now')) AS docs_vencidos,
+           (SELECT group_concat(dp.tipo, ', ') FROM documentos_persona dp
+             WHERE dp.persona_id = p.id AND dp.vencimiento < date('now')) AS docs_vencidos_tipos
       FROM personas p
       LEFT JOIN cat_municipios m ON m.id = p.municipio_id
      WHERE p.activo = 1 ${soloConductores ? 'AND p.es_conductor = 1' : ''}
@@ -705,6 +710,53 @@ ruta('PUT', '/api/usuarios/:id', async ({ db, sesion, params, cuerpo }) => {
   await auditar(db, sesion, 'editar', 'usuarios', params.id,
                 { usuario: antes.usuario, rol: antes.rol, activo: antes.activo },
                 { campos: set.filter(s => !s.startsWith('clave')) });
+  return { ok: true };
+}, ['principal']);
+
+// ── Banner institucional ────────────────────────────────────────────────────
+
+/**
+ * Público a propósito: el banner se muestra en la pantalla de ingreso, antes de
+ * que exista una sesión. Es una imagen institucional, no un dato reservado.
+ */
+ruta('GET', '/api/banner', async ({ db }) => {
+  const b = await db.prepare(
+    "SELECT mime, datos, ancho, alto, bytes, actualizado_en FROM config_imagenes WHERE clave = 'banner'")
+    .first();
+  return b || { vacio: true };
+});
+
+ruta('PUT', '/api/banner', async ({ db, sesion, cuerpo }) => {
+  const { mime, datos } = cuerpo;
+  if (!mime || !datos) throw malaPeticion('Falta la imagen');
+  if (!/^image\/(png|jpeg|webp)$/.test(mime)) {
+    throw malaPeticion('El banner debe ser PNG, JPG o WEBP');
+  }
+  // El navegador ya la redimensiona y comprime; este tope es la última defensa
+  // para que una imagen enorme no haga fallar la escritura en la base.
+  const bytes = Math.floor(datos.length * 3 / 4);
+  if (bytes > 1_500_000) {
+    throw malaPeticion('La imagen pesa demasiado, incluso comprimida (máximo 1,5 MB)');
+  }
+
+  await db.prepare(`
+    INSERT INTO config_imagenes (clave, mime, datos, ancho, alto, bytes,
+                                 actualizado_por, actualizado_en)
+    VALUES ('banner', ?,?,?,?,?,?,?)
+    ON CONFLICT (clave) DO UPDATE SET
+      mime = excluded.mime, datos = excluded.datos, ancho = excluded.ancho,
+      alto = excluded.alto, bytes = excluded.bytes,
+      actualizado_por = excluded.actualizado_por, actualizado_en = excluded.actualizado_en`)
+    .bind(mime, datos, cuerpo.ancho || null, cuerpo.alto || null, bytes,
+          sesion.id, ahora()).run();
+  await auditar(db, sesion, 'editar', 'config_imagenes', null, null,
+                { clave: 'banner', bytes, ancho: cuerpo.ancho, alto: cuerpo.alto });
+  return { ok: true, bytes };
+}, ['principal']);
+
+ruta('DELETE', '/api/banner', async ({ db, sesion }) => {
+  await db.prepare("DELETE FROM config_imagenes WHERE clave = 'banner'").run();
+  await auditar(db, sesion, 'eliminar', 'config_imagenes', null, { clave: 'banner' }, null);
   return { ok: true };
 }, ['principal']);
 

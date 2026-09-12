@@ -473,6 +473,21 @@ CREATE TABLE auditoria (
 CREATE INDEX idx_aud_ts ON auditoria(ts);
 CREATE INDEX idx_aud_ent ON auditoria(entidad, entidad_id);
 
+-- Imágenes de configuración (hoy solo el banner institucional). Se guardan en
+-- la base como texto base64 en vez de en un almacén de archivos aparte: son una
+-- o dos, pesan poco tras comprimirlas en el navegador, y así el respaldo de la
+-- base se lleva todo consigo.
+CREATE TABLE config_imagenes (
+  clave           TEXT PRIMARY KEY,      -- 'banner'
+  mime            TEXT NOT NULL,
+  datos           TEXT NOT NULL,         -- base64 sin el prefijo data:
+  ancho           INTEGER,
+  alto            INTEGER,
+  bytes           INTEGER,
+  actualizado_por INTEGER,
+  actualizado_en  TEXT NOT NULL
+);
+
 CREATE TABLE parametros (
   clave         TEXT PRIMARY KEY,
   valor         TEXT NOT NULL,

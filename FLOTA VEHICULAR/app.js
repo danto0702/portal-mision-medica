@@ -17,7 +17,7 @@
  * peticiones e ignora en silencio lo que no entiende — un campo que no se
  * guarda y ningún mensaje de error. Por eso se comprueba y se avisa.
  */
-const VERSION_API_REQUERIDA = 3;
+const VERSION_API_REQUERIDA = 4;
 
 const esLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 const API = localStorage.getItem('flota_api') ||
@@ -63,6 +63,8 @@ const TIPOS_EVENTO = [
 // ── Estado ───────────────────────────────────────────────────────────────────
 let sesion = null;
 let cat = { municipios: [], destinos: [], ips: [] };
+const BANNER_ANCHO = 2000, BANNER_ALTO = 289;
+let banner = null;                       // { mime, datos } o null
 let vehiculos = [], personas = [];
 let vistaActual = '';
 const graficas = {};
@@ -87,6 +89,9 @@ function fechaHora(iso) {
   const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso.replace(' ', 'T') + 'Z');
   return d.toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
+/** Ancho por debajo del cual la matriz de 14 columnas deja de ser usable. */
+const angosta = () => window.innerWidth < 700;
+
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const diaSemana = f => DIAS[new Date(f + 'T12:00:00').getDay()];
 
@@ -234,6 +239,7 @@ async function iniciar() {
 
   cola.pintar();
   comprobarVersion();
+  cargarBanner();
   try { cat = await api('/api/catalogos'); } catch { /* se reintenta luego */ }
   if (sesion.rol !== 'conductor') {
     try { [vehiculos, personas] = await Promise.all([api('/api/vehiculos'), api('/api/personas')]); }
@@ -594,6 +600,7 @@ async function guardarEvento() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 let itinDesde = null, itinDatos = [], predeterminados = [];
+let itinDias = Number(localStorage.getItem('flota_itin_dias')) || 14;
 
 async function verItinerario() {
   if (!itinDesde) {
@@ -601,7 +608,7 @@ async function verItinerario() {
     const d = new Date(hoy() + 'T12:00:00');
     itinDesde = nDias(hoy(), -((d.getDay() + 6) % 7));
   }
-  const hasta = nDias(itinDesde, 13);   // dos semanas, como el archivo original
+  const hasta = nDias(itinDesde, itinDias - 1);
 
   $('#main').innerHTML = '<div class="cargando">Cargando itinerario...</div>';
   try {
@@ -613,18 +620,18 @@ async function verItinerario() {
     return $('#main').innerHTML = `<div class="card"><div class="nota avi">${esc(e.message)}</div></div>`;
   }
 
-  const dias = Array.from({ length: 14 }, (_, i) => nDias(itinDesde, i));
+  const dias = Array.from({ length: itinDias }, (_, i) => nDias(itinDesde, i));
   const activos = vehiculos.filter(v => v.activo !== 0);
   const porClave = {};
   itinDatos.forEach(i => { porClave[i.fecha + '|' + i.vehiculo_id] = i; });
 
   const celda = (v, f) => {
     const it = porClave[f + '|' + v.id];
-    const suelta = `ondragover="itinSobre(event,${v.id},'${f}')"
-      ondragleave="itinSale(event)" ondrop="itinSoltar(event,${v.id},'${f}')"`;
+    const datos = `data-vehiculo-id="${v.id}" data-fecha="${f}"${it ? ` data-itin-id="${it.id}"` : ''}`;
     if (!it) {
-      return `<td style="padding:.2rem"><div class="itin-celda vacia" ${suelta}
-        onclick="modalItinerario(null,${v.id},'${f}')">+</div></td>`;
+      return `<td style="padding:.2rem"><div class="itin-celda vacia" ${datos}
+        onpointerdown="itinPointerDown(event,null,${v.id},'${f}')"
+        onclick="if(!pincel)modalItinerario(null,${v.id},'${f}')">+</div></td>`;
     }
     const tj = TIPOS_JORNADA[it.tipo_jornada] || TIPOS_JORNADA.ebs;
     const ejec = it.trayectos_cerrados > 0;
@@ -634,11 +641,10 @@ async function verItinerario() {
     // Un día ya ejecutado no se arrastra: la marca del conductor quedaría
     // apuntando a una programación que ya no describe lo que hizo.
     return `<td style="padding:.2rem"><div
-      class="itin-celda ${it.tipo_jornada}${ejec ? ' bloqueada' : ''}"
-      ${ejec ? '' : `draggable="true" ondragstart="itinTomar(event,${it.id})" ondragend="itinSoltarFin(event)"`}
-      ${suelta}
+      class="itin-celda ${it.tipo_jornada}${ejec ? ' bloqueada' : ''}" ${datos}
+      ${ejec ? '' : `onpointerdown="itinPointerDown(event,${it.id},${v.id},'${f}')"`}
       title="${ejec ? 'Ya ejecutado: no se puede mover' : 'Arrastre para mover · con Ctrl para duplicar'}"
-      onclick="modalItinerario(${it.id},${v.id},'${f}')">
+      onclick="if(!pincel)modalItinerario(${it.id},${v.id},'${f}')">
       <span class="dest">${esc(titulo)}</span>
       <span class="tj" style="color:var(--${tj.color === 'gris' ? 'muted' : tj.color})">${esc(pie)}</span>
       <div class="marcas">
@@ -660,18 +666,38 @@ async function verItinerario() {
     <div class="cab">
       <div><h1>Itinerario</h1>
         <p>Programación de vehículos y conductores. Cada cambio queda registrado con su autor.</p></div>
-      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
-        <button class="btn sec sm" onclick="moverItin(-14)">← Anterior</button>
+      <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+        <button class="btn sec sm" onclick="moverItin(-itinDias)">←</button>
         <button class="btn sec sm" onclick="itinDesde=null;verItinerario()">Hoy</button>
-        <button class="btn sec sm" onclick="moverItin(14)">Siguiente →</button>
+        <button class="btn sec sm" onclick="moverItin(itinDias)">→</button>
+        <select class="inp" style="width:auto;padding:.3rem .5rem;font-size:.8rem"
+          onchange="cambiarPeriodo(this.value)">
+          <option value="7"  ${itinDias === 7  ? 'selected' : ''}>1 semana</option>
+          <option value="14" ${itinDias === 14 ? 'selected' : ''}>2 semanas</option>
+          <option value="31" ${itinDias === 31 ? 'selected' : ''}>1 mes</option>
+        </select>
+        <button class="btn sec sm" onclick="deshacerMovimiento()" id="btn-deshacer">Deshacer</button>
         <button class="btn sec sm" onclick="modalPredeterminados()">Predeterminados</button>
-        <button class="btn sec sm" onclick="descargarPlantilla()">Descargar Excel</button>
-        <button class="btn sec sm" onclick="$('#archivo-itin').click()">Cargar Excel</button>
+        <button class="btn sec sm" onclick="descargarPDF()">PDF</button>
+        <button class="btn sec sm" onclick="descargarPlantilla()">Excel</button>
+        <button class="btn sec sm" onclick="$('#archivo-itin').click()">Cargar</button>
         <input type="file" id="archivo-itin" accept=".xlsx,.xls" style="display:none"
           onchange="cargarPlantilla(this)">
-        <button class="btn sm" onclick="modalCopiarSemana()">Copiar quincena</button>
+        <button class="btn sm" onclick="modalCopiarSemana()">Copiar período</button>
       </div>
     </div>
+
+    ${predeterminados.length && !angosta() ? `
+      <div class="card" style="padding:.6rem .8rem;margin-bottom:.85rem">
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+          <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">
+            Pincel</span>
+          ${predeterminados.slice(0, 10).map(p => `<button class="pred-chip pincel-chip"
+            data-id="${p.id}" onclick="activarPincel(${p.id})">${esc(p.nombre)}</button>`).join('')}
+          <span style="font-size:.72rem;color:var(--muted)">
+            Escoja uno y arrastre sobre los días para programarlos</span>
+        </div>
+      </div>` : ''}
 
     ${!activos.length ? `
       <div class="card"><div class="vacio">
@@ -680,31 +706,52 @@ async function verItinerario() {
           ? '<button class="btn" onclick="ir(\'vehiculos\')">Registrar el primero</button>'
           : '<p style="font-size:.85rem">El administrador debe registrarlos primero.</p>'}
       </div></div>` : `
+      ${angosta() ? listaItinerario(dias, activos, porClave) : `
       <div class="scroll-arriba" id="scroll-arriba"><div id="scroll-ancho"></div></div>
       <div class="tabla-env" id="itin-env"><table>
         <thead><tr>
           <th style="position:sticky;left:0;background:var(--surface-2);z-index:2;min-width:150px">Vehículo</th>
           ${dias.map(rotulo).join('')}
         </tr></thead>
-        <tbody>${activos.map(v => `
+        <tbody>${activos.map(v => {
+          const suyos = itinDatos.filter(i => i.vehiculo_id === v.id && i.estado !== 'cancelado');
+          const conDespl = suyos.filter(i => i.tipo_jornada !== 'disponible').length;
+          const media = activos.length
+            ? itinDatos.filter(i => i.estado !== 'cancelado').length / activos.length : 0;
+          const desvio = suyos.length - media;
+          const color = Math.abs(desvio) < 1.5 ? 'muted' : desvio > 0 ? 'ambar' : 'azul';
+          return `
           <tr>
             <td style="position:sticky;left:0;background:var(--surface);z-index:1;border-right:1px solid var(--border)">
               <div class="placa">${esc(v.placa)}</div>
               <div style="font-size:.72rem;color:var(--muted)">${esc(v.conductor_actual || 'Sin conductor')}</div>
+              <div style="font-size:.68rem;margin-top:.2rem;color:var(--${color});font-weight:700"
+                title="Días programados en el período · ${conDespl} con desplazamiento">
+                ${suyos.length} día(s) · ${conDespl} con salida
+              </div>
+              ${v.docs_vencidos ? `<div class="etq rojo" style="margin-top:.2rem;font-size:.62rem"
+                title="${esc(v.docs_vencidos_tipos || '')}">${v.docs_vencidos} doc. vencido(s)</div>` : ''}
             </td>
             ${dias.map(f => celda(v, f)).join('')}
-          </tr>`).join('')}</tbody>
-      </table></div>
+          </tr>`; }).join('')}</tbody>
+      </table></div>`}
 
       <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.85rem;font-size:.75rem;color:var(--muted)">
         ${Object.entries(TIPOS_JORNADA).map(([k, t]) =>
           `<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--${t.color === 'gris' ? 'muted' : t.color});vertical-align:middle"></span> ${t.et}</span>`).join('')}
         <span><span class="punto ok"></span> ejecutado (el conductor marcó salida)</span>
         <span><span class="mini-cambios">✎</span> modificado</span>
-        <span>Arrastre una celda para moverla · mantenga <b>Ctrl</b> para duplicarla</span>
+        <span>${angosta()
+          ? 'Toque un día para programarlo o modificarlo'
+          : 'Arrastre una celda para moverla · mantenga <b>Ctrl</b> para duplicarla · sostenga el dedo en el celular'}</span>
       </div>`}
   `;
   sincronizarScroll();
+  // El redibujado rehace las fichas: se vuelve a marcar la del pincel activo.
+  if (pincel) {
+    $$('.pincel-chip').forEach(c => c.classList.toggle('activo', Number(c.dataset.id) === pincel.id));
+    $('#itin-env')?.classList.add('pintando');
+  }
 }
 
 /**
@@ -742,69 +789,265 @@ function sincronizarScroll() {
   env.onscroll = () => { if (eco) return; eco = true; arriba.scrollLeft = env.scrollLeft; eco = false; };
 }
 
-// ── Arrastrar y soltar ───────────────────────────────────────────────────────
-let itinArrastrado = null;
+// ── Arrastrar, pintar y deshacer ─────────────────────────────────────────────
+//
+// Se usa Pointer Events en vez de la API de arrastre de HTML5 porque esa no
+// existe en pantallas táctiles: el mismo código sirve para el ratón en el
+// computador y para el dedo en el celular.
+//
+// En táctil hay un conflicto: arrastrar para mover y arrastrar para desplazar
+// la tabla son el mismo gesto. Se resuelve con una pulsación sostenida — hasta
+// que pasan 350 ms el gesto sigue siendo un desplazamiento normal.
 
-function itinTomar(ev, id) {
-  itinArrastrado = id;
-  ev.currentTarget.classList.add('arrastrando');
-  ev.dataTransfer.effectAllowed = 'copyMove';
-  ev.dataTransfer.setData('text/plain', String(id));   // Firefox exige un dato
+const ESPERA_TACTIL = 350;      // ms sostenidos antes de empezar a mover
+const UMBRAL = 8;               // px de movimiento que cancelan la pulsación
+
+let arrastre = null;            // { id, fantasma, listo, temporizador }
+let pincel = null;              // predeterminado activo en modo pintar
+let ultimoMovimiento = null;    // para deshacer
+
+function celdaDesde(ev) {
+  const el = document.elementFromPoint(ev.clientX, ev.clientY);
+  return el?.closest?.('.itin-celda') || null;
 }
 
-function itinSoltarFin(ev) {
-  ev.currentTarget.classList.remove('arrastrando');
-  itinArrastrado = null;
+function itinPointerDown(ev, id, vehiculoId, fecha) {
+  if (ev.button != null && ev.button !== 0) return;      // solo botón principal
+
+  if (pincel) { pintarCelda(vehiculoId, fecha, id); return; }
+  if (!id) return;                                        // celda vacía: no hay qué mover
+
+  const celda = ev.currentTarget;
+  const tactil = ev.pointerType === 'touch';
+  const iniciar = () => {
+    arrastre.listo = true;
+    celda.classList.add('arrastrando');
+    if (navigator.vibrate) navigator.vibrate(12);
+    arrastre.fantasma = document.createElement('div');
+    arrastre.fantasma.className = 'fantasma';
+    arrastre.fantasma.textContent = celda.querySelector('.dest')?.textContent || '';
+    document.body.appendChild(arrastre.fantasma);
+    moverFantasma(ev);
+  };
+
+  arrastre = { id, celda, x0: ev.clientX, y0: ev.clientY, listo: false, temporizador: null };
+  if (tactil) arrastre.temporizador = setTimeout(iniciar, ESPERA_TACTIL);
+  else iniciar();
+}
+
+function moverFantasma(ev) {
+  if (!arrastre?.fantasma) return;
+  arrastre.fantasma.style.left = ev.clientX + 'px';
+  arrastre.fantasma.style.top = ev.clientY + 'px';
+}
+
+function itinPointerMove(ev) {
+  if (!arrastre) return;
+
+  if (!arrastre.listo) {
+    // Se movió antes de tiempo: era un desplazamiento, no un arrastre.
+    const d = Math.hypot(ev.clientX - arrastre.x0, ev.clientY - arrastre.y0);
+    if (d > UMBRAL) { clearTimeout(arrastre.temporizador); arrastre = null; }
+    return;
+  }
+
+  ev.preventDefault();
+  moverFantasma(ev);
   $$('.itin-celda').forEach(c => c.classList.remove('destino-ok', 'destino-cambio', 'destino-no'));
-}
+  const sobre = celdaDesde(ev);
+  if (!sobre || sobre === arrastre.celda) return;
 
-function itinSobre(ev, vehiculoId, fecha) {
-  if (!itinArrastrado) return;
-  const origen = itinDatos.find(x => x.id === itinArrastrado);
-  if (!origen) return;
-  const destino = itinDatos.find(x => x.fecha === fecha && x.vehiculo_id === vehiculoId
+  const { vehiculoId, fecha } = sobre.dataset;
+  const destino = itinDatos.find(x => x.fecha === fecha && x.vehiculo_id == vehiculoId
                                      && x.estado !== 'cancelado');
   const duplicando = ev.ctrlKey || ev.metaKey || ev.altKey;
-
-  // No se puede soltar sobre un día ya ejecutado, ni duplicar sobre uno ocupado.
-  const prohibido = (destino && destino.trayectos_cerrados > 0) || (duplicando && destino);
-  ev.preventDefault();
-  ev.dataTransfer.dropEffect = prohibido ? 'none' : (duplicando ? 'copy' : 'move');
-
-  const c = ev.currentTarget;
-  c.classList.remove('destino-ok', 'destino-cambio', 'destino-no');
-  c.classList.add(prohibido ? 'destino-no' : destino ? 'destino-cambio' : 'destino-ok');
+  const noSePuede = (destino && destino.trayectos_cerrados > 0) || (duplicando && destino);
+  sobre.classList.add(noSePuede ? 'destino-no' : destino ? 'destino-cambio' : 'destino-ok');
 }
 
-function itinSale(ev) {
-  ev.currentTarget.classList.remove('destino-ok', 'destino-cambio', 'destino-no');
-}
+async function itinPointerUp(ev) {
+  if (!arrastre) return;
+  clearTimeout(arrastre.temporizador);
+  const { id, listo, celda, fantasma } = arrastre;
+  arrastre = null;
+  fantasma?.remove();
+  celda?.classList.remove('arrastrando');
+  $$('.itin-celda').forEach(c => c.classList.remove('destino-ok', 'destino-cambio', 'destino-no'));
+  if (!listo) return;
 
-async function itinSoltar(ev, vehiculoId, fecha) {
-  ev.preventDefault();
-  ev.currentTarget.classList.remove('destino-ok', 'destino-cambio', 'destino-no');
-  const id = itinArrastrado;
-  itinArrastrado = null;
-  if (!id) return;
-
+  const sobre = celdaDesde(ev);
+  if (!sobre || sobre === celda) return;
+  const { vehiculoId, fecha } = sobre.dataset;
   const duplicar = ev.ctrlKey || ev.metaKey || ev.altKey;
+
+  const origen = itinDatos.find(x => x.id === id);
   try {
     const r = await api('/api/itinerario/mover', {
-      metodo: 'POST', cuerpo: { id, fecha, vehiculo_id: vehiculoId, duplicar },
+      metodo: 'POST', cuerpo: { id, fecha, vehiculo_id: Number(vehiculoId), duplicar },
     });
     if (r.sin_cambios) return;
-    aviso(duplicar ? 'Programación duplicada'
-      : r.intercambio ? 'Las dos programaciones se intercambiaron' : 'Programación movida',
-      'ok', 'Listo');
+    ultimoMovimiento = duplicar
+      ? { tipo: 'duplicado', id: r.id }
+      : { tipo: 'movido', id, fecha: origen.fecha, vehiculo_id: origen.vehiculo_id };
+    aviso(duplicar ? 'Duplicada' : r.intercambio ? 'Intercambiadas' : 'Movida', 'ok');
     verItinerario();
   } catch (e) {
     aviso(e.message, 'mal', 'No se pudo mover');
   }
 }
 
+/** Deshace el último arrastre: lo devuelve a su sitio, o borra el duplicado. */
+async function deshacerMovimiento() {
+  if (!ultimoMovimiento) return;
+  const u = ultimoMovimiento;
+  ultimoMovimiento = null;
+  try {
+    if (u.tipo === 'duplicado') {
+      await api(`/api/itinerario/${u.id}?definitivo=1`, { metodo: 'DELETE', cuerpo: {} });
+    } else {
+      await api('/api/itinerario/mover', {
+        metodo: 'POST',
+        cuerpo: { id: u.id, fecha: u.fecha, vehiculo_id: u.vehiculo_id, motivo: 'Deshecho' },
+      });
+    }
+    aviso('Se deshizo el último movimiento', 'ok');
+    verItinerario();
+  } catch (e) { aviso(e.message, 'mal', 'No se pudo deshacer'); }
+}
+
+// ── Pintar con un predeterminado ─────────────────────────────────────────────
+
+function activarPincel(id) {
+  pincel = pincel?.id === id ? null : predeterminados.find(p => p.id === id);
+  $$('.pincel-chip').forEach(c =>
+    c.classList.toggle('activo', pincel && Number(c.dataset.id) === pincel.id));
+  $('#itin-env')?.classList.toggle('pintando', !!pincel);
+  aviso(pincel ? `Pincel: ${pincel.nombre}. Toque o arrastre sobre los días.`
+               : 'Pincel apagado', pincel ? 'ok' : 'info');
+}
+
+let pintando = new Set();       // celdas ya tocadas en el trazo actual
+let tareasPintura = [];         // guardados en vuelo
+let pintadasEnTrazo = 0;
+
+/**
+ * Programa una celda con el pincel activo.
+ *
+ * No se espera aquí: el trazo puede pasar por diez celdas y cada una dispara su
+ * guardado. La tarea se apunta y `pincelFin` espera a todas antes de redibujar;
+ * si se redibujara antes, la pantalla mostraría el estado anterior.
+ */
+function pintarCelda(vehiculoId, fecha, idExistente) {
+  if (!pincel) return;
+  const clave = `${fecha}|${vehiculoId}`;
+  if (pintando.has(clave)) return;                    // ya se pintó en este trazo
+  pintando.add(clave);
+  tareasPintura.push(guardarPintura(vehiculoId, fecha, idExistente));
+}
+
+async function guardarPintura(vehiculoId, fecha, idExistente) {
+  try {
+    if (idExistente) {
+      await api('/api/itinerario/' + idExistente, {
+        metodo: 'PUT',
+        cuerpo: { tipo_jornada: pincel.tipo_jornada, municipio_id: pincel.municipio_id,
+                  destino_id: pincel.destino_id, observaciones: pincel.observaciones,
+                  motivo: `Pintado con "${pincel.nombre}"` },
+      });
+    } else {
+      await api('/api/itinerario', {
+        metodo: 'POST',
+        cuerpo: { fecha, vehiculo_id: Number(vehiculoId), predeterminado_id: pincel.id,
+                  conductor_id: vehiculos.find(v => v.id == vehiculoId)?.conductor_id || null },
+      });
+    }
+    pintadasEnTrazo++;
+  } catch (e) {
+    aviso(e.message, 'mal', 'No se pudo pintar');
+  }
+}
+
+function pincelMove(ev) {
+  if (!pincel || !ev.buttons) return;
+  const sobre = celdaDesde(ev);
+  if (!sobre) return;
+  ev.preventDefault();
+  const { vehiculoId, fecha, itinId } = sobre.dataset;
+  pintarCelda(vehiculoId, fecha, itinId ? Number(itinId) : null);
+}
+
+async function pincelFin() {
+  if (!pincel || !tareasPintura.length) return;
+  const tareas = tareasPintura;
+  tareasPintura = [];
+  pintando.clear();
+  await Promise.all(tareas);                 // sin esto se redibuja antes de tiempo
+  if (!pintadasEnTrazo) return;
+  aviso(`${pintadasEnTrazo} día(s) programado(s)`, 'ok', 'Listo');
+  pintadasEnTrazo = 0;
+  await verItinerario();
+}
+
+document.addEventListener('pointermove', ev => { itinPointerMove(ev); pincelMove(ev); },
+                          { passive: false });
+document.addEventListener('pointerup', ev => { itinPointerUp(ev); pincelFin(); });
+let eraAngosta = angosta();
+window.addEventListener('resize', () => {
+  if (angosta() === eraAngosta) return;
+  eraAngosta = angosta();
+  if (vistaActual === 'itinerario') verItinerario();
+});
+
+document.addEventListener('pointercancel', () => {
+  arrastre?.fantasma?.remove();
+  arrastre?.celda?.classList.remove('arrastrando');
+  arrastre = null;
+  pincelFin();
+});
+
 // ── Navegación del rango ────────────────────────────────────────────────────
 
+/**
+ * En un celular la matriz no cabe: se muestra el mismo itinerario como una
+ * lista agrupada por día, que es como se consulta en terreno. Los días sin
+ * ninguna programación no se listan.
+ */
+function listaItinerario(dias, activos, porClave) {
+  const grupos = dias.map(f => {
+    const filas = activos
+      .map(v => ({ v, it: porClave[f + '|' + v.id] }))
+      .filter(x => x.it);
+    return { f, filas };
+  }).filter(g => g.filas.length);
+
+  if (!grupos.length) {
+    return '<div class="card"><div class="vacio">Sin programación en este período.</div></div>';
+  }
+
+  return `<div class="itin-lista">${grupos.map(({ f, filas }) => `
+    <div class="dia-grupo">
+      <div class="dia-tit">${diaSemana(f)} ${f.slice(8)}/${f.slice(5, 7)}
+        <span style="font-weight:500;color:var(--muted)"> · ${filas.length} vehículo(s)</span></div>
+      ${filas.map(({ v, it }) => {
+        const tj = TIPOS_JORNADA[it.tipo_jornada] || TIPOS_JORNADA.ebs;
+        const enBase = it.tipo_jornada === 'disponible';
+        return `<div class="ren" onclick="modalItinerario(${it.id},${v.id},'${f}')">
+          <span class="pl">${esc(v.placa)}</span>
+          <span class="de"><b>${esc(enBase ? 'Disponible' : (it.destino || tj.et))}</b><br>
+            <span style="font-size:.74rem;color:var(--muted)">${esc(v.conductor_actual?.trim() || 'sin conductor')}</span></span>
+          <span class="etq ${tj.color}">${tj.et}</span>
+          ${it.trayectos_cerrados > 0 ? '<span class="punto ok" title="Ejecutado"></span>' : ''}
+        </div>`; }).join('')}
+    </div>`).join('')}</div>`;
+}
+
 function moverItin(n) { itinDesde = nDias(itinDesde, n); verItinerario(); }
+
+function cambiarPeriodo(dias) {
+  itinDias = Number(dias);
+  localStorage.setItem('flota_itin_dias', itinDias);
+  verItinerario();
+}
 
 async function modalItinerario(id, vehiculoId, fecha) {
   const it = id ? itinDatos.find(x => x.id === id) : null;
@@ -813,11 +1056,29 @@ async function modalItinerario(id, vehiculoId, fecha) {
   // En una programación nueva se propone el conductor predeterminado del vehículo.
   const condPropuesto = it ? it.conductor_id : (veh ? veh.conductor_id : null);
 
+  const cond = personas.find(p => p.id === condPropuesto);
+  const reparos = [];
+  if (veh?.docs_vencidos) {
+    reparos.push(`<b>${esc(veh.placa)}</b> tiene vencido: ${esc(veh.docs_vencidos_tipos || 'documentos')}`);
+  }
+  if (veh && veh.estado && veh.estado !== 'activo') {
+    reparos.push(`<b>${esc(veh.placa)}</b> está marcado como <b>${esc(veh.estado)}</b>`);
+  }
+  if (cond?.docs_vencidos) {
+    reparos.push(`<b>${esc(cond.nombres)}</b> tiene vencido: ${esc(cond.docs_vencidos_tipos || 'documentos')}`);
+  }
+
   abrirModal(it ? 'Modificar programación' : 'Adjudicar desplazamiento', `
     <div class="nota" style="margin-bottom:1rem">
       <b>${esc(veh?.placa || '')}</b> · ${diaSemana(fecha)}
       ${new Date(fecha + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })}
     </div>
+    ${reparos.length ? `<div class="nota avi" style="margin-bottom:1rem">
+      <b>Revise antes de programar</b>
+      <div style="margin-top:.25rem">${reparos.join('<br>')}</div>
+      <div style="margin-top:.35rem;font-size:.78rem">
+        Se puede programar igual; queda a su criterio.</div>
+    </div>` : ''}
     ${predeterminados.length ? `
       <label class="lb">Predeterminados</label>
       <div class="pred-chips">
@@ -1051,14 +1312,14 @@ async function verCambios(id) {
 }
 
 function modalCopiarSemana() {
-  const hasta = nDias(itinDesde, 13);
+  const hasta = nDias(itinDesde, itinDias - 1);
   abrirModal('Copiar programación', `
     <p style="font-size:.88rem;color:var(--text-soft);margin:0 0 1rem">
       Copia la programación del <b>${itinDesde}</b> al <b>${hasta}</b> hacia adelante.
       Los días que ya tengan programación se dejan como están.
     </p>
     <div class="campo"><label class="lb">Copiar a partir del</label>
-      <input class="inp" type="date" id="cp-desde" value="${nDias(itinDesde, 14)}"></div>`,
+      <input class="inp" type="date" id="cp-desde" value="${nDias(itinDesde, itinDias)}"></div>`,
     `<button class="btn sec" onclick="cerrarModal()">Cancelar</button>
      <button class="btn" id="cp-btn" onclick="copiarSemana('${itinDesde}','${hasta}')">Copiar</button>`);
 }
@@ -1711,6 +1972,25 @@ async function verAjustes() {
         ${p.descripcion ? `<p style="font-size:.72rem;color:var(--muted);margin:.4rem 0 0">${esc(p.descripcion)}</p>` : ''}
       </div>`;
     }).join('')}
+    <div class="card" style="margin-bottom:.75rem">
+      <h3>Banner institucional</h3>
+      <p style="font-size:.85rem;color:var(--text-soft);margin:.3rem 0 .75rem">
+        Aparece en la pantalla de ingreso, en el encabezado de la aplicación y en el
+        PDF del itinerario. Tamaño ideal <b>2000 × 289 px</b>; si sube otro tamaño se
+        ajusta solo, sin deformarlo.</p>
+      ${banner ? `
+        <div class="banner" style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:.75rem">
+          <img src="${bannerUrl()}" alt="Banner actual">
+        </div>` : '<div class="nota" style="margin-bottom:.75rem">Todavía no hay banner cargado.</div>'}
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn sec" onclick="$('#archivo-banner').click()">
+          ${banner ? 'Reemplazar' : 'Subir banner'}</button>
+        ${banner ? '<button class="btn sec" onclick="quitarBanner()">Quitar</button>' : ''}
+        <input type="file" id="archivo-banner" accept="image/png,image/jpeg,image/webp"
+          style="display:none" onchange="subirBanner(this)">
+      </div>
+    </div>
+
     <div class="card">
       <h3>Auditoría</h3>
       <p style="font-size:.85rem;color:var(--text-soft);margin:.3rem 0 .75rem">
@@ -1751,6 +2031,8 @@ async function verAuditoria() {
   } catch { /* sesión ilegible: se pide ingreso */ }
   $('#ingreso').style.display = 'flex';
 })();
+
+cargarBanner();          // también en la pantalla de ingreso, sin sesión
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* opcional */ });
@@ -1829,7 +2111,7 @@ function opcionesPlantilla() {
 
 async function descargarPlantilla() {
   const hasta = nDias(itinDesde, 13);
-  const dias = Array.from({ length: 14 }, (_, i) => nDias(itinDesde, i));
+  const dias = Array.from({ length: itinDias }, (_, i) => nDias(itinDesde, i));
   const activos = vehiculos.filter(v => v.activo !== 0);
   const porClave = {};
   itinDatos.forEach(i => { porClave[i.fecha + '|' + i.vehiculo_id] = i; });
@@ -2167,4 +2449,258 @@ async function aplicarPrevia() {
     aviso(e.message, 'mal', 'No se pudo aplicar');
     btn.disabled = false; btn.textContent = 'Aplicar';
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BANNER INSTITUCIONAL
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Se pide sin sesión: aparece también en la pantalla de ingreso. */
+async function cargarBanner() {
+  try {
+    const r = await (await fetch(API + '/api/banner')).json();
+    banner = r && !r.vacio && r.datos ? r : null;
+  } catch { banner = null; }
+  pintarBanner();
+}
+
+const bannerUrl = () => banner ? `data:${banner.mime};base64,${banner.datos}` : null;
+
+function pintarBanner() {
+  const url = bannerUrl();
+  for (const id of ['banner-ingreso', 'banner-cabecera']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.innerHTML = url ? `<img src="${url}" alt="Encabezado institucional">` : '';
+    el.style.display = url ? '' : 'none';
+  }
+}
+
+/**
+ * Redimensiona la imagen a 2000×289 antes de enviarla.
+ *
+ * Se hace en el navegador y no en el servidor porque así el archivo que viaja
+ * ya va comprimido: una foto de 4 MB se convierte en unos 150 KB y la base no
+ * termina guardando imágenes enormes que nadie va a ver a ese tamaño.
+ */
+function prepararBanner(archivo) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    lector.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('El archivo no es una imagen válida'));
+      img.onload = () => {
+        const lienzo = document.createElement('canvas');
+        lienzo.width = BANNER_ANCHO; lienzo.height = BANNER_ALTO;
+        const ctx = lienzo.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, BANNER_ANCHO, BANNER_ALTO);
+
+        // Se encaja la imagen completa sin deformarla; si no calza la
+        // proporción, queda margen blanco a los lados.
+        const escala = Math.min(BANNER_ANCHO / img.width, BANNER_ALTO / img.height);
+        const an = img.width * escala, al = img.height * escala;
+        ctx.drawImage(img, (BANNER_ANCHO - an) / 2, (BANNER_ALTO - al) / 2, an, al);
+
+        let url = lienzo.toDataURL('image/webp', 0.9);
+        if (!url.startsWith('data:image/webp')) url = lienzo.toDataURL('image/jpeg', 0.9);
+        const coma = url.indexOf(',');
+        resolve({
+          mime: url.slice(5, url.indexOf(';')),
+          datos: url.slice(coma + 1),
+          ancho: BANNER_ANCHO, alto: BANNER_ALTO,
+          original: { ancho: img.width, alto: img.height },
+        });
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+  });
+}
+
+async function subirBanner(input) {
+  const archivo = input.files?.[0];
+  input.value = '';
+  if (!archivo) return;
+  try {
+    const b = await prepararBanner(archivo);
+    const kb = Math.round(b.datos.length * 3 / 4 / 1024);
+    await api('/api/banner', { metodo: 'PUT', cuerpo: b });
+    banner = { mime: b.mime, datos: b.datos };
+    pintarBanner();
+    const aviso_ = b.original.ancho !== BANNER_ANCHO || b.original.alto !== BANNER_ALTO
+      ? ` (venía en ${b.original.ancho}×${b.original.alto}, se ajustó)` : '';
+    aviso(`Banner actualizado, ${kb} KB${aviso_}`, 'ok', 'Listo');
+    verAjustes();
+  } catch (e) {
+    aviso(e.message, 'mal', 'No se pudo subir');
+  }
+}
+
+async function quitarBanner() {
+  try {
+    await api('/api/banner', { metodo: 'DELETE' });
+    banner = null; pintarBanner(); verAjustes();
+    aviso('Banner quitado', 'ok');
+  } catch (e) { aviso(e.message, 'mal'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PDF DEL ITINERARIO
+//
+// Todo el período en una sola hoja. Como 31 columnas no caben en una carta, el
+// tamaño del papel se escoge según cuántos días haya, en lugar de encoger la
+// letra hasta volverla ilegible. Al imprimir, "ajustar a la página" hace el resto.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const COLORES_PDF = {
+  ebs:             [30, 90, 168],
+  jornada:         [109, 58, 173],
+  vacunacion:      [10, 125, 87],
+  disponible:      [117, 130, 143],
+  traslado_ciudad: [162, 98, 10],
+  administrativo:  [150, 150, 150],
+};
+
+async function descargarPDF() {
+  const { jsPDF } = window.jspdf;
+  const dias = Array.from({ length: itinDias }, (_, i) => nDias(itinDesde, i));
+  const activos = vehiculos.filter(v => v.activo !== 0);
+  const hasta = dias[dias.length - 1];
+
+  // Medidas en milímetros
+  const colVeh = 34, colDia = Math.max(19, Math.min(30, 260 / dias.length));
+  const margen = 8;
+  const altoBanner = banner ? 16 : 0;
+  const altoFila = 11, altoCab = 11;
+  const ancho = margen * 2 + colVeh + colDia * dias.length;
+  const alto = margen * 2 + altoBanner + 16 + altoCab + altoFila * activos.length + 16;
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [ancho, alto] });
+  let y = margen;
+
+  if (banner) {
+    const anchoB = ancho - margen * 2;
+    doc.addImage(bannerUrl(), anchoB > 0 ? undefined : 'PNG',
+                 margen, y, anchoB, anchoB * BANNER_ALTO / BANNER_ANCHO);
+    y += anchoB * BANNER_ALTO / BANNER_ANCHO + 3;
+  }
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+  doc.text('ITINERARIO DE FLOTA — MISIÓN MÉDICA', margen, y + 4);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+  doc.setTextColor(90);
+  doc.text(`ESE Hospital Regional Noroccidental · del ${itinDesde} al ${hasta}`, margen, y + 9);
+  doc.text(`Generado el ${new Date().toLocaleString('es-CO')} por ${sesion.nombre}`,
+           ancho - margen, y + 9, { align: 'right' });
+  doc.setTextColor(0);
+  y += 13;
+
+  // ── Encabezado de la tabla ──
+  const x0 = margen;
+  doc.setFillColor(240, 243, 246);
+  doc.rect(x0, y, colVeh + colDia * dias.length, altoCab, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+  doc.text('VEHÍCULO', x0 + 2, y + 6.5);
+  dias.forEach((f, i) => {
+    const x = x0 + colVeh + i * colDia;
+    const esHoy = f === hoy();
+    if (esHoy) { doc.setFillColor(222, 233, 246); doc.rect(x, y, colDia, altoCab, 'F'); }
+    doc.setFontSize(6);
+    doc.setTextColor(esHoy ? 30 : 110, esHoy ? 90 : 110, esHoy ? 168 : 110);
+    doc.text(diaSemana(f).slice(0, 3).toUpperCase(), x + colDia / 2, y + 4, { align: 'center' });
+    doc.setFontSize(8); doc.setTextColor(esHoy ? 30 : 0, esHoy ? 90 : 0, esHoy ? 168 : 0);
+    doc.text(f.slice(8) + '/' + f.slice(5, 7), x + colDia / 2, y + 8.6, { align: 'center' });
+  });
+  doc.setTextColor(0);
+  y += altoCab;
+
+  // ── Filas ──
+  const porClave = {};
+  itinDatos.forEach(i => { porClave[i.fecha + '|' + i.vehiculo_id] = i; });
+
+  activos.forEach((v, fila) => {
+    const yf = y + fila * altoFila;
+    if (fila % 2) { doc.setFillColor(250, 251, 252); doc.rect(x0, yf, colVeh + colDia * dias.length, altoFila, 'F'); }
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
+    doc.text(v.placa, x0 + 2, yf + 4.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6); doc.setTextColor(110);
+    doc.text(doc.splitTextToSize(v.conductor_actual?.trim() || 'Sin conductor', colVeh - 3)[0] || '',
+             x0 + 2, yf + 8.2);
+    doc.setTextColor(0);
+
+    dias.forEach((f, i) => {
+      const x = x0 + colVeh + i * colDia;
+      const it = porClave[f + '|' + v.id];
+      if (!it) return;
+      const col = COLORES_PDF[it.tipo_jornada] || COLORES_PDF.ebs;
+
+      doc.setFillColor(col[0], col[1], col[2]);
+      doc.rect(x + 0.8, yf + 1, 1.1, altoFila - 2, 'F');           // barra de color
+
+      const titulo = it.tipo_jornada === 'disponible' ? 'DISPONIBLE'
+        : (it.destino || TIPOS_JORNADA[it.tipo_jornada]?.et || '');
+
+      // Se busca el mayor tamaño con el que el nombre quepa en dos renglones
+      // sin partir palabras: un "CAPITANLARG / O" es peor que letra más chica.
+      doc.setFont('helvetica', 'bold');
+      let tam = 6.2, lineas;
+      for (const t of [6.2, 5.6, 5, 4.5, 4]) {
+        doc.setFontSize(t);
+        lineas = doc.splitTextToSize(titulo, colDia - 4);
+        tam = t;
+        const parteSana = lineas.every(l => !l.endsWith('-')) &&
+          lineas.join('').length >= titulo.replace(/\s/g, '').length;
+        if (lineas.length <= 2 && parteSana) break;
+      }
+      doc.setFontSize(tam);
+      lineas = lineas.slice(0, 2);
+      lineas.forEach((ln, k) => doc.text(ln, x + 3, yf + 4 + k * (tam * 0.46)));
+
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(4.8);
+      doc.setTextColor(col[0], col[1], col[2]);
+      const pie = it.tipo_jornada === 'disponible'
+        ? (it.municipio || '') : (TIPOS_JORNADA[it.tipo_jornada]?.et || '');
+      doc.text(doc.splitTextToSize(pie, colDia - 4)[0] || '', x + 3, yf + altoFila - 2.2);
+      doc.setTextColor(0);
+
+      if (it.trayectos_cerrados > 0) {                              // ejecutado
+        doc.setFillColor(10, 125, 87);
+        doc.circle(x + colDia - 2.6, yf + 2.6, 0.8, 'F');
+      }
+    });
+  });
+
+  // ── Marco y líneas ──
+  const yTabla = y - altoCab, hTabla = altoCab + altoFila * activos.length;
+  doc.setDrawColor(215, 221, 228); doc.setLineWidth(0.15);
+  for (let i = 0; i <= dias.length; i++) {
+    const x = x0 + colVeh + i * colDia;
+    doc.line(x, yTabla, x, yTabla + hTabla);
+  }
+  for (let f = 0; f <= activos.length; f++) {
+    doc.line(x0, y + f * altoFila, x0 + colVeh + colDia * dias.length, y + f * altoFila);
+  }
+  doc.setDrawColor(150, 160, 172); doc.setLineWidth(0.3);
+  doc.rect(x0, yTabla, colVeh + colDia * dias.length, hTabla);
+  doc.line(x0, yTabla + altoCab, x0 + colVeh + colDia * dias.length, yTabla + altoCab);
+  doc.line(x0 + colVeh, yTabla, x0 + colVeh, yTabla + hTabla);
+
+  // ── Leyenda ──
+  let yl = y + altoFila * activos.length + 6, xl = x0;
+  doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+  for (const [tipo, t] of Object.entries(TIPOS_JORNADA)) {
+    const c = COLORES_PDF[tipo] || [120, 120, 120];
+    doc.setFillColor(c[0], c[1], c[2]);
+    doc.rect(xl, yl - 2, 2.4, 2.4, 'F');
+    doc.text(t.et, xl + 3.4, yl);
+    xl += doc.getTextWidth(t.et) + 10;
+  }
+  doc.setFillColor(10, 125, 87); doc.circle(xl + 1, yl - 0.8, 0.8, 'F');
+  doc.text('ejecutado (el conductor marcó salida)', xl + 3.4, yl);
+
+  doc.save(`itinerario_${itinDesde}_a_${hasta}.pdf`);
+  aviso('PDF generado', 'ok', 'Listo');
 }

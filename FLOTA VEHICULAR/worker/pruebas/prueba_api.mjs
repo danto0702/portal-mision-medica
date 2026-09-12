@@ -556,6 +556,62 @@ verificar('cierra sesión', r.estado === 200, r.datos);
 r = await api('GET', '/api/mi-dia', null, tCond);
 verificar('el token queda invalidado tras cerrar sesión', r.estado === 401, r.datos);
 
+console.log('\n── Banner institucional ──────────────────────────────────────');
+// PNG de 1x1 en base64, suficiente para ejercitar la ruta
+const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+r = await api('GET', '/api/banner');
+verificar('sin banner responde vacío, y sin exigir sesión',
+  r.estado === 200 && r.datos.vacio === true, r.datos);
+
+r = await api('PUT', '/api/banner', { mime: 'image/png', datos: PNG, ancho: 2000, alto: 289 }, tCoord);
+verificar('coordinación NO puede cambiar el banner', r.estado === 403, r.datos);
+
+r = await api('PUT', '/api/banner', { mime: 'image/gif', datos: PNG }, tokenPrincipal);
+verificar('rechaza un formato que no es imagen web', r.estado === 400, r.datos);
+
+r = await api('PUT', '/api/banner',
+  { mime: 'image/png', datos: 'A'.repeat(2_200_000) }, tokenPrincipal);
+verificar('rechaza una imagen demasiado pesada', r.estado === 400, r.datos);
+
+r = await api('PUT', '/api/banner',
+  { mime: 'image/png', datos: PNG, ancho: 2000, alto: 289 }, tokenPrincipal);
+verificar('el administrador sube el banner', r.estado === 200, r.datos);
+
+r = await api('GET', '/api/banner');
+verificar('se puede leer sin sesión, para la pantalla de ingreso',
+  r.estado === 200 && r.datos.datos === PNG, { mime: r.datos.mime });
+verificar('guarda las medidas', r.datos.ancho === 2000 && r.datos.alto === 289, r.datos);
+
+r = await api('PUT', '/api/banner',
+  { mime: 'image/webp', datos: PNG, ancho: 2000, alto: 289 }, tokenPrincipal);
+verificar('reemplazarlo no crea un segundo registro', r.estado === 200, r.datos);
+r = await api('GET', '/api/banner');
+verificar('y queda el nuevo', r.datos.mime === 'image/webp', r.datos.mime);
+
+r = await api('DELETE', '/api/banner', null, tCoord);
+verificar('coordinación NO puede quitarlo', r.estado === 403, r.datos);
+r = await api('DELETE', '/api/banner', null, tokenPrincipal);
+verificar('el administrador sí lo quita', r.estado === 200, r.datos);
+r = await api('GET', '/api/banner');
+verificar('y vuelve a estar vacío', r.datos.vacio === true, r.datos);
+
+console.log('\n── Documentos vencidos ───────────────────────────────────────');
+db.prepare(`INSERT INTO documentos_vehiculo (vehiculo_id, tipo, vencimiento)
+            VALUES (?, 'soat', date('now','-10 day'))`).bind(vehiculo).run();
+db.prepare(`INSERT INTO documentos_persona (persona_id, tipo, vencimiento)
+            VALUES (?, 'curso_mision_medica', date('now','-3 day'))`).bind(personaConductor).run();
+
+r = await api('GET', '/api/vehiculos', null, tCoord);
+const veh = r.datos.find(v => v.id === vehiculo);
+verificar('el vehículo reporta el documento vencido', veh.docs_vencidos === 1, veh.docs_vencidos);
+verificar('y dice cuál es', veh.docs_vencidos_tipos === 'soat', veh.docs_vencidos_tipos);
+
+r = await api('GET', '/api/personas', null, tCoord);
+const per = r.datos.find(p => p.id === personaConductor);
+verificar('la persona reporta el curso vencido',
+  per.docs_vencidos_tipos === 'curso_mision_medica', per.docs_vencidos_tipos);
+
 console.log('\n── Integridad de catálogos ───────────────────────────────────');
 r = await api('DELETE', '/api/catalogos/destinos/8', null, tokenPrincipal);
 verificar('borrar un destino solo lo desactiva', r.estado === 200 && r.datos.nota, r.datos);

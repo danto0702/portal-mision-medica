@@ -269,6 +269,64 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 #ingreso h1{font-size:1.3rem}
 #ingreso .lema{color:var(--muted);font-size:.78rem;margin:.15rem 0 1.35rem}
 .grafica-env{position:relative;height:260px}
+
+/* ── Banner institucional ─────────────────────────────────────────── */
+.banner{width:100%;line-height:0;background:#fff}
+.banner img{width:100%;height:auto;display:block}
+.banner-ingreso{border-radius:12px;overflow:hidden;margin-bottom:1rem;border:1px solid var(--border)}
+.banner-cabecera{border-bottom:1px solid var(--border)}
+/* En el celular el banner se recorta en alto para no comerse la pantalla */
+@media(max-width:700px){
+  .banner-cabecera{max-height:52px;overflow:hidden;display:flex;align-items:center}
+}
+
+/* ── Arrastre táctil ──────────────────────────────────────────────── */
+.fantasma{
+  position:fixed;z-index:200;pointer-events:none;transform:translate(-50%,-130%);
+  background:var(--azul);color:#fff;padding:.3rem .6rem;border-radius:8px;
+  font:700 .74rem 'Inter',sans-serif;box-shadow:var(--sh-md);max-width:170px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.itin-celda{touch-action:pan-x pan-y}
+.pred-chip.activo{background:var(--azul);color:#fff;border-color:var(--azul)}
+#itin-env.pintando .itin-celda{cursor:crosshair}
+#itin-env.pintando .itin-celda:hover{border-color:var(--azul);box-shadow:0 0 0 3px var(--azul-glow)}
+
+/* ── Celular ──────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  main{padding:.75rem}
+  h1{font-size:1.25rem}
+  .cab{gap:.6rem}
+  .kpi .val{font-size:1.4rem}
+  .modal-caja{max-height:94vh}
+  .modal-pie{flex-wrap:wrap}
+  .modal-pie .btn{flex:1 1 auto;justify-content:center}
+  .btn{padding:.6rem 1rem}          /* objetivos táctiles más grandes */
+  .btn.sm{padding:.45rem .7rem}
+  .inp,select.inp{font-size:16px}   /* evita el zoom automático de iOS */
+  .nav button{padding:.7rem .55rem;font-size:.78rem}
+  table{font-size:.8rem}
+  .previa-res{gap:.35rem}
+  .previa-res .r{flex:1 1 40%}
+}
+/* El notch y la barra inferior de los iPhone */
+@supports(padding:max(0px)){
+  .topbar{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}
+  main{padding-bottom:max(1rem,env(safe-area-inset-bottom))}
+}
+/* La matriz no se muestra en pantallas angostas: ver vistaAngosta() */
+.itin-lista .dia-grupo{margin-bottom:.85rem}
+.itin-lista .dia-tit{
+  position:sticky;top:0;z-index:5;background:var(--bg);padding:.4rem 0;
+  font:700 .82rem 'Inter',sans-serif;color:var(--azul);
+  border-bottom:1px solid var(--border);margin-bottom:.4rem;
+}
+.itin-lista .ren{
+  display:flex;align-items:center;gap:.6rem;padding:.55rem .7rem;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r);margin-bottom:.35rem;cursor:pointer;
+}
+.itin-lista .ren .pl{font-weight:700;min-width:74px;font-size:.82rem}
+.itin-lista .ren .de{flex:1;font-size:.85rem}
 </style>
 </head>
 <body>
@@ -276,6 +334,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 <!-- ══ INGRESO ══════════════════════════════════════════════ -->
 <div id="ingreso">
   <form class="caja" onsubmit="entrar(event)">
+    <div id="banner-ingreso" class="banner banner-ingreso" style="display:none"></div>
     <div class="logo">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 17H6V5h11l4 6v6h-3"/><circle cx="17.5" cy="17.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/></svg>
       <div><h1>Flota Vehicular</h1></div>
@@ -299,6 +358,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 
 <!-- ══ APLICACIÓN ═══════════════════════════════════════════ -->
 <div id="app" hidden>
+  <div id="banner-cabecera" class="banner banner-cabecera" style="display:none"></div>
   <header class="topbar">
     <div class="marca">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 17H6V5h11l4 6v6h-3"/><circle cx="17.5" cy="17.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/></svg>
@@ -331,6 +391,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 <script src="libs/chart.umd.min.js"></script>
 <script src="libs/xlsx.full.min.js"></script>
 <script src="libs/jszip.min.js"></script>
+<script src="libs/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

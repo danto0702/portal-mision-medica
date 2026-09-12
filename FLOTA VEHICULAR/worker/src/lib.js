@@ -28,8 +28,9 @@
  *   1  versión inicial
  *   2  conductor_id en vehículos (conductor predeterminado)
  *   3  banco de predeterminados, mover/duplicar, borrado definitivo y carga por lote
+ *   4  banner institucional y tipos de documento vencido en vehículos y personas
  */
-const VERSION_API = 3;
+const VERSION_API = 4;
 
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const hoyISO = () => ahora().slice(0, 10);

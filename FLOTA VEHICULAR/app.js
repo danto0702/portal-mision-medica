@@ -2576,8 +2576,9 @@ async function descargarPDF() {
   const altoTitulo = 13, altoLeyenda = 12;
   const ancho = margen * 2 + colVeh + colDia * dias.length;
 
-  // El banner va centrado y acotado a 110 mm: a lo ancho de la hoja tapaba
-  // media página y empujaba la tabla fuera del papel.
+  // El banner va al margen izquierdo, alineado con el borde de la tabla y del
+  // título, y acotado a 110 mm: a lo ancho de la hoja tapaba media página y
+  // empujaba la tabla fuera del papel.
   const anchoBanner = Math.min(110, ancho - margen * 2);
   const altoBanner = banner ? anchoBanner * BANNER_ALTO / BANNER_ANCHO + 4 : 0;
 
@@ -2591,7 +2592,7 @@ async function descargarPDF() {
   let y = margen;
 
   if (banner) {
-    doc.addImage(bannerUrl(), (ancho - anchoBanner) / 2, y,
+    doc.addImage(bannerUrl(), margen, y,
                  anchoBanner, anchoBanner * BANNER_ALTO / BANNER_ANCHO);
     y += altoBanner;
   }

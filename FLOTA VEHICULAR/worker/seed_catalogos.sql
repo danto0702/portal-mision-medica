@@ -75,4 +75,16 @@ INSERT INTO parametros (clave, valor, descripcion) VALUES
   ('dia_disponible_es_pagable', '1',
    'Si un dia en estado DISPONIBLE cuenta para la liquidacion'),
   ('correo_alertas', '',
-   'Destinatarios de las alertas automaticas, separados por coma');
+   'Destinatarios de las alertas automaticas, separados por coma'),
+  ('foto_obligatoria', '1',
+   'Exigir fotografia al marcar salida y llegada'),
+  ('app_foto_activa', '1',
+   'Tomar la foto con una aplicacion externa en vez de la camara del telefono'),
+  ('app_foto_nombre', 'Timemark',
+   'Nombre de la aplicacion que se le muestra al conductor'),
+  ('app_foto_android', 'com.oceangalaxy.camera.new',
+   'Identificador en Google Play'),
+  ('app_foto_ios', '6446071834',
+   'Identificador en la App Store'),
+  ('foto_antiguedad_minutos', '60',
+   'Avisar si la foto adjuntada es mas vieja que esto');

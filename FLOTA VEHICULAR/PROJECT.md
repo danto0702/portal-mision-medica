@@ -1,6 +1,6 @@
 # PROJECT.md — Flota Vehicular HRNO
 
-> Borrador v0.7 · 13 sep 2026 · ESE Hospital Regional Noroccidental
+> Borrador v0.8 · 13 sep 2026 · ESE Hospital Regional Noroccidental
 > Responsable: Danilo Torrado Blanco — Coordinador de Salud Pública
 > Estado: **arquitectura, roles y modelo de datos definidos.** Pendientes las preguntas de §11
 
@@ -79,6 +79,7 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D23 | Sincronización | Botón *Actualizar* y revisión automática cada 45 s mediante un sello del estado de los datos |
 | D24 | Datos de la marca | Kilometraje, número **y nombres** de tripulantes y **fotografía** son obligatorios |
 | D25 | Día operativo | Se calcula en **hora de Colombia**, no en UTC |
+| D26 | Fotografía | Se toma con **Timemark** (app externa que estampa fecha, hora y GPS). La app, su identificador y si se usa son configurables en Ajustes |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -365,6 +366,32 @@ una foto de varios megabytes queda en unos 100 KB. Se hace ahí porque en el Cat
 subida es el cuello de botella, y porque la base de datos las guarda y crecería sin control.
 Sin señal, la marca se encola pero la fotografía no —unas pocas llenarían el almacenamiento
 del navegador— y se agrega al recuperar la cobertura.
+
+#### La fotografía se toma en Timemark (D26)
+
+Coordinación pidió que la foto no la tome la cámara del teléfono sino
+**[Timemark](https://play.google.com/store/apps/details?id=com.oceangalaxy.camera.new)**
+(OCEAN GALAXY PTE. LTD.), que estampa fecha, hora y coordenadas sobre la propia imagen.
+
+Dos límites del navegador determinan el flujo, y conviene tenerlos escritos:
+
+1. **Una página web no puede saber si una aplicación está instalada.** Lo que sí existe en
+   Android es la URL `intent:` con dirección de respaldo: Chrome abre la aplicación si está y,
+   si no, lleva a la ficha de Play Store. Es exactamente el comportamiento pedido, y lo resuelve
+   el navegador, no la aplicación.
+2. **Una página web no puede recibir la foto de vuelta de otra aplicación.** Timemark la guarda
+   en la galería. Por eso el formulario tiene dos pasos: *Abrir Timemark* y *Adjuntar la foto*.
+
+En iPhone no existe el mecanismo `intent:`, así que el botón abre la ficha de la App Store; si la
+aplicación ya está instalada, esa ficha ofrece "Abrir".
+
+Como la foto se adjunta desde la galería, el conductor podría escoger una de otro día. No se
+bloquea —puede haber una razón válida— pero si la imagen es más vieja que el umbral configurado
+la aplicación lo advierte. Además, el servidor guarda su propia hora y sus propias coordenadas,
+que corroboran lo estampado por Timemark.
+
+Todo esto es configurable en Ajustes: qué aplicación, su identificador en cada tienda, y si se
+usa o se vuelve a la cámara del teléfono.
 
 Si el conductor sale **sin programación**, el formulario le pide escoger el vehículo en vez de
 fallar: el viaje queda registrado y el dashboard lo muestra como ejecutado sin programar, que es

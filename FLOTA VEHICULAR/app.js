@@ -65,6 +65,7 @@ let sesion = null;
 let cat = { municipios: [], destinos: [], ips: [] };
 const BANNER_ANCHO = 2000, BANNER_ALTO = 289;
 let banner = null;                       // { mime, datos } o null
+let parametros = {};                     // clave -> valor, para la interfaz
 let vehiculos = [], personas = [];
 let vistaActual = '';
 const graficas = {};
@@ -91,6 +92,7 @@ function fechaHora(iso) {
 }
 /** Ancho por debajo del cual la matriz de 14 columnas deja de ser usable. */
 const angosta = () => window.innerWidth < 700;
+const par = (clave, pordefecto) => parametros[clave] ?? pordefecto;
 
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const diaSemana = f => DIAS[new Date(f + 'T12:00:00').getDay()];
@@ -244,6 +246,9 @@ async function iniciar() {
   comprobarVersion();
   cargarBanner();
   try { cat = await api('/api/catalogos'); } catch { /* se reintenta luego */ }
+  try {
+    parametros = Object.fromEntries((await api('/api/parametros')).map(p => [p.clave, p.valor]));
+  } catch { /* se usan los valores por defecto */ }
   try {
     vehiculos = await api('/api/vehiculos');
     if (sesion.rol !== 'conductor') personas = await api('/api/personas');
@@ -536,18 +541,7 @@ async function marcar(hito) {
         <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 0">
           Queda en el soporte: es la constancia de quién iba a bordo.</p></div>` : ''}
 
-    <div class="campo">
-      <label class="lb">Fotografía de ${hito} <span class="req" id="mk-foto-req">*</span></label>
-      <input type="file" id="mk-foto" accept="image/*" capture="environment"
-        style="display:none" onchange="tomarFoto(this)">
-      <button type="button" class="btn sec bloque" id="mk-foto-btn"
-        onclick="$('#mk-foto').click()" style="padding:.8rem">
-        Tomar fotografía</button>
-      <div id="mk-foto-vista" style="display:none;margin-top:.5rem">
-        <img id="mk-foto-img" style="width:100%;border-radius:var(--r);border:1px solid var(--border)">
-        <p style="font-size:.72rem;color:var(--muted);margin:.3rem 0 0" id="mk-foto-peso"></p>
-      </div>
-    </div>
+    ${bloqueFoto(hito)}
 
     <div class="campo"><label class="lb">Observaciones</label>
       <textarea class="inp" id="mk-obs" rows="2" placeholder="Opcional"></textarea></div>
@@ -558,6 +552,100 @@ async function marcar(hito) {
 }
 
 let fotoTomada = null;         // { mime, datos } de la marca en curso
+
+// ── Fotografía con aplicación externa ────────────────────────────────────────
+//
+// Coordinación pidió que la foto se tome con Timemark, que estampa fecha, hora
+// y coordenadas sobre la imagen. Hay dos límites del navegador que conviene
+// tener presentes, porque determinan el flujo:
+//
+//   1. Una página web NO PUEDE saber si una aplicación está instalada. Lo que
+//      sí existe en Android es la URL "intent", que abre la aplicación si está
+//      y, si no, lleva a la dirección de respaldo — la ficha de Play Store.
+//      Es exactamente el comportamiento pedido, y lo resuelve el propio Chrome.
+//   2. Una página web NO PUEDE recibir la foto de vuelta de otra aplicación.
+//      Timemark la guarda en la galería, así que el conductor vuelve y la
+//      adjunta desde ahí. Por eso son dos pasos y no uno.
+
+const esAndroid = () => /Android/i.test(navigator.userAgent);
+const esIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function bloqueFoto(hito) {
+  const usaApp = par('app_foto_activa', '1') === '1';
+  const nombre = par('app_foto_nombre', 'Timemark');
+
+  if (!usaApp) {
+    return `<div class="campo">
+      <label class="lb">Fotografía de ${hito} <span class="req">*</span></label>
+      <input type="file" id="mk-foto" accept="image/*" capture="environment"
+        style="display:none" onchange="tomarFoto(this)">
+      <button type="button" class="btn sec bloque" id="mk-foto-btn"
+        onclick="$('#mk-foto').click()" style="padding:.8rem">Tomar fotografía</button>
+      ${vistaFoto()}
+    </div>`;
+  }
+
+  const movil = esAndroid() || esIOS();
+  return `<div class="campo">
+    <label class="lb">Fotografía de ${hito} <span class="req">*</span></label>
+    ${movil ? `
+      <button type="button" class="btn bloque" onclick="abrirAppFoto()"
+        style="padding:.8rem;margin-bottom:.5rem">
+        1 · Abrir ${esc(nombre)}</button>
+      <p style="font-size:.74rem;color:var(--muted);margin:0 0 .6rem">
+        Tome la foto en ${esc(nombre)} —queda con fecha, hora y ubicación estampadas—
+        vuelva aquí y adjúntela.</p>` : `
+      <div class="nota" style="margin-bottom:.6rem">
+        ${esc(nombre)} es una aplicación de celular. Desde el computador, adjunte
+        la fotografía que el conductor ya tomó.</div>`}
+    <input type="file" id="mk-foto" accept="image/*" style="display:none"
+      onchange="tomarFoto(this)">
+    <button type="button" class="btn sec bloque" id="mk-foto-btn"
+      onclick="$('#mk-foto').click()" style="padding:.8rem">
+      ${movil ? `2 · Adjuntar la foto de ${esc(nombre)}` : 'Adjuntar fotografía'}</button>
+    ${vistaFoto()}
+  </div>`;
+}
+
+const vistaFoto = () => `
+  <div id="mk-foto-vista" style="display:none;margin-top:.5rem">
+    <img id="mk-foto-img" style="width:100%;border-radius:var(--r);border:1px solid var(--border)">
+    <p style="font-size:.72rem;color:var(--muted);margin:.3rem 0 0" id="mk-foto-peso"></p>
+    <div id="mk-foto-avi"></div>
+  </div>`;
+
+/**
+ * Abre la aplicación de fotos y, si no está instalada, lleva a la tienda.
+ *
+ * En Android lo resuelve la URL "intent" con dirección de respaldo. En iOS no
+ * existe ese mecanismo, así que se abre la ficha de la App Store: si la
+ * aplicación ya está, el botón de esa ficha dice "Abrir".
+ */
+function urlAppFoto() {
+  if (esAndroid()) {
+    const paquete = par('app_foto_android', 'com.oceangalaxy.camera.new');
+    const tienda = `https://play.google.com/store/apps/details?id=${paquete}`;
+    // El respaldo lo aplica el propio Chrome cuando el paquete no está instalado.
+    return 'intent:#Intent;action=android.intent.action.MAIN' +
+      ';category=android.intent.category.LAUNCHER' +
+      `;package=${paquete}` +
+      `;S.browser_fallback_url=${encodeURIComponent(tienda)};end`;
+  }
+  if (esIOS()) {
+    return `https://apps.apple.com/app/id${par('app_foto_ios', '6446071834')}`;
+  }
+  return null;                       // en computador no hay a dónde ir
+}
+
+function abrirAppFoto() {
+  const destino = urlAppFoto();
+  if (!destino) {
+    return aviso(`${par('app_foto_nombre', 'Timemark')} es una aplicación de celular; ` +
+                 'desde el computador adjunte la foto directamente', 'avi', 'Solo en celular');
+  }
+  location.href = destino;
+}
 
 /**
  * Reduce la foto a 1280 px de ancho y la comprime antes de subirla.
@@ -591,8 +679,19 @@ function tomarFoto(input) {
       $('#mk-foto-img').src = url;
       $('#mk-foto-vista').style.display = '';
       $('#mk-foto-peso').textContent =
-        `${Math.round(fotoTomada.datos.length * 3 / 4 / 1024)} KB · toque el botón para repetirla`;
-      $('#mk-foto-btn').textContent = 'Repetir fotografía';
+        `${Math.round(fotoTomada.datos.length * 3 / 4 / 1024)} KB · toque el botón para cambiarla`;
+      $('#mk-foto-btn').textContent = 'Cambiar fotografía';
+
+      // Al adjuntar desde la galería se podría escoger una foto de otro día.
+      // No se bloquea —puede haber una razón válida— pero se dice.
+      const tope = Number(par('foto_antiguedad_minutos', '60'));
+      const minutos = archivo.lastModified
+        ? Math.round((Date.now() - archivo.lastModified) / 60000) : 0;
+      $('#mk-foto-avi').innerHTML = tope && minutos > tope
+        ? `<div class="nota avi" style="margin-top:.4rem">Esta foto se tomó hace
+             ${minutos >= 1440 ? Math.round(minutos / 1440) + ' día(s)' : minutos + ' minutos'}.
+             Verifique que sea la de este viaje.</div>`
+        : '';
     };
     img.src = lector.result;
   };
@@ -2245,6 +2344,13 @@ const EXPLICA = {
   dias_alerta_vencimiento: ['Avisar vencimientos con esta anticipación (días)', null],
   umbral_discrepancia_dias: ['Diferencia tolerada con el soporte firmado (días)', null],
   correo_alertas: ['Correos para las alertas (separados por coma)', null],
+  foto_obligatoria: ['¿Exigir fotografía al salir y al llegar?', [['1', 'Sí'], ['0', 'No']]],
+  app_foto_activa: ['¿Con qué se toma la fotografía?',
+    [['1', 'Con una aplicación externa (Timemark)'], ['0', 'Con la cámara del teléfono']]],
+  app_foto_nombre: ['Nombre de esa aplicación, como se le muestra al conductor', null],
+  app_foto_android: ['Identificador en Google Play', null],
+  app_foto_ios: ['Identificador en la App Store', null],
+  foto_antiguedad_minutos: ['Avisar si la foto adjuntada es más vieja que (minutos)', null],
 };
 
 async function verAjustes() {
@@ -2296,6 +2402,7 @@ async function verAjustes() {
 async function guardarParametro(clave) {
   try {
     await api('/api/parametros/' + clave, { metodo: 'PUT', cuerpo: { valor: $('#par-' + clave).value } });
+    parametros[clave] = $('#par-' + clave).value;
     aviso('Ajuste guardado', 'ok');
   } catch (e) { aviso(e.message, 'mal', 'No se pudo guardar'); }
 }

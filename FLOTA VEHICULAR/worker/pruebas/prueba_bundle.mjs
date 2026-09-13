@@ -142,6 +142,18 @@ r = await api('GET', '/api/mi-dia', null, tSinP);
 verificar('mi-día avisa que la cuenta no está vinculada',
   r.estado === 200 && r.datos.sin_persona === true, r.datos);
 
+console.log('\n── Parámetros visibles para el conductor ─────────────────────');
+r = await api('GET', '/api/parametros', null, tCond);
+verificar('el conductor puede leer los parámetros', r.estado === 200 && r.datos.length > 0,
+  r.datos.length);
+verificar('incluye la configuración de la app de fotos',
+  r.datos.some(p => p.clave === 'app_foto_activa'), r.datos.map(p => p.clave).slice(0, 8));
+verificar('pero no los correos de alertas',
+  !r.datos.some(p => p.clave === 'correo_alertas'), r.datos.map(p => p.clave));
+
+r = await api('PUT', '/api/parametros/app_foto_nombre', { valor: 'OtraApp' }, tCond);
+verificar('y no puede modificarlos', r.estado === 403, r.datos);
+
 console.log('\n── Sello de cambios ──────────────────────────────────────────');
 r = await api('GET', '/api/sello', null, tCoord);
 verificar('devuelve un sello', r.estado === 200 && !!r.datos.sello, r.datos);

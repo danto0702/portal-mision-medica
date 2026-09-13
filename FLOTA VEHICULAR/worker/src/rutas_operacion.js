@@ -1168,10 +1168,21 @@ ruta('GET', '/api/auditoria', async ({ db, url }) => {
   return r.results;
 }, ['principal']);
 
-ruta('GET', '/api/parametros', async ({ db }) => {
+/**
+ * Los parámetros los lee todo el mundo: son reglas de operación, no secretos, y
+ * la pantalla del conductor los necesita —si no puede leerlos, un cambio hecho
+ * en Ajustes nunca llega a su teléfono y el celular sigue con el valor de
+ * fábrica sin que nadie lo note. Modificarlos sigue siendo solo del principal.
+ *
+ * La única excepción son los correos de alertas, que no le hacen falta.
+ */
+ruta('GET', '/api/parametros', async ({ db, sesion }) => {
   const r = await db.prepare('SELECT * FROM parametros ORDER BY clave').all();
+  if (sesion.rol === 'conductor') {
+    return r.results.filter(p => p.clave !== 'correo_alertas');
+  }
   return r.results;
-}, ['principal', 'coordinacion']);
+}, TODOS);
 
 ruta('PUT', '/api/parametros/:clave', async ({ db, sesion, params, cuerpo }) => {
   const antes = await db.prepare('SELECT * FROM parametros WHERE clave = ?')

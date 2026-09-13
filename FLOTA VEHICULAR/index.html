@@ -327,6 +327,16 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 }
 .itin-lista .ren .pl{font-weight:700;min-width:74px;font-size:.82rem}
 .itin-lista .ren .de{flex:1;font-size:.85rem}
+
+/* Coordenadas copiables en la pantalla de viajes */
+.geo{min-width:132px}
+.geo-copiar{
+  font:600 .72rem/1.2 ui-monospace,'SF Mono',Menlo,monospace;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:6px;
+  padding:.22rem .4rem;cursor:pointer;color:var(--text);white-space:nowrap;
+}
+.geo-copiar:hover{border-color:var(--azul);color:var(--azul);background:var(--azul-glow)}
+.geo-copiar::after{content:' ⧉';opacity:.5}
 </style>
 </head>
 <body>

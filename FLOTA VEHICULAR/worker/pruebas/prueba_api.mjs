@@ -43,6 +43,8 @@ function verificar(nombre, condicion, detalle) {
 }
 
 const hoy = new Date().toISOString().slice(0, 10);
+// JPEG de 1x1: suficiente para ejercitar la ruta de fotografías
+const FOTO = { mime: 'image/jpeg', datos: '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==' };
 
 console.log('\n── Salud e instalación ───────────────────────────────────────');
 let r = await api('GET', '/api/salud');
@@ -382,9 +384,28 @@ r = await api('GET', '/api/mi-dia', null, tCond);
 verificar('el conductor ve su programación de hoy',
   r.estado === 200 && r.datos.itinerario && r.datos.itinerario.placa === 'GEU-665', r.datos);
 
+// Campos obligatorios: primero se comprueba que falten los rechaza
+r = await api('POST', '/api/trayectos/salida',
+  { municipio_id: 1, lugar: 'BASE', num_tripulantes: 4, tripulantes: 'A, B', foto: FOTO }, tCond);
+verificar('sin kilometraje inicial no deja salir', r.estado === 400, r.datos);
+
+r = await api('POST', '/api/trayectos/salida',
+  { municipio_id: 1, lugar: 'BASE', km_inicial: 1, tripulantes: 'A, B', foto: FOTO }, tCond);
+verificar('sin número de tripulantes tampoco', r.estado === 400, r.datos);
+
+r = await api('POST', '/api/trayectos/salida',
+  { municipio_id: 1, lugar: 'BASE', km_inicial: 1, num_tripulantes: 4, foto: FOTO }, tCond);
+verificar('sin los nombres de la tripulación tampoco', r.estado === 400, r.datos);
+
+r = await api('POST', '/api/trayectos/salida',
+  { municipio_id: 1, lugar: 'BASE', km_inicial: 1, num_tripulantes: 4, tripulantes: 'A, B' }, tCond);
+verificar('sin fotografía tampoco', r.estado === 400, r.datos);
+
 r = await api('POST', '/api/trayectos/salida', {
   municipio_id: 1, lugar: 'BASE ÁBREGO', lat: 8.0796, lon: -73.2216,
-  precision: 12, km_inicial: 145200, ts_dispositivo: '2026-09-11T06:10:00Z',
+  precision: 12, km_inicial: 145200, num_tripulantes: 4,
+  tripulantes: 'JEISON NAVARRO, ANA GÓMEZ, LUIS PÉREZ, SOFÍA RUIZ',
+  foto: FOTO, ts_dispositivo: '2026-09-11T06:10:00Z',
 }, tCond);
 verificar('el conductor marca salida', r.estado === 200 && r.datos.consecutivo, r.datos);
 const trayecto = r.datos.id;
@@ -398,9 +419,19 @@ verificar('la hora la pone el servidor, no el dispositivo',
 r = await api('POST', '/api/trayectos/salida', { municipio_id: 1 }, tCond);
 verificar('no permite dos trayectos abiertos a la vez', r.estado === 400, r.datos);
 
+r = await api('POST', `/api/trayectos/${trayecto}/llegada`,
+  { municipio_id: 1, lugar: 'HOYO PILÓN', foto: FOTO }, tCond);
+verificar('sin kilometraje final no deja cerrar', r.estado === 400, r.datos);
+
+r = await api('POST', `/api/trayectos/${trayecto}/llegada`,
+  { municipio_id: 1, km_final: 100, foto: FOTO }, tCond);
+verificar('rechaza un kilometraje final menor que el inicial', r.estado === 400, r.datos);
+verificar('y lo explica con los dos números',
+  /145200/.test(r.datos.error || ''), r.datos.error);
+
 r = await api('POST', `/api/trayectos/${trayecto}/llegada`, {
   municipio_id: 1, lugar: 'HOYO PILÓN', lat: 8.1512, lon: -73.1904,
-  precision: 25, km_final: 145247,
+  precision: 25, km_final: 145247, foto: FOTO,
 }, tCond);
 verificar('el conductor marca llegada', r.estado === 200 && r.datos.ts_llegada, r.datos);
 
@@ -414,6 +445,42 @@ r = await api('PUT', `/api/trayectos/${trayecto}`, {
   km_final: 145250, motivo: 'El conductor reportó error de digitación',
 }, tCoord);
 verificar('coordinación sí corrige, con motivo', r.estado === 200, r.datos);
+
+console.log('\n── Fotografías y tripulación ─────────────────────────────────');
+r = await api('GET', `/api/trayectos/${trayecto}/fotos`, null, tCond);
+verificar('guarda las dos fotografías', r.estado === 200 && r.datos.length === 2,
+  r.datos.map ? r.datos.map(f => f.momento) : r.datos);
+verificar('con su momento y sus coordenadas',
+  r.datos.some(f => f.momento === 'salida' && f.lat === 8.0796), r.datos[0]);
+
+r = await api('GET', '/api/trayectos?desde=2026-01-01&hasta=2027-12-31', null, tCoord);
+const tr = r.datos.find(x => x.id === trayecto);
+verificar('el listado guarda los nombres de la tripulación',
+  (tr.tripulantes || '').includes('ANA GÓMEZ'), tr.tripulantes);
+verificar('y dice qué fotografías tiene', (tr.fotos || '').includes('salida'), tr.fotos);
+verificar('conserva las coordenadas de salida y llegada',
+  tr.lat_salida === 8.0796 && tr.lat_llegada === 8.1512,
+  { s: tr.lat_salida, l: tr.lat_llegada });
+
+r = await api('POST', `/api/trayectos/${trayecto}/foto`,
+  { momento: 'salida', foto: { mime: 'image/gif', datos: FOTO.datos } }, tCond);
+verificar('rechaza un formato que no es foto', r.estado === 400, r.datos);
+
+r = await api('POST', `/api/trayectos/${trayecto}/foto`,
+  { momento: 'salida', foto: { mime: 'image/jpeg', datos: 'A'.repeat(900_000) } }, tCond);
+verificar('rechaza una fotografía demasiado pesada', r.estado === 400, r.datos);
+
+r = await api('GET', `/api/trayectos/${trayecto}/fotos`, null, tCond);
+verificar('el propio conductor sí puede verlas', r.estado === 200, r.estado);
+
+// Con la exigencia apagada, se puede marcar sin foto
+await api('PUT', '/api/parametros/foto_obligatoria', { valor: '0' }, tokenPrincipal);
+r = await api('POST', '/api/trayectos/salida',
+  { municipio_id: 1, lugar: 'SIN FOTO', km_inicial: 200, num_tripulantes: 2,
+    tripulantes: 'X, Y', fecha_operacion: '2026-10-20', vehiculo_id: vehiculo }, tCond);
+verificar('si se apaga la exigencia, se puede marcar sin foto', r.estado === 200, r.datos);
+await api('POST', `/api/trayectos/${r.datos.id}/llegada`, { km_final: 260 }, tCond);
+await api('PUT', '/api/parametros/foto_obligatoria', { valor: '1' }, tokenPrincipal);
 
 console.log('\n── Checklist de 5 distintivos + 4 elementos ──────────────────');
 const items = [

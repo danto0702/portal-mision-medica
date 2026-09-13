@@ -105,6 +105,15 @@ for (let d = -9; d <= 4; d++) {
   }
 }
 
+// El conductor de la demostración siempre tiene programación hoy, para que las
+// pruebas del ciclo de marcación no dependan del azar de la siembra.
+db.prepare("DELETE FROM itinerarios WHERE fecha = ? AND vehiculo_id = ?")
+  .bind(hoy, idsVehiculo[2]).run();
+await llamar('POST', '/api/itinerario', {
+  fecha: hoy, vehiculo_id: idsVehiculo[2], conductor_id: idsPersona[2],
+  municipio_id: 1, destino_nombre: 'CAPITANLARGO', tipo_jornada: 'ebs',
+}, tAdmin);
+
 // Ejecución: trayectos cerrados en los días pasados
 const its = db.prepare(
   "SELECT * FROM itinerarios WHERE fecha < ? AND tipo_jornada != 'disponible'").bind(hoy).all().results || [];

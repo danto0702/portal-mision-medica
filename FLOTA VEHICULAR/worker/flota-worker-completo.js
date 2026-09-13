@@ -92,8 +92,9 @@ const totalRutas = () => rutas.length;
  *   4  banner institucional y tipos de documento vencido en vehículos y personas
  *   5  sello de cambios para sincronizar, vínculo obligatorio conductor↔persona
  *      y día operativo en hora de Colombia
+ *   6  kilometraje y tripulación obligatorios, fotografías de salida y llegada
  */
-const VERSION_API = 5;
+const VERSION_API = 6;
 
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 /**
@@ -1343,6 +1344,38 @@ ruta('DELETE', '/api/predeterminados/:id', async ({ db, sesion, params }) => {
 
 // ═════════════════════════════════════════════════════════ TRAYECTOS ════════
 
+/** ¿Están exigidas las fotografías? Configurable desde Ajustes. */
+async function exigeFoto(db) {
+  const p = await db.prepare(
+    "SELECT valor FROM parametros WHERE clave = 'foto_obligatoria'").first();
+  return !p || p.valor === '1';
+}
+
+/**
+ * Guarda la fotografía de un momento del trayecto.
+ *
+ * El navegador la reduce a 1280 px y la comprime antes de enviarla; este tope
+ * es la última defensa para que la base no crezca sin control.
+ */
+async function guardarFoto(db, trayectoId, momento, foto, sesion, geo) {
+  if (!foto || !foto.datos) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(foto.mime || '')) {
+    throw malaPeticion('La fotografía debe ser JPG, PNG o WEBP');
+  }
+  const bytes = Math.floor(foto.datos.length * 3 / 4);
+  if (bytes > 600_000) throw malaPeticion('La fotografía pesa demasiado (máximo 600 KB)');
+
+  await db.prepare(`
+    INSERT INTO trayecto_fotos (trayecto_id, momento, mime, datos, bytes, lat, lon, ts, subido_por)
+    VALUES (?,?,?,?,?,?,?,?,?)
+    ON CONFLICT (trayecto_id, momento) DO UPDATE SET
+      mime = excluded.mime, datos = excluded.datos, bytes = excluded.bytes,
+      lat = excluded.lat, lon = excluded.lon, ts = excluded.ts,
+      subido_por = excluded.subido_por`)
+    .bind(trayectoId, momento, foto.mime, foto.datos, bytes,
+          geo?.lat ?? null, geo?.lon ?? null, ahora(), sesion.id).run();
+}
+
 /** Lo que el conductor ve al abrir la aplicación: su programación de hoy. */
 ruta('GET', '/api/mi-dia', async ({ db, sesion, url }) => {
   const fecha = url.searchParams.get('fecha') || hoyISO();
@@ -1396,6 +1429,21 @@ ruta('POST', '/api/trayectos/salida', async ({ db, sesion, cuerpo }) => {
     throw prohibido('No puede registrar marcas a nombre de otro conductor');
   }
 
+  // Estos datos dejaron de ser opcionales: sin kilometraje no hay rendimiento
+  // ni costo por kilómetro, y sin la tripulación el soporte no dice quién iba.
+  if (cuerpo.km_inicial == null || cuerpo.km_inicial === '') {
+    throw malaPeticion('El kilometraje inicial es obligatorio');
+  }
+  if (!cuerpo.num_tripulantes) {
+    throw malaPeticion('Indique cuántas personas van a bordo');
+  }
+  if (!cuerpo.tripulantes || !String(cuerpo.tripulantes).trim()) {
+    throw malaPeticion('Indique los nombres de los tripulantes');
+  }
+  if (await exigeFoto(db) && !cuerpo.foto?.datos && cuerpo.origen !== 'offline_sincronizado') {
+    throw malaPeticion('Debe adjuntar la fotografía de salida');
+  }
+
   const abierto = await db.prepare(
     "SELECT id FROM trayectos WHERE conductor_id = ? AND estado = 'en_curso'")
     .bind(conductorId).first();
@@ -1421,17 +1469,19 @@ ruta('POST', '/api/trayectos/salida', async ({ db, sesion, cuerpo }) => {
                            fecha_operacion, municipio_salida_id, lugar_salida,
                            ts_salida, ts_salida_disp, origen_salida,
                            lat_salida, lon_salida, precision_salida,
-                           km_inicial, num_tripulantes, tipo_jornada,
+                           km_inicial, num_tripulantes, tripulantes, tipo_jornada,
                            observaciones, estado, creado_por, creado_en)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'en_curso', ?,?)`)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'en_curso', ?,?)`)
     .bind(consecutivo, itinerarioId, vehiculoId, conductorId, fecha,
           cuerpo.municipio_id || null, cuerpo.lugar || null,
           ts, cuerpo.ts_dispositivo || null, cuerpo.origen || 'en_linea',
           cuerpo.lat ?? null, cuerpo.lon ?? null, cuerpo.precision ?? null,
           cuerpo.km_inicial || null, cuerpo.num_tripulantes || null,
+          String(cuerpo.tripulantes || '').trim() || null,
           (itin && itin.tipo_jornada) || cuerpo.tipo_jornada || null,
           cuerpo.observaciones || null, sesion.id, ts).run();
 
+  await guardarFoto(db, r.meta.last_row_id, 'salida', cuerpo.foto, sesion, cuerpo);
   await recalcularDia(db, fecha, vehiculoId);
   await auditar(db, sesion, 'crear', 'trayectos', r.meta.last_row_id, null,
                 { consecutivo, hito: 'salida', ts });
@@ -1445,6 +1495,16 @@ ruta('POST', '/api/trayectos/:id/llegada', async ({ db, sesion, params, cuerpo }
   if (t.estado !== 'en_curso') throw malaPeticion('Ese trayecto ya está cerrado');
   if (sesion.rol === 'conductor' && Number(t.conductor_id) !== Number(sesion.persona_id)) {
     throw prohibido('Ese trayecto es de otro conductor');
+  }
+  if (cuerpo.km_final == null || cuerpo.km_final === '') {
+    throw malaPeticion('El kilometraje final es obligatorio');
+  }
+  if (t.km_inicial != null && Number(cuerpo.km_final) < Number(t.km_inicial)) {
+    throw malaPeticion(
+      `El kilometraje final (${cuerpo.km_final}) no puede ser menor que el inicial (${t.km_inicial})`);
+  }
+  if (await exigeFoto(db) && !cuerpo.foto?.datos && cuerpo.origen !== 'offline_sincronizado') {
+    throw malaPeticion('Debe adjuntar la fotografía de llegada');
   }
 
   const ts = ahora();
@@ -1461,6 +1521,7 @@ ruta('POST', '/api/trayectos/:id/llegada', async ({ db, sesion, params, cuerpo }
           cuerpo.lat ?? null, cuerpo.lon ?? null, cuerpo.precision ?? null,
           cuerpo.km_final || null, cuerpo.observaciones || null, ts, params.id).run();
 
+  await guardarFoto(db, Number(params.id), 'llegada', cuerpo.foto, sesion, cuerpo);
   if (cuerpo.km_final) {
     await db.prepare('UPDATE vehiculos SET km_actual = ? WHERE id = ?')
       .bind(cuerpo.km_final, t.vehiculo_id).run();
@@ -1515,7 +1576,9 @@ ruta('GET', '/api/trayectos', async ({ db, url, sesion }) => {
            ms.nombre AS municipio_salida, ml.nombre AS municipio_llegada,
            CASE WHEN t.ts_llegada IS NOT NULL AND t.ts_salida IS NOT NULL
                 THEN ROUND((julianday(t.ts_llegada) - julianday(t.ts_salida)) * 24, 2)
-                END AS horas
+                END AS horas,
+           (SELECT group_concat(f.momento) FROM trayecto_fotos f
+             WHERE f.trayecto_id = t.id) AS fotos
       FROM trayectos t
       JOIN vehiculos v ON v.id = t.vehiculo_id
       LEFT JOIN personas p ON p.id = t.conductor_id
@@ -1524,6 +1587,37 @@ ruta('GET', '/api/trayectos', async ({ db, url, sesion }) => {
      WHERE ${cond.join(' AND ')}
      ORDER BY t.fecha_operacion DESC, t.ts_salida DESC`).bind(...args).all();
   return r.results;
+}, TODOS);
+
+/** Devuelve las fotografías de un trayecto. Pesan, así que van aparte. */
+ruta('GET', '/api/trayectos/:id/fotos', async ({ db, sesion, params }) => {
+  const t = await db.prepare('SELECT conductor_id FROM trayectos WHERE id = ?')
+    .bind(params.id).first();
+  if (!t) throw noEncontrado('Trayecto no encontrado');
+  if (sesion.rol === 'conductor' && Number(t.conductor_id) !== Number(sesion.persona_id)) {
+    throw prohibido('Ese trayecto es de otro conductor');
+  }
+  const r = await db.prepare(`
+    SELECT momento, mime, datos, bytes, lat, lon, ts FROM trayecto_fotos
+     WHERE trayecto_id = ? ORDER BY momento DESC`).bind(params.id).all();
+  return r.results;
+}, TODOS);
+
+/** Agregar o reemplazar una fotografía, p. ej. la que no se pudo subir sin señal. */
+ruta('POST', '/api/trayectos/:id/foto', async ({ db, sesion, params, cuerpo }) => {
+  const t = await db.prepare('SELECT conductor_id FROM trayectos WHERE id = ?')
+    .bind(params.id).first();
+  if (!t) throw noEncontrado('Trayecto no encontrado');
+  if (sesion.rol === 'conductor' && Number(t.conductor_id) !== Number(sesion.persona_id)) {
+    throw prohibido('Ese trayecto es de otro conductor');
+  }
+  if (!['salida', 'llegada'].includes(cuerpo.momento)) {
+    throw malaPeticion('El momento debe ser salida o llegada');
+  }
+  await guardarFoto(db, Number(params.id), cuerpo.momento, cuerpo.foto || cuerpo, sesion, cuerpo);
+  await auditar(db, sesion, 'crear', 'trayecto_fotos', Number(params.id), null,
+                { momento: cuerpo.momento });
+  return { ok: true };
 }, TODOS);
 
 /** Sincronización de marcas capturadas sin señal. */

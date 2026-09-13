@@ -252,6 +252,7 @@ CREATE TABLE trayectos (
   km_inicial          INTEGER,
   km_final            INTEGER,
   num_tripulantes     INTEGER,
+  tripulantes         TEXT,        -- nombres de quienes van a bordo
   tipo_jornada        TEXT,
   observaciones       TEXT,
   estado              TEXT NOT NULL DEFAULT 'en_curso',
@@ -263,6 +264,27 @@ CREATE TABLE trayectos (
 CREATE INDEX idx_tray_fecha ON trayectos(fecha_operacion);
 CREATE INDEX idx_tray_veh   ON trayectos(vehiculo_id, fecha_operacion);
 CREATE INDEX idx_tray_cond  ON trayectos(conductor_id, fecha_operacion);
+
+-- Fotografías de salida y de llegada.
+--
+-- Se guardan en la base como base64, igual que el banner, y no en un almacén
+-- aparte: el respaldo de la base se lleva todo consigo y no hace falta montar
+-- nada más. A cambio hay que comprimirlas fuerte en el navegador (1280 px de
+-- ancho, ~120 KB) para que la base no crezca sin control.
+CREATE TABLE trayecto_fotos (
+  id           INTEGER PRIMARY KEY,
+  trayecto_id  INTEGER NOT NULL REFERENCES trayectos(id) ON DELETE CASCADE,
+  momento      TEXT NOT NULL,          -- salida | llegada
+  mime         TEXT NOT NULL,
+  datos        TEXT NOT NULL,
+  bytes        INTEGER,
+  lat          REAL,
+  lon          REAL,
+  ts           TEXT NOT NULL,
+  subido_por   INTEGER,
+  UNIQUE (trayecto_id, momento)
+);
+CREATE INDEX idx_fotos_tray ON trayecto_fotos(trayecto_id);
 
 -- ---------------------------------------------------------------------------
 -- 5. CHECKLIST  (5 distintivos del vehiculo + 4 elementos)

@@ -1,6 +1,6 @@
 # PROJECT.md — Flota Vehicular HRNO
 
-> Borrador v0.6 · 12 sep 2026 · ESE Hospital Regional Noroccidental
+> Borrador v0.7 · 13 sep 2026 · ESE Hospital Regional Noroccidental
 > Responsable: Danilo Torrado Blanco — Coordinador de Salud Pública
 > Estado: **arquitectura, roles y modelo de datos definidos.** Pendientes las preguntas de §11
 
@@ -75,6 +75,10 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D19 | Móvil | Página adaptable e **instalable** en Android e iPhone. No hay apps de tienda: en la matriz de 14 columnas no cabe un celular, así que ahí se muestra una lista por día |
 | D20 | Banner | Imagen 2000 × 289 configurable en Ajustes, presente en el ingreso, el encabezado y el PDF. Se guarda en la base, redimensionada en el navegador |
 | D21 | PDF | Todo el período en **una sola hoja**, con el tamaño de papel elegido según cuántos días haya |
+| D22 | Cuentas de conductor | **Obligatorio** vincularlas a una persona: es lo que las conecta con el itinerario |
+| D23 | Sincronización | Botón *Actualizar* y revisión automática cada 45 s mediante un sello del estado de los datos |
+| D24 | Datos de la marca | Kilometraje, número **y nombres** de tripulantes y **fotografía** son obligatorios |
+| D25 | Día operativo | Se calcula en **hora de Colombia**, no en UTC |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -345,6 +349,35 @@ marca se guarda en IndexedDB y se sincroniza sola al recuperar cobertura, quedan
 
 Si el conductor niega el permiso de ubicación, la marca se registra igual pero **sin coordenadas y
 señalada como tal** — es preferible a perder el registro, y queda visible en la validación.
+
+### 5.4.1 Lo que exige cada marca (D24)
+
+| Al salir | Al llegar |
+|---|---|
+| Municipio y lugar | Municipio y lugar |
+| **Kilometraje inicial** | **Kilometraje final**, que no puede ser menor que el inicial |
+| **Cuántas personas van a bordo** | |
+| **Nombres de los tripulantes** | |
+| **Fotografía** | **Fotografía** |
+
+Las fotografías se reducen a 1280 px y se comprimen en el propio teléfono antes de subirlas:
+una foto de varios megabytes queda en unos 100 KB. Se hace ahí porque en el Catatumbo la
+subida es el cuello de botella, y porque la base de datos las guarda y crecería sin control.
+Sin señal, la marca se encola pero la fotografía no —unas pocas llenarían el almacenamiento
+del navegador— y se agrega al recuperar la cobertura.
+
+Si el conductor sale **sin programación**, el formulario le pide escoger el vehículo en vez de
+fallar: el viaje queda registrado y el dashboard lo muestra como ejecutado sin programar, que es
+justamente la señal que sirve para detectar inconsistencias.
+
+La exigencia de fotografía se puede apagar desde Ajustes (`foto_obligatoria`).
+
+### 5.4.2 Georreferenciación en la pantalla de viajes
+
+Cada marca muestra sus coordenadas con seis decimales, un botón para **copiarlas** y un enlace
+al mapa. Al lado va la precisión reportada por el GPS: por encima de 100 m se pinta en ámbar,
+porque en zona montañosa una lectura de 500 m no dice gran cosa. Los viajes sin ubicación se
+cuentan aparte, arriba de la tabla.
 
 ### 5.5 Checklist de distintivos y elementos (D4)
 

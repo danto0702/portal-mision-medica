@@ -17,7 +17,7 @@
  * peticiones e ignora en silencio lo que no entiende — un campo que no se
  * guarda y ningún mensaje de error. Por eso se comprueba y se avisa.
  */
-const VERSION_API_REQUERIDA = 5;
+const VERSION_API_REQUERIDA = 6;
 
 const esLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 const API = localStorage.getItem('flota_api') ||
@@ -244,10 +244,10 @@ async function iniciar() {
   comprobarVersion();
   cargarBanner();
   try { cat = await api('/api/catalogos'); } catch { /* se reintenta luego */ }
-  if (sesion.rol !== 'conductor') {
-    try { [vehiculos, personas] = await Promise.all([api('/api/vehiculos'), api('/api/personas')]); }
-    catch { /* el conductor no necesita estos listados */ }
-  }
+  try {
+    vehiculos = await api('/api/vehiculos');
+    if (sesion.rol !== 'conductor') personas = await api('/api/personas');
+  } catch { /* se reintenta al entrar a cada pantalla */ }
 
   ir(MENU[sesion.rol][0]);
   cola.sincronizar();
@@ -485,23 +485,70 @@ async function verHoy() {
 async function marcar(hito) {
   const it = diaActual?.itinerario;
   const abierto = diaActual?.trayecto_abierto;
+  fotoTomada = null;
 
   const municipios = cat.municipios.map(m =>
     `<option value="${m.id}" ${it && it.municipio_id == m.id ? 'selected' : ''}>${esc(m.nombre)}</option>`).join('');
   const lugarSugerido = hito === 'salida'
     ? (it ? '' : '') : (it?.destino || '');
 
+  // Sin programación no hay vehículo que deducir. En vez de fallar con un
+  // mensaje técnico, se le pide que lo escoja: un viaje no programado también
+  // debe poder registrarse, y el dashboard lo marca como ejecutado sin programar.
+  const suyo = vehiculos.find(v => v.conductor_id === sesion.persona_id);
+  const pedirVehiculo = hito === 'salida' && !it;
+
   abrirModal(hito === 'salida' ? 'Registrar salida' : 'Registrar llegada', `
+    ${pedirVehiculo ? `
+      <div class="nota avi" style="margin-bottom:1rem">
+        Hoy no tiene programación. Puede registrar la salida igual; quedará marcada
+        como viaje no programado.</div>
+      <div class="campo"><label class="lb">Vehículo <span class="req">*</span></label>
+        <select class="inp" id="mk-veh">
+          <option value="">— Escoja el vehículo —</option>
+          ${vehiculos.filter(v => v.activo !== 0).map(v =>
+            `<option value="${v.id}" ${suyo && suyo.id === v.id ? 'selected' : ''}>${esc(v.placa)}${
+              suyo && suyo.id === v.id ? ' (el suyo)' : ''}</option>`).join('')}
+        </select></div>` : ''}
     <div class="campo"><label class="lb">Municipio <span class="req">*</span></label>
       <select class="inp" id="mk-mun"><option value="">— Seleccione —</option>${municipios}</select></div>
     <div class="campo"><label class="lb">Lugar <span class="req">*</span></label>
       <input class="inp" id="mk-lugar" value="${esc(lugarSugerido)}"
         placeholder="${hito === 'salida' ? 'Ej: Base Ábrego' : 'Ej: Santa Inés'}"></div>
-    <div class="campo"><label class="lb">Kilometraje ${hito === 'salida' ? 'inicial' : 'final'}</label>
-      <input class="inp" id="mk-km" type="number" inputmode="numeric" placeholder="Opcional"></div>
+    <div class="campo">
+      <label class="lb">Kilometraje ${hito === 'salida' ? 'inicial' : 'final'} <span class="req">*</span></label>
+      <input class="inp" id="mk-km" type="number" inputmode="numeric"
+        ${hito === 'llegada' && abierto?.km_inicial ? `min="${abierto.km_inicial}"` : ''}
+        placeholder="Lea el odómetro">
+      ${hito === 'llegada' && abierto?.km_inicial
+        ? `<p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 0">
+             Al salir marcó ${num(abierto.km_inicial)} km</p>` : ''}
+    </div>
     ${hito === 'salida' ? `
-      <div class="campo"><label class="lb">Personas a bordo</label>
-        <input class="inp" id="mk-trip" type="number" inputmode="numeric" placeholder="Opcional"></div>` : ''}
+      <div class="campo">
+        <label class="lb">Personas a bordo <span class="req">*</span></label>
+        <input class="inp" id="mk-trip" type="number" inputmode="numeric" min="1"
+          value="${it?.num_tripulantes || ''}" placeholder="Cuántas van, contándose usted"></div>
+      <div class="campo">
+        <label class="lb">Nombres de los tripulantes <span class="req">*</span></label>
+        <textarea class="inp" id="mk-tripulantes" rows="2"
+          placeholder="Sepárelos con coma. Ej: Juan Pérez, Ana Gómez"></textarea>
+        <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 0">
+          Queda en el soporte: es la constancia de quién iba a bordo.</p></div>` : ''}
+
+    <div class="campo">
+      <label class="lb">Fotografía de ${hito} <span class="req" id="mk-foto-req">*</span></label>
+      <input type="file" id="mk-foto" accept="image/*" capture="environment"
+        style="display:none" onchange="tomarFoto(this)">
+      <button type="button" class="btn sec bloque" id="mk-foto-btn"
+        onclick="$('#mk-foto').click()" style="padding:.8rem">
+        Tomar fotografía</button>
+      <div id="mk-foto-vista" style="display:none;margin-top:.5rem">
+        <img id="mk-foto-img" style="width:100%;border-radius:var(--r);border:1px solid var(--border)">
+        <p style="font-size:.72rem;color:var(--muted);margin:.3rem 0 0" id="mk-foto-peso"></p>
+      </div>
+    </div>
+
     <div class="campo"><label class="lb">Observaciones</label>
       <textarea class="inp" id="mk-obs" rows="2" placeholder="Opcional"></textarea></div>
     <div id="mk-gps" class="nota">Al guardar se solicitará su ubicación.</div>`,
@@ -510,10 +557,71 @@ async function marcar(hito) {
        onclick="guardarMarca('${hito}')">Guardar</button>`);
 }
 
+let fotoTomada = null;         // { mime, datos } de la marca en curso
+
+/**
+ * Reduce la foto a 1280 px de ancho y la comprime antes de subirla.
+ *
+ * Una foto de celular pesa varios megabytes; así queda en unos 100 KB. Se hace
+ * en el teléfono porque en el Catatumbo la subida es el cuello de botella, y
+ * porque la base guarda estas imágenes y crecería sin control.
+ */
+function tomarFoto(input) {
+  const archivo = input.files?.[0];
+  input.value = '';
+  if (!archivo) return;
+
+  const lector = new FileReader();
+  lector.onload = () => {
+    const img = new Image();
+    img.onerror = () => aviso('No se pudo leer la imagen', 'mal');
+    img.onload = () => {
+      const ANCHO = 1280;
+      const escala = Math.min(1, ANCHO / img.width);
+      const lienzo = document.createElement('canvas');
+      lienzo.width = Math.round(img.width * escala);
+      lienzo.height = Math.round(img.height * escala);
+      lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
+
+      let url = lienzo.toDataURL('image/jpeg', 0.72);
+      // Si aún pesa mucho (fotos muy detalladas), se aprieta otra vez
+      if (url.length * 3 / 4 > 550_000) url = lienzo.toDataURL('image/jpeg', 0.55);
+
+      fotoTomada = { mime: 'image/jpeg', datos: url.slice(url.indexOf(',') + 1) };
+      $('#mk-foto-img').src = url;
+      $('#mk-foto-vista').style.display = '';
+      $('#mk-foto-peso').textContent =
+        `${Math.round(fotoTomada.datos.length * 3 / 4 / 1024)} KB · toque el botón para repetirla`;
+      $('#mk-foto-btn').textContent = 'Repetir fotografía';
+    };
+    img.src = lector.result;
+  };
+  lector.readAsDataURL(archivo);
+}
+
 async function guardarMarca(hito) {
   const btn = $('#mk-btn');
   const mun = $('#mk-mun').value, lugar = $('#mk-lugar').value.trim();
   if (!mun || !lugar) return aviso('Indique el municipio y el lugar', 'mal', 'Faltan datos');
+
+  const km = $('#mk-km').value;
+  if (!km) return aviso(`Lea el odómetro y escriba el kilometraje ${hito === 'salida' ? 'inicial' : 'final'}`,
+                        'mal', 'Falta el kilometraje');
+  if (hito === 'salida') {
+    if (!$('#mk-trip').value) return aviso('Indique cuántas personas van a bordo', 'mal', 'Falta la tripulación');
+    if (!$('#mk-tripulantes').value.trim()) {
+      return aviso('Escriba los nombres de los tripulantes', 'mal', 'Falta la tripulación');
+    }
+  } else if (diaActual?.trayecto_abierto?.km_inicial &&
+             Number(km) < Number(diaActual.trayecto_abierto.km_inicial)) {
+    return aviso(`El kilometraje no puede ser menor que ${num(diaActual.trayecto_abierto.km_inicial)}`,
+                 'mal', 'Kilometraje incoherente');
+  }
+  if (!fotoTomada) return aviso(`Tome la fotografía de ${hito}`, 'mal', 'Falta la fotografía');
+  const vehSelect = $('#mk-veh');
+  if (vehSelect && !vehSelect.value) {
+    return aviso('Escoja el vehículo con el que sale', 'mal', 'Falta el vehículo');
+  }
 
   btn.disabled = true; btn.textContent = 'Ubicando...';
   $('#mk-gps').textContent = 'Obteniendo su ubicación...';
@@ -522,18 +630,20 @@ async function guardarMarca(hito) {
     ? `Ubicación tomada (precisión ${Math.round(geo.precision)} m)`
     : 'No se pudo obtener la ubicación. La marca se registra igual, señalada sin GPS.';
 
-  const km = $('#mk-km').value;
   const datos = {
     municipio_id: Number(mun), lugar, ...geo,
     observaciones: $('#mk-obs').value.trim() || undefined,
     ts_dispositivo: new Date().toISOString(),
+    foto: fotoTomada,
   };
   if (hito === 'salida') {
-    datos.km_inicial = km ? Number(km) : undefined;
-    datos.num_tripulantes = $('#mk-trip').value ? Number($('#mk-trip').value) : undefined;
-    datos.vehiculo_id = diaActual?.itinerario?.vehiculo_id;
+    datos.km_inicial = Number(km);
+    datos.num_tripulantes = Number($('#mk-trip').value);
+    datos.tripulantes = $('#mk-tripulantes').value.trim();
+    datos.vehiculo_id = diaActual?.itinerario?.vehiculo_id
+      || ($('#mk-veh')?.value ? Number($('#mk-veh').value) : undefined);
   } else {
-    datos.km_final = km ? Number(km) : undefined;
+    datos.km_final = Number(km);
   }
 
   btn.textContent = 'Guardando...';
@@ -546,13 +656,18 @@ async function guardarMarca(hito) {
   } catch (e) {
     // Sin señal: se guarda en el celular y se envía cuando vuelva la cobertura.
     if (!navigator.onLine || /fetch|network|failed/i.test(e.message)) {
+      // La fotografía no se guarda en la cola: unas pocas llenarían el
+      // almacenamiento del navegador. La marca se envía sola y la foto se
+      // agrega después desde la lista de viajes del día.
+      const { foto, ...sinFoto } = datos;
       cola.agregar({
-        hito, ...datos,
+        hito, ...sinFoto,
         fecha_operacion: hoy(),
         trayecto_id: hito === 'llegada' ? diaActual.trayecto_abierto.id : undefined,
       });
       cerrarModal();
-      aviso('Sin señal: la marca quedó guardada y se enviará sola', 'avi', 'Guardado en el celular');
+      aviso('Sin señal: la marca quedó guardada y se enviará sola. Agregue la fotografía cuando vuelva la señal.',
+            'avi', 'Guardado en el celular');
     } else {
       aviso(e.message, 'mal', 'No se pudo registrar');
       btn.disabled = false; btn.textContent = 'Guardar';
@@ -1642,32 +1757,105 @@ async function exportarDashboard() {
 // LISTADOS Y ADMINISTRACIÓN
 // ═══════════════════════════════════════════════════════════════════════════
 
+let trayectosCargados = [];
+
+/** Coordenadas con botón de copiar y enlace al mapa. */
+function celdaGeo(lat, lon, precision, etiqueta) {
+  if (lat == null || lon == null) {
+    return '<span class="etq gris" title="La marca se registró sin ubicación">sin GPS</span>';
+  }
+  const txt = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+  const dudosa = precision != null && precision > 100;
+  return `<div class="geo">
+    <button class="geo-copiar" onclick="copiarGeo('${txt}',event)"
+      title="Copiar coordenadas">${txt}</button>
+    <div style="display:flex;gap:.35rem;align-items:center;margin-top:.15rem">
+      <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener"
+        style="font-size:.68rem">ver en el mapa</a>
+      ${precision != null ? `<span class="etq ${dudosa ? 'ambar' : 'gris'}"
+        style="font-size:.6rem" title="${dudosa ? 'Lectura poco precisa' : 'Precisión del GPS'}"
+        >±${Math.round(precision)} m</span>` : ''}
+    </div>
+  </div>`;
+}
+
+async function copiarGeo(texto, ev) {
+  ev?.stopPropagation();
+  try {
+    await navigator.clipboard.writeText(texto);
+  } catch {
+    // Sin permiso de portapapeles (o sin HTTPS): se copia por el camino viejo
+    const ta = document.createElement('textarea');
+    ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch { /* nada más que hacer */ }
+    ta.remove();
+  }
+  aviso(`Copiado: ${texto}`, 'ok');
+}
+
 async function verTrayectos() {
   const desde = nDias(hoy(), -14), hasta = hoy();
   $('#main').innerHTML = '<div class="cargando">Cargando viajes...</div>';
   const t = await api(`/api/trayectos?desde=${desde}&hasta=${hasta}`);
+  trayectosCargados = t;
   const origen = { en_linea: ['verde', 'en línea'], offline_sincronizado: ['ambar', 'sin señal'], digitado_por_coordinador: ['gris', 'digitado'] };
+  const sinGps = t.filter(x => x.lat_salida == null).length;
 
   $('#main').innerHTML = `
-    <div class="cab"><div><h1>Viajes</h1><p>Últimos 14 días · ${t.length} registro(s)</p></div></div>
+    <div class="cab">
+      <div><h1>Viajes</h1><p>Últimos 14 días · ${t.length} registro(s)</p></div>
+      <button class="btn sec sm" onclick="sincronizarAhora()" id="btn-sincronizar">Actualizar</button>
+    </div>
+    ${sinGps ? `<div class="nota avi" style="margin-bottom:.85rem">
+      ${sinGps} viaje(s) quedaron sin ubicación: el conductor negó el permiso o no había señal
+      de GPS al marcar.</div>` : ''}
     ${t.length ? `<div class="tabla-env"><table>
-      <thead><tr><th>Fecha</th><th>Vehículo</th><th>Conductor</th><th>Salida</th><th>Llegada</th>
-        <th class="num">Horas</th><th class="num">Km</th><th>Marca</th><th>Estado</th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Vehículo</th><th>Conductor</th><th>Tripulación</th>
+        <th>Salida</th><th>Ubicación salida</th><th>Llegada</th><th>Ubicación llegada</th>
+        <th class="num">Horas</th><th class="num">Km</th><th>Fotos</th><th>Marca</th></tr></thead>
       <tbody>${t.map(x => {
         const o = origen[x.origen_salida] || ['gris', '—'];
         const km = (x.km_final && x.km_inicial) ? x.km_final - x.km_inicial : null;
+        const fotos = (x.fotos || '').split(',').filter(Boolean);
         return `<tr>
           <td>${esc(x.fecha_operacion)}</td>
           <td class="placa">${esc(x.placa)}</td>
           <td>${esc(x.conductor?.trim() || '—')}</td>
+          <td style="max-width:190px">${x.tripulantes
+            ? `<span style="font-size:.76rem">${esc(x.tripulantes)}</span>`
+            : '<span style="color:var(--muted)">—</span>'}
+            ${x.num_tripulantes ? `<br><span style="font-size:.68rem;color:var(--muted)">${x.num_tripulantes} a bordo</span>` : ''}</td>
           <td>${hora(x.ts_salida)}<br><span style="font-size:.72rem;color:var(--muted)">${esc(x.lugar_salida || '')}</span></td>
+          <td>${celdaGeo(x.lat_salida, x.lon_salida, x.precision_salida)}</td>
           <td>${hora(x.ts_llegada)}<br><span style="font-size:.72rem;color:var(--muted)">${esc(x.lugar_llegada || '')}</span></td>
+          <td>${celdaGeo(x.lat_llegada, x.lon_llegada, x.precision_llegada)}</td>
           <td class="num">${x.horas ?? '—'}</td>
           <td class="num">${num(km)}</td>
-          <td><span class="etq ${o[0]}">${o[1]}</span>${x.lat_salida ? '' : ' <span class="etq gris" title="Sin coordenadas">sin GPS</span>'}</td>
-          <td>${x.estado === 'cerrado' ? '<span class="etq verde">Cerrado</span>' : '<span class="etq ambar">En curso</span>'}</td>
+          <td>${fotos.length
+            ? `<button class="btn sec sm btn-fotos" onclick="verFotos(${x.id},&#39;${esc(x.placa)}&#39;)">${fotos.length}</button>`
+            : '<span class="etq gris">—</span>'}</td>
+          <td><span class="etq ${o[0]}">${o[1]}</span></td>
         </tr>`; }).join('')}</tbody></table></div>`
       : '<div class="card"><div class="vacio">Sin viajes registrados en el período.</div></div>'}`;
+}
+
+async function verFotos(id, placa) {
+  abrirModal(`Fotografías · ${placa}`, '<div class="cargando">Cargando...</div>');
+  try {
+    const fotos = await api(`/api/trayectos/${id}/fotos`);
+    $('#modal-cpo').innerHTML = fotos.length ? fotos.map(f => `
+      <div style="margin-bottom:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;margin-bottom:.35rem">
+          <b style="text-transform:capitalize">${esc(f.momento)}</b>
+          <span style="font-size:.72rem;color:var(--muted)">${fechaHora(f.ts)} · ${Math.round((f.bytes || 0) / 1024)} KB</span>
+        </div>
+        <img src="data:${f.mime};base64,${f.datos}" style="width:100%;border-radius:var(--r);border:1px solid var(--border)">
+        ${f.lat != null ? `<div style="margin-top:.35rem">${celdaGeo(f.lat, f.lon, null)}</div>` : ''}
+      </div>`).join('') : '<div class="vacio">Este viaje no tiene fotografías.</div>';
+  } catch (e) {
+    $('#modal-cpo').innerHTML = `<div class="nota avi">${esc(e.message)}</div>`;
+  }
 }
 
 async function verEventos() {

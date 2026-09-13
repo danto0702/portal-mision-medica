@@ -31,8 +31,9 @@
  *   4  banner institucional y tipos de documento vencido en vehículos y personas
  *   5  sello de cambios para sincronizar, vínculo obligatorio conductor↔persona
  *      y día operativo en hora de Colombia
+ *   6  kilometraje y tripulación obligatorios, fotografías de salida y llegada
  */
-const VERSION_API = 5;
+const VERSION_API = 6;
 
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 /**

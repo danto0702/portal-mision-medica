@@ -17,7 +17,7 @@
  * peticiones e ignora en silencio lo que no entiende — un campo que no se
  * guarda y ningún mensaje de error. Por eso se comprueba y se avisa.
  */
-const VERSION_API_REQUERIDA = 4;
+const VERSION_API_REQUERIDA = 5;
 
 const esLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 const API = localStorage.getItem('flota_api') ||
@@ -104,6 +104,9 @@ function aviso(texto, clase, titulo) {
 }
 
 // ── Llamadas a la API ────────────────────────────────────────────────────────
+/** Tras un cambio propio se actualiza el sello, para no avisarse a sí mismo. */
+async function tocarSello() { selloDatos = await leerSello(); }
+
 async function api(ruta, opciones = {}) {
   const cab = { 'Content-Type': 'application/json' };
   if (sesion?.token) cab.Authorization = 'Bearer ' + sesion.token;
@@ -248,6 +251,8 @@ async function iniciar() {
 
   ir(MENU[sesion.rol][0]);
   cola.sincronizar();
+  selloDatos = await leerSello();
+  arrancarSincronizacion();
 
   if (sesion.debe_cambiar_clave) setTimeout(modalCambiarClave, 400);
 }
@@ -267,6 +272,63 @@ async function comprobarVersion() {
       ? 'Vuelva a publicar el Worker en Cloudflare pegando <b>flota-worker-completo.js</b>.'
       : 'Avise a la Coordinación de Salud Pública.'}`;
   barra.classList.add('on');
+}
+
+// ── Sincronización entre usuarios ────────────────────────────────────────────
+//
+// Los datos son comunes: cualquiera que abra la pantalla ve lo último. Lo que
+// no ocurría es que una pantalla YA abierta se enterara de un cambio hecho por
+// otra persona. En vez de recargar todo cada minuto, se consulta un "sello" del
+// estado de los datos —una consulta de cuatro conteos— y solo se redibuja
+// cuando ese sello cambia.
+
+let selloDatos = null;
+let relojSincronizacion = null;
+const CADA = 45000;             // ms entre consultas del sello
+
+async function leerSello() {
+  try { return (await api('/api/sello')).sello; } catch { return null; }
+}
+
+/** Redibuja la pantalla actual con datos frescos. */
+async function refrescarVista() {
+  if (!vistaActual || !VISTAS[vistaActual]) return;
+  if (sesion.rol !== 'conductor') {
+    try { [vehiculos, personas] = await Promise.all([api('/api/vehiculos'), api('/api/personas')]); }
+    catch { /* se reintenta en el siguiente ciclo */ }
+  }
+  try { cat = await api('/api/catalogos'); } catch { /* idem */ }
+  await VISTAS[vistaActual].fn();
+}
+
+/** Botón "Actualizar": siempre refresca, haya o no cambios. */
+async function sincronizarAhora(silencioso) {
+  const btn = $('#btn-sincronizar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Actualizando...'; }
+  selloDatos = await leerSello();
+  await refrescarVista();
+  if (!silencioso) aviso('Pantalla actualizada', 'ok');
+  const btn2 = $('#btn-sincronizar');
+  if (btn2) { btn2.disabled = false; btn2.textContent = 'Actualizar'; }
+}
+
+/** Consulta periódica: solo redibuja si alguien cambió algo. */
+async function revisarCambios() {
+  if (!sesion || document.hidden) return;
+  const sello = await leerSello();
+  if (!sello || sello === selloDatos) return;
+  selloDatos = sello;
+  await refrescarVista();
+  aviso('Alguien hizo cambios; la pantalla se actualizó', 'info', 'Sincronizado');
+}
+
+function arrancarSincronizacion() {
+  clearInterval(relojSincronizacion);
+  relojSincronizacion = setInterval(revisarCambios, CADA);
+  // Volver a la pestaña o al celular es el momento en que más probable es que
+  // la pantalla esté desactualizada.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) revisarCambios(); });
+  window.addEventListener('focus', revisarCambios);
 }
 
 // ── Modal ────────────────────────────────────────────────────────────────────
@@ -330,7 +392,17 @@ async function verHoy() {
     <div class="cab">
       <div><h1>${diaSemana(f)}</h1>
         <p>${new Date(f + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
+      <button class="btn sec sm" onclick="sincronizarAhora()" id="btn-sincronizar">Actualizar</button>
     </div>
+
+    ${diaActual.sin_persona ? `
+      <div class="card" style="border-left:4px solid var(--rojo)">
+        <b>Su cuenta no está vinculada a una persona</b>
+        <p style="margin:.4rem 0 0;font-size:.88rem;color:var(--text-soft)">
+          Por eso no ve su programación: el itinerario se asigna a la persona, no a la
+          cuenta. Avise a la Coordinación de Salud Pública para que la vincule desde
+          la pantalla de Usuarios.</p>
+      </div>` : ''}
 
     ${it ? `
       <div class="card" style="border-left:4px solid var(--azul)">
@@ -676,6 +748,8 @@ async function verItinerario() {
           <option value="14" ${itinDias === 14 ? 'selected' : ''}>2 semanas</option>
           <option value="31" ${itinDias === 31 ? 'selected' : ''}>1 mes</option>
         </select>
+        <button class="btn sec sm" onclick="sincronizarAhora()" id="btn-sincronizar"
+          title="Traer los cambios hechos por otros usuarios">Actualizar</button>
         <button class="btn sec sm" onclick="deshacerMovimiento()" id="btn-deshacer">Deshacer</button>
         <button class="btn sec sm" onclick="modalPredeterminados()">Predeterminados</button>
         <button class="btn sec sm" onclick="descargarPDF()">PDF</button>
@@ -1866,13 +1940,21 @@ async function verUsuarios() {
         const r = ROL[u.rol] || ['gris', u.rol];
         return `<tr>
           <td><b>${esc(u.usuario)}</b></td>
-          <td>${esc(u.nombre?.trim() || '—')}</td>
+          <td>${u.sin_persona
+            ? '<span class="etq rojo">sin persona vinculada</span>'
+            : esc(u.nombre?.trim() || '—')}</td>
           <td><span class="etq ${r[0]}">${r[1]}</span></td>
           <td>${u.ultimo_acceso ? fechaHora(u.ultimo_acceso) : '<span style="color:var(--muted)">nunca</span>'}</td>
           <td>${u.activo ? '<span class="etq verde">Activo</span>' : '<span class="etq gris">Inactivo</span>'}
             ${u.debe_cambiar_clave ? '<br><span class="etq ambar">clave temporal</span>' : ''}</td>
           <td><button class="btn sec sm" onclick="modalUsuario(${u.id})">Editar</button></td>
         </tr>`; }).join('')}</tbody></table></div>
+    ${us.some(u => u.sin_persona) ? `
+      <div class="nota avi" style="margin-top:.85rem">
+        <b>Hay cuentas de conductor sin persona vinculada.</b>
+        Esas cuentas entran pero no ven su itinerario, porque la programación se asigna
+        a la persona y no al usuario. Ábralas y escoja la persona correspondiente.
+      </div>` : ''}
     <div class="nota" style="margin-top:.85rem">
       No existe registro por cuenta propia ni recuperación de clave por correo: usted crea la cuenta
       con una clave temporal y el usuario la cambia al entrar por primera vez.
@@ -1889,17 +1971,23 @@ function modalUsuario(id) {
       <input class="inp" id="u-usuario" value="${esc(u?.usuario || '')}" autocapitalize="none"
         placeholder="Ej: jnavarro"></div>
     <div class="campo"><label class="lb">Rol <span class="req">*</span></label>
-      <select class="inp" id="u-rol">
+      <select class="inp" id="u-rol" onchange="usuarioToggleRol()">
         <option value="conductor" ${u?.rol === 'conductor' ? 'selected' : ''}>Conductor — marca salida y llegada, reporta novedades</option>
         <option value="coordinacion" ${u?.rol === 'coordinacion' ? 'selected' : ''}>Coordinación — ve todo, descarga y modifica itinerarios</option>
         <option value="principal" ${u?.rol === 'principal' ? 'selected' : ''}>Administrador — control total y creación de usuarios</option>
       </select></div>
-    <div class="campo"><label class="lb">Persona vinculada</label>
+    <div class="campo">
+      <label class="lb">Persona vinculada <span class="req" id="u-persona-req">*</span></label>
       <select class="inp" id="u-persona"><option value="">— Ninguna —</option>
-        ${sinCuenta.map(p => `<option value="${p.id}" ${u?.persona_id == p.id ? 'selected' : ''}>${esc(p.nombres)} ${esc(p.apellidos || '')}</option>`).join('')}
+        ${sinCuenta.map(p => `<option value="${p.id}" ${u?.persona_id == p.id ? 'selected' : ''}>${esc(p.nombres)} ${esc(p.apellidos || '')}${p.es_conductor ? '' : ' (no marcada como conductor)'}</option>`).join('')}
       </select>
-      <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 0">
-        Obligatorio para los conductores: es lo que conecta la cuenta con su itinerario.</p></div>
+      <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 0" id="u-persona-nota">
+        Obligatorio para los conductores: es lo que conecta la cuenta con su itinerario.
+        Sin esto la persona entra pero no ve nada.</p>
+      ${sinCuenta.length ? '' : `<div class="nota avi" style="margin-top:.4rem">
+        No hay personas disponibles para vincular. Regístrela primero en
+        <b>Personas</b>, marcada como conductor.</div>`}
+    </div>
     <div class="campo"><label class="lb">Correo</label><input class="inp" id="u-correo" type="email" value="${esc(u?.correo || '')}"></div>
     <div class="campo"><label class="lb">${u ? 'Nueva clave temporal (dejar vacío para no cambiarla)' : 'Clave temporal'} ${u ? '' : '<span class="req">*</span>'}</label>
       <input class="inp" id="u-clave" placeholder="Mínimo 8 caracteres">
@@ -1909,6 +1997,19 @@ function modalUsuario(id) {
       <input type="checkbox" id="u-activo" ${u.activo ? 'checked' : ''}> Cuenta activa</label></div>` : ''}`,
     `<button class="btn sec" onclick="cerrarModal()">Cancelar</button>
      <button class="btn" id="u-btn" onclick="guardarUsuario(${id || 'null'})">Guardar</button>`);
+  usuarioToggleRol();
+}
+
+function usuarioToggleRol() {
+  const esConductor = $('#u-rol')?.value === 'conductor';
+  const req = $('#u-persona-req');
+  if (req) req.style.display = esConductor ? '' : 'none';
+  const nota = $('#u-persona-nota');
+  if (nota) {
+    nota.textContent = esConductor
+      ? 'Obligatorio: es lo que conecta la cuenta con su itinerario. Sin esto la persona entra pero no ve nada.'
+      : 'Opcional para coordinación y administración.';
+  }
 }
 
 async function guardarUsuario(id) {
@@ -1926,6 +2027,11 @@ async function guardarUsuario(id) {
   if (!c.usuario || (!id && !clave)) {
     btn.disabled = false; btn.textContent = 'Guardar';
     return aviso('Indique el usuario y la clave temporal', 'mal', 'Faltan datos');
+  }
+  if (c.rol === 'conductor' && !c.persona_id) {
+    btn.disabled = false; btn.textContent = 'Guardar';
+    return aviso('Escoja la persona: sin ella la cuenta no verá su itinerario',
+                 'mal', 'Falta la persona');
   }
   try {
     if (id) await api('/api/usuarios/' + id, { metodo: 'PUT', cuerpo: c });

@@ -12,6 +12,24 @@ import {
 const TODOS = ['principal', 'coordinacion', 'conductor'];
 const GESTION = ['principal', 'coordinacion'];
 
+
+/**
+ * Sello del estado de los datos, para que las pantallas abiertas sepan si algo
+ * cambió sin volver a descargarlo todo.
+ *
+ * Se apoya en la auditoría, que registra toda modificación, y se completa con
+ * los conteos de itinerarios y trayectos para captar también los borrados.
+ * Es una consulta de cuatro agregados: barata de repetir cada minuto.
+ */
+ruta('GET', '/api/sello', async ({ db }) => {
+  const r = await db.prepare(`
+    SELECT (SELECT IFNULL(MAX(ts), '') FROM auditoria)      AS ts,
+           (SELECT COUNT(*) FROM auditoria)                 AS n,
+           (SELECT COUNT(*) FROM itinerarios)               AS i,
+           (SELECT COUNT(*) FROM trayectos)                 AS t`).first();
+  return { sello: `${r.ts}|${r.n}|${r.i}|${r.t}`, ts: ahora() };
+}, TODOS);
+
 // ═══════════════════════════════════════════════════════ ITINERARIO ═════════
 
 /**
@@ -543,6 +561,14 @@ ruta('DELETE', '/api/predeterminados/:id', async ({ db, sesion, params }) => {
 ruta('GET', '/api/mi-dia', async ({ db, sesion, url }) => {
   const fecha = url.searchParams.get('fecha') || hoyISO();
   const personaId = sesion.persona_id;
+
+  // Una cuenta sin persona vinculada no puede tener itinerario: se busca por
+  // persona, no por usuario. Se dice explícitamente en vez de devolver un día
+  // vacío, que se confunde con "hoy no le programaron nada".
+  if (!personaId) {
+    return { fecha, sin_persona: true, itinerario: null,
+             trayecto_abierto: null, trayectos: [] };
+  }
 
   const itinerario = personaId ? await db.prepare(`
     SELECT i.*, v.placa, v.id AS vehiculo_id, m.nombre AS municipio,

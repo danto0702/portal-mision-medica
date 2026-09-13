@@ -29,11 +29,23 @@
  *   2  conductor_id en vehículos (conductor predeterminado)
  *   3  banco de predeterminados, mover/duplicar, borrado definitivo y carga por lote
  *   4  banner institucional y tipos de documento vencido en vehículos y personas
+ *   5  sello de cambios para sincronizar, vínculo obligatorio conductor↔persona
+ *      y día operativo en hora de Colombia
  */
-const VERSION_API = 4;
+const VERSION_API = 5;
 
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-const hoyISO = () => ahora().slice(0, 10);
+/**
+ * Fecha del día operativo, en hora de Colombia (UTC−5).
+ *
+ * El Worker corre en UTC: a las 7 de la noche en Ábrego ya es el día siguiente
+ * en UTC. Un conductor que marcara salida a esa hora habría quedado registrado
+ * en la fecha equivocada, sin cruzar con el itinerario de ese día y
+ * descuadrando el contador de días.
+ */
+const HORAS_COLOMBIA = -5;
+const hoyISO = () =>
+  new Date(Date.now() + HORAS_COLOMBIA * 3600e3).toISOString().slice(0, 10);
 
 function cors(origen, permitidos) {
   const lista = (permitidos || '').split(',').map(o => o.trim()).filter(Boolean);

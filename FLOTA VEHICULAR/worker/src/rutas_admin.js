@@ -308,6 +308,8 @@ ruta('GET', '/api/usuarios', async ({ db }) => {
     SELECT u.id, u.usuario, u.correo, u.rol, u.activo, u.debe_cambiar_clave,
            u.ultimo_acceso, u.creado_en, u.persona_id,
            p.nombres || ' ' || IFNULL(p.apellidos,'') AS nombre,
+           CASE WHEN u.rol = 'conductor' AND u.persona_id IS NULL THEN 1 ELSE 0 END
+             AS sin_persona,
            m.nombre AS municipio
       FROM usuarios u
       LEFT JOIN personas p ON p.id = u.persona_id
@@ -323,6 +325,15 @@ ruta('POST', '/api/usuarios', async ({ db, sesion, cuerpo }) => {
     throw malaPeticion('Rol no válido: principal, coordinacion o conductor');
   }
   if (clave.length < 8) throw malaPeticion('La clave temporal debe tener al menos 8 caracteres');
+
+  // Sin este vínculo la cuenta del conductor entra pero no ve nada: el
+  // itinerario se busca por persona, no por usuario. Antes se permitía crearla
+  // y el fallo aparecía después, en terreno y sin mensaje.
+  if (rol === 'conductor' && !persona_id) {
+    throw malaPeticion(
+      'Una cuenta de conductor debe quedar vinculada a una persona: ' +
+      'es lo que la conecta con su itinerario. Regístrela primero en Personas.');
+  }
 
   const r = await db.prepare(`
     INSERT INTO usuarios (persona_id, usuario, correo, clave_hash, rol, municipio_id,
@@ -348,6 +359,14 @@ ruta('PUT', '/api/usuarios/:id', async ({ db, sesion, params, cuerpo }) => {
       "SELECT COUNT(*) AS n FROM usuarios WHERE rol = 'principal' AND activo = 1 AND id != ?")
       .bind(params.id).first();
     if (!otros.n) throw malaPeticion('Debe existir al menos un usuario principal activo');
+  }
+
+  const rolFinal = cuerpo.rol || antes.rol;
+  const personaFinal = cuerpo.persona_id !== undefined ? cuerpo.persona_id : antes.persona_id;
+  if (rolFinal === 'conductor' && !personaFinal) {
+    throw malaPeticion(
+      'Una cuenta de conductor debe quedar vinculada a una persona: ' +
+      'es lo que la conecta con su itinerario.');
   }
 
   const set = [], valores = [];

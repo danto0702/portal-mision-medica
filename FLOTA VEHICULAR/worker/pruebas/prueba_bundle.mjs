@@ -114,6 +114,48 @@ verificar('el conductor NO puede crear usuarios', r.estado === 403, r.datos);
 r = await api('GET', '/api/auditoria', null, tCoord);
 verificar('coordinación NO ve la auditoría completa', r.estado === 403, r.datos);
 
+console.log('\n── Vínculo conductor ↔ persona ───────────────────────────────');
+// Este era el fallo real: una cuenta de conductor sin persona entra pero no ve
+// nada, porque el itinerario se busca por persona y no por usuario.
+r = await api('POST', '/api/usuarios',
+  { usuario: 'suelto', clave: 'Conductor2026', rol: 'conductor' }, tokenPrincipal);
+verificar('no deja crear un conductor sin persona vinculada', r.estado === 400, r.datos);
+verificar('y explica por qué', /itinerario/i.test(r.datos.error || ''), r.datos.error);
+
+r = await api('POST', '/api/usuarios',
+  { usuario: 'coord2', clave: 'Coordina2026', rol: 'coordinacion' }, tokenPrincipal);
+verificar('coordinación sí puede ir sin persona', r.estado === 200, r.datos);
+
+r = await api('PUT', `/api/usuarios/${r.datos.id}`, { rol: 'conductor' }, tokenPrincipal);
+verificar('tampoco deja convertirla en conductor sin persona', r.estado === 400, r.datos);
+
+r = await api('GET', '/api/usuarios', null, tokenPrincipal);
+verificar('el listado marca las cuentas sin vínculo',
+  r.datos.every(u => u.sin_persona === 0 || u.rol === 'conductor'), r.datos.length);
+
+// Una cuenta sin persona debe decir por qué, no mostrar un día vacío
+const tSinP = (await api('POST', '/api/auth/login',
+  { usuario: 'coord2', clave: 'Coordina2026' })).datos.token;
+r = await api('GET', '/api/mi-dia', null, tSinP);
+verificar('mi-día avisa que la cuenta no está vinculada',
+  r.estado === 200 && r.datos.sin_persona === true, r.datos);
+
+console.log('\n── Sello de cambios ──────────────────────────────────────────');
+r = await api('GET', '/api/sello', null, tCoord);
+verificar('devuelve un sello', r.estado === 200 && !!r.datos.sello, r.datos);
+const selloAntes = r.datos.sello;
+
+r = await api('GET', '/api/sello', null, tCoord);
+verificar('sin cambios, el sello es el mismo', r.datos.sello === selloAntes, r.datos.sello);
+
+await api('POST', '/api/personas', { nombres: 'PARA SELLO' }, tokenPrincipal);
+r = await api('GET', '/api/sello', null, tCoord);
+verificar('tras un cambio, el sello cambia', r.datos.sello !== selloAntes,
+  { antes: selloAntes, despues: r.datos.sello });
+
+r = await api('GET', '/api/sello', null, tCond);
+verificar('el conductor también puede consultarlo', r.estado === 200, r.datos);
+
 console.log('\n── Vehículos ─────────────────────────────────────────────────');
 r = await api('POST', '/api/vehiculos', {
   placa: 'GEU-665', tipo: 'camioneta', municipio_base_id: 1,

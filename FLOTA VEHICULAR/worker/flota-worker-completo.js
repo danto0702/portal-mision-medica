@@ -90,11 +90,23 @@ const totalRutas = () => rutas.length;
  *   2  conductor_id en vehículos (conductor predeterminado)
  *   3  banco de predeterminados, mover/duplicar, borrado definitivo y carga por lote
  *   4  banner institucional y tipos de documento vencido en vehículos y personas
+ *   5  sello de cambios para sincronizar, vínculo obligatorio conductor↔persona
+ *      y día operativo en hora de Colombia
  */
-const VERSION_API = 4;
+const VERSION_API = 5;
 
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-const hoyISO = () => ahora().slice(0, 10);
+/**
+ * Fecha del día operativo, en hora de Colombia (UTC−5).
+ *
+ * El Worker corre en UTC: a las 7 de la noche en Ábrego ya es el día siguiente
+ * en UTC. Un conductor que marcara salida a esa hora habría quedado registrado
+ * en la fecha equivocada, sin cruzar con el itinerario de ese día y
+ * descuadrando el contador de días.
+ */
+const HORAS_COLOMBIA = -5;
+const hoyISO = () =>
+  new Date(Date.now() + HORAS_COLOMBIA * 3600e3).toISOString().slice(0, 10);
 
 function cors(origen, permitidos) {
   const lista = (permitidos || '').split(',').map(o => o.trim()).filter(Boolean);
@@ -651,6 +663,8 @@ ruta('GET', '/api/usuarios', async ({ db }) => {
     SELECT u.id, u.usuario, u.correo, u.rol, u.activo, u.debe_cambiar_clave,
            u.ultimo_acceso, u.creado_en, u.persona_id,
            p.nombres || ' ' || IFNULL(p.apellidos,'') AS nombre,
+           CASE WHEN u.rol = 'conductor' AND u.persona_id IS NULL THEN 1 ELSE 0 END
+             AS sin_persona,
            m.nombre AS municipio
       FROM usuarios u
       LEFT JOIN personas p ON p.id = u.persona_id
@@ -666,6 +680,15 @@ ruta('POST', '/api/usuarios', async ({ db, sesion, cuerpo }) => {
     throw malaPeticion('Rol no válido: principal, coordinacion o conductor');
   }
   if (clave.length < 8) throw malaPeticion('La clave temporal debe tener al menos 8 caracteres');
+
+  // Sin este vínculo la cuenta del conductor entra pero no ve nada: el
+  // itinerario se busca por persona, no por usuario. Antes se permitía crearla
+  // y el fallo aparecía después, en terreno y sin mensaje.
+  if (rol === 'conductor' && !persona_id) {
+    throw malaPeticion(
+      'Una cuenta de conductor debe quedar vinculada a una persona: ' +
+      'es lo que la conecta con su itinerario. Regístrela primero en Personas.');
+  }
 
   const r = await db.prepare(`
     INSERT INTO usuarios (persona_id, usuario, correo, clave_hash, rol, municipio_id,
@@ -691,6 +714,14 @@ ruta('PUT', '/api/usuarios/:id', async ({ db, sesion, params, cuerpo }) => {
       "SELECT COUNT(*) AS n FROM usuarios WHERE rol = 'principal' AND activo = 1 AND id != ?")
       .bind(params.id).first();
     if (!otros.n) throw malaPeticion('Debe existir al menos un usuario principal activo');
+  }
+
+  const rolFinal = cuerpo.rol || antes.rol;
+  const personaFinal = cuerpo.persona_id !== undefined ? cuerpo.persona_id : antes.persona_id;
+  if (rolFinal === 'conductor' && !personaFinal) {
+    throw malaPeticion(
+      'Una cuenta de conductor debe quedar vinculada a una persona: ' +
+      'es lo que la conecta con su itinerario.');
   }
 
   const set = [], valores = [];
@@ -770,6 +801,23 @@ ruta('DELETE', '/api/banner', async ({ db, sesion }) => {
 
 const TODOS = ['principal', 'coordinacion', 'conductor'];
 const GESTION = ['principal', 'coordinacion'];
+
+/**
+ * Sello del estado de los datos, para que las pantallas abiertas sepan si algo
+ * cambió sin volver a descargarlo todo.
+ *
+ * Se apoya en la auditoría, que registra toda modificación, y se completa con
+ * los conteos de itinerarios y trayectos para captar también los borrados.
+ * Es una consulta de cuatro agregados: barata de repetir cada minuto.
+ */
+ruta('GET', '/api/sello', async ({ db }) => {
+  const r = await db.prepare(`
+    SELECT (SELECT IFNULL(MAX(ts), '') FROM auditoria)      AS ts,
+           (SELECT COUNT(*) FROM auditoria)                 AS n,
+           (SELECT COUNT(*) FROM itinerarios)               AS i,
+           (SELECT COUNT(*) FROM trayectos)                 AS t`).first();
+  return { sello: `${r.ts}|${r.n}|${r.i}|${r.t}`, ts: ahora() };
+}, TODOS);
 
 // ═══════════════════════════════════════════════════════ ITINERARIO ═════════
 
@@ -1299,6 +1347,14 @@ ruta('DELETE', '/api/predeterminados/:id', async ({ db, sesion, params }) => {
 ruta('GET', '/api/mi-dia', async ({ db, sesion, url }) => {
   const fecha = url.searchParams.get('fecha') || hoyISO();
   const personaId = sesion.persona_id;
+
+  // Una cuenta sin persona vinculada no puede tener itinerario: se busca por
+  // persona, no por usuario. Se dice explícitamente en vez de devolver un día
+  // vacío, que se confunde con "hoy no le programaron nada".
+  if (!personaId) {
+    return { fecha, sin_persona: true, itinerario: null,
+             trayecto_abierto: null, trayectos: [] };
+  }
 
   const itinerario = personaId ? await db.prepare(`
     SELECT i.*, v.placa, v.id AS vehiculo_id, m.nombre AS municipio,

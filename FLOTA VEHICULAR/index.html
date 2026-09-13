@@ -6,7 +6,18 @@
 <meta name="theme-color" content="#1e5aa8">
 <title>Flota Vehicular · ESE HRNO</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231e5aa8'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' transform='translate(2.4 2.4) scale(.8)'%3E%3Cpath d='M14 17H6V5h11l4 6v6h-3'/%3E%3Ccircle cx='17.5' cy='17.5' r='2.5'/%3E%3Ccircle cx='6.5' cy='17.5' r='2.5'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" href="iconos/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="iconos/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+
+<!-- iPhone y iPad no leen el manifiesto: la pantalla completa, el nombre bajo
+     el icono y el color de la barra de estado se piden con estas etiquetas. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Flota HRNO">
+<meta name="application-name" content="Flota HRNO">
+<meta name="description" content="Gestión de vehículos de Misión Médica — ESE Hospital Regional Noroccidental.">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -261,8 +272,47 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 }
 #barra-version.on{display:block}
 
+/* ── Instalación en el teléfono ──────────────────────────────
+   La franja azul aparece dentro de la aplicación cuando el navegador acepta
+   instalar, y se puede cerrar. El botón del ingreso está antes de entrar,
+   porque el conductor suele instalarla antes de tener usuario. */
+#barra-instalar{
+  display:none;background:var(--azul-glow);color:var(--azul-dark);
+  border-bottom:1px solid rgba(30,90,168,.25);
+  padding:.5rem .75rem;font-size:.8rem;font-weight:600;
+  align-items:center;justify-content:center;gap:.6rem;flex-wrap:wrap;
+}
+#barra-instalar.on{display:flex}
+#barra-instalar .cerrar{
+  background:none;border:0;color:inherit;opacity:.6;cursor:pointer;
+  font-size:1.1rem;line-height:1;padding:.1rem .3rem;
+}
+#barra-instalar .cerrar:hover{opacity:1}
+
+#barra-nueva{
+  display:none;background:var(--verde-glow);color:#065c40;
+  border-bottom:1px solid rgba(10,125,87,.25);
+  padding:.5rem .75rem;font-size:.8rem;font-weight:600;
+  align-items:center;justify-content:center;gap:.6rem;flex-wrap:wrap;
+}
+#barra-nueva.on{display:flex}
+
+#instalar-ingreso{margin-top:.9rem;text-align:center}
+#instalar-ingreso button{
+  width:100%;background:var(--azul-glow);border:1px solid rgba(30,90,168,.25);
+  color:var(--azul-dark);font:600 .8rem/1.3 inherit;border-radius:var(--r);
+  padding:.6rem .75rem;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:.45rem;
+}
+#instalar-ingreso button:hover{background:rgba(30,90,168,.14)}
+
+/* Pasos ilustrados del instructivo "cómo instalar" */
+.pasos{margin:0;padding-left:1.15rem;font-size:.86rem;line-height:1.65}
+.pasos li{margin-bottom:.35rem}
+.pasos b{color:var(--azul-dark)}
+
 /* ── Ingreso ────────────────────────────────────────────────── */
-#ingreso{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:linear-gradient(165deg,#eef2f7,#f6f8fa 55%,#eef4f2)}
+#ingreso{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:max(1.25rem,env(safe-area-inset-top)) 1.25rem max(1.25rem,env(safe-area-inset-bottom));background:linear-gradient(165deg,#eef2f7,#f6f8fa 55%,#eef4f2)}
 #ingreso .caja{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--sh-lg);padding:1.75rem 1.5rem}
 #ingreso .logo{display:flex;align-items:center;gap:.6rem;margin-bottom:.25rem}
 #ingreso .logo svg{color:var(--azul)}
@@ -360,6 +410,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
     </div>
     <div id="in-error" class="nota avi" style="display:none;margin-bottom:.75rem"></div>
     <button class="btn bloque" id="in-btn" type="submit">Entrar</button>
+    <div id="instalar-ingreso"></div>
     <p style="text-align:center;margin:.9rem 0 0;font-size:.72rem;color:var(--muted)">
       ¿Problemas para entrar? Comuníquese con la Coordinación de Salud Pública.
     </p>
@@ -381,6 +432,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
   </header>
   <div id="barra-offline">Sin conexión · <span id="offline-n">0</span> marca(s) guardada(s) en el celular, se enviarán solas</div>
   <div id="barra-version"></div>
+  <div id="barra-instalar"></div>
+  <div id="barra-nueva"></div>
   <nav class="nav" id="nav"></nav>
   <main id="main"></main>
 </div>

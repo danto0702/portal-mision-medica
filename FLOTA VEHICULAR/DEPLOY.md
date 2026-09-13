@@ -110,6 +110,25 @@ Recorre el flujo completo: instalación, ingreso, los tres roles, adjudicación 
 desplazamientos, marcación con GPS, checklist de 9 ítems, días pagables,
 sincronización sin señal y dashboard. Conviene ejecutarla antes de cada deploy.
 
+La misma suite contra el archivo que se pega en Cloudflare, para que no se
+publique un paquete viejo:
+
+```bash
+node pruebas/prueba_bundle.mjs
+```
+
+Y la de instalación en el teléfono, que abre un navegador de verdad, corta la red
+y comprueba que la aplicación siga abriendo:
+
+```bash
+node pruebas/prueba_pwa.mjs
+```
+
+Esta última necesita Playwright (`npm i -g playwright`); si no está, hace igual
+las comprobaciones de archivos y se salta las de navegador. **No toca el Worker**,
+así que basta con ejecutarla cuando se cambien `manifest.json`, `sw.js`, los
+iconos o la pantalla de ingreso.
+
 ---
 
 ## Operaciones sobre la base

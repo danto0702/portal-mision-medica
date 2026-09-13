@@ -227,6 +227,17 @@ const MENU = {
   principal:    ['itinerario', 'dashboard', 'trayectos', 'eventos', 'vehiculos', 'personas', 'usuarios', 'ajustes'],
 };
 
+/**
+ * Vista pedida por un acceso directo del icono instalado (…/index.html?ir=hoy).
+ *
+ * Se comprueba contra el menú del rol: un conductor que llegue con ?ir=ajustes
+ * —o con un enlace viejo— entra a su pantalla de siempre, no a un error.
+ */
+function vistaPedida() {
+  const v = new URLSearchParams(location.search).get('ir');
+  return v && MENU[sesion.rol].includes(v) ? v : null;
+}
+
 function ir(v) {
   vistaActual = v;
   $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
@@ -254,7 +265,7 @@ async function iniciar() {
     if (sesion.rol !== 'conductor') personas = await api('/api/personas');
   } catch { /* se reintenta al entrar a cada pantalla */ }
 
-  ir(MENU[sesion.rol][0]);
+  ir(vistaPedida() || MENU[sesion.rol][0]);
   cola.sincronizar();
   selloDatos = await leerSello();
   arrancarSincronizacion();
@@ -2435,9 +2446,221 @@ async function verAuditoria() {
 
 cargarBanner();          // también en la pantalla de ingreso, sin sesión
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => { /* opcional */ });
+// ═══════════════════════════════════════════════════════════════════════════
+// INSTALACIÓN EN EL TELÉFONO
+//
+// La aplicación se instala desde el mismo navegador: no pasa por Play Store ni
+// por App Store, no ocupa casi nada y se actualiza sola. Una vez instalada el
+// conductor la abre desde el icono, a pantalla completa y sin barra de
+// direcciones, y si sale de cobertura la aplicación abre igual y guarda las
+// marcas hasta que vuelva la señal.
+//
+// Cada sistema la ofrece a su manera:
+//
+//   · Android (Chrome) avisa por su cuenta con el evento beforeinstallprompt.
+//     Lo interceptamos para guardar el aviso y ofrecerlo nosotros donde tiene
+//     sentido —una franja visible— en vez de dejar el globo del navegador, que
+//     se cierra al primer toque y no vuelve a aparecer.
+//   · iPhone y iPad no tienen ese evento y NO SE PUEDE instalar por código:
+//     solo cabe explicar los tres toques del menú Compartir de Safari.
+//   · En el computador Chrome y Edge también instalan; Firefox no.
+// ═══════════════════════════════════════════════════════════════════════════
+
+let avisoInstalar = null;        // evento beforeinstallprompt guardado
+const OCULTAR_INSTALAR = 'flota_instalar_oculto';
+const DIAS_SILENCIO = 21;        // si la cierra, no se insiste en tres semanas
+
+/** ¿Se está viendo ya como aplicación instalada y no dentro del navegador? */
+const estaInstalada = () =>
+  ['standalone', 'minimal-ui', 'window-controls-overlay']
+    .some(m => window.matchMedia?.(`(display-mode: ${m})`)?.matches) ||
+  navigator.standalone === true;
+
+/**
+ * ¿Cerró la franja hace poco?
+ *
+ * Con try: en el modo privado de algunos navegadores localStorage lanza, y
+ * esto se llama desde el arranque — un error aquí abortaría el resto del
+ * archivo y dejaría media aplicación sin cargar.
+ */
+function silenciada() {
+  try {
+    return Date.now() < Number(localStorage.getItem(OCULTAR_INSTALAR) || 0);
+  } catch { return false; }
 }
+
+const ICONO_INSTALAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" ' +
+  'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>';
+
+window.addEventListener('beforeinstallprompt', ev => {
+  ev.preventDefault();           // se muestra cuando y donde nosotros queramos
+  avisoInstalar = ev;
+  pintarInstalar();
+});
+
+window.addEventListener('appinstalled', () => {
+  avisoInstalar = null;
+  pintarInstalar();
+  aviso('Ya puede abrirla desde el icono del celular, sin entrar al navegador',
+        'ok', 'Aplicación instalada');
+});
+
+/**
+ * Coloca el ofrecimiento en los dos sitios donde puede hacer falta: la franja
+ * de la aplicación y el pie del ingreso —este último importa más de lo que
+ * parece, porque el conductor instala antes de tener con qué entrar—.
+ */
+function pintarInstalar() {
+  const franja = $('#barra-instalar');
+  const pie = $('#instalar-ingreso');
+  // En el computador solo se ofrece si el navegador de verdad instala; en el
+  // celular siempre, porque ahí el instructivo a mano sí tiene sentido.
+  const puede = !estaInstalada() && (avisoInstalar || esAndroid() || esIOS());
+
+  if (franja) {
+    const mostrar = puede && avisoInstalar && !silenciada();
+    franja.classList.toggle('on', !!mostrar);
+    if (mostrar && !franja.dataset.listo) {
+      franja.dataset.listo = '1';
+      franja.innerHTML =
+        `<span>Instale la aplicación en el celular para abrirla sin el navegador</span>
+         <button type="button" class="btn sm" onclick="instalarApp()">${ICONO_INSTALAR} Instalar</button>
+         <button type="button" class="cerrar" onclick="silenciarInstalar()" aria-label="Ahora no">&times;</button>`;
+    }
+  }
+
+  if (pie) {
+    pie.innerHTML = puede
+      // type="button": el botón vive dentro del formulario de ingreso y sin esto
+      // lo enviaría, quedándose en "rellene este campo" en vez de instalar.
+      ? `<button type="button" onclick="instalarApp()">${ICONO_INSTALAR} Instalar en este dispositivo</button>`
+      : '';
+  }
+}
+
+function silenciarInstalar() {
+  try {
+    localStorage.setItem(OCULTAR_INSTALAR, String(Date.now() + DIAS_SILENCIO * 864e5));
+  } catch { /* sin almacenamiento se vuelve a ofrecer la próxima vez */ }
+  $('#barra-instalar').classList.remove('on');
+}
+
+/**
+ * Instala si el navegador lo permite; si no, explica los pasos a mano.
+ *
+ * El aviso guardado es de un solo uso: una vez mostrado hay que soltarlo, y si
+ * el usuario dice que no, Chrome no lo vuelve a ofrecer hasta pasados unos
+ * días. Por eso, cuando ya no queda aviso, se cae al instructivo.
+ */
+async function instalarApp() {
+  if (!avisoInstalar) return modalComoInstalar();
+  const guardado = avisoInstalar;
+  avisoInstalar = null;
+  try {
+    guardado.prompt();
+    const { outcome } = await guardado.userChoice;
+    if (outcome !== 'accepted') {
+      aviso('Puede instalarla más tarde desde el menú del navegador', 'avi', 'Sin instalar');
+    }
+  } catch {
+    modalComoInstalar();
+  }
+  pintarInstalar();
+}
+
+/** Instructivo por sistema, para cuando el navegador no ofrece el botón. */
+function modalComoInstalar() {
+  if (estaInstalada()) {
+    return aviso('Ya está instalada en este dispositivo', 'ok', 'Todo listo');
+  }
+  let pasos;
+  if (esIOS()) {
+    pasos = `<p class="nota">En iPhone y iPad la instalación se hace desde <b>Safari</b>
+        (si abrió esta página en otra aplicación, ábrala en Safari primero).</p>
+      <ol class="pasos">
+        <li>Toque <b>Compartir</b>, el cuadrito con la flecha hacia arriba, en la barra de abajo.</li>
+        <li>Deslice y elija <b>Añadir a pantalla de inicio</b>.</li>
+        <li>Toque <b>Añadir</b>, arriba a la derecha.</li>
+      </ol>
+      <p class="nota">Quedará el icono azul de la camioneta junto a sus demás aplicaciones.</p>`;
+  } else if (esAndroid()) {
+    pasos = `<ol class="pasos">
+        <li>Toque los <b>tres puntos</b> de la esquina superior derecha del navegador.</li>
+        <li>Elija <b>Instalar aplicación</b> o <b>Añadir a pantalla de inicio</b>.</li>
+        <li>Confirme con <b>Instalar</b>.</li>
+      </ol>
+      <p class="nota">Si no aparece la opción, use <b>Chrome</b>: es el que instala
+        aplicaciones en Android.</p>`;
+  } else {
+    pasos = `<ol class="pasos">
+        <li>En <b>Chrome</b> o <b>Edge</b>, mire el extremo derecho de la barra de direcciones.</li>
+        <li>Toque el icono de instalar (una pantalla con una flecha hacia abajo)
+            o abra el menú <b>⋮</b> y elija <b>Instalar</b>.</li>
+      </ol>
+      <p class="nota">La instalación en el computador es opcional; donde de verdad
+        sirve es en el celular del conductor, porque funciona sin señal.</p>`;
+  }
+  abrirModal('Cómo instalar la aplicación', pasos);
+}
+
+// ── Service worker: es lo que permite abrir sin señal ────────────────────────
+//
+// Guarda el armazón de la aplicación (pantalla, código y librerías) en el
+// teléfono. Los datos NO se guardan: un itinerario viejo sería peor que
+// ninguno. Las marcas tomadas sin cobertura las guarda la propia aplicación.
+
+// ¿Había ya un service worker mandando en esta página al cargarla? Se mira
+// antes de registrar nada, porque registrar cambia la respuesta.
+const habiaControlador = 'serviceWorker' in navigator && !!navigator.serviceWorker.controller;
+let pedimosRelevo = false;      // el conductor tocó "Actualizar"
+let recargando = false;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(reg => {
+      // Una aplicación instalada no se recarga con F5: si hay versión nueva hay
+      // que decirlo dentro, o el conductor se queda meses con la vieja.
+      const vigilar = trabajador => trabajador.addEventListener('statechange', () => {
+        if (trabajador.state === 'installed' && navigator.serviceWorker.controller) {
+          ofrecerActualizacion(trabajador);
+        }
+      });
+      // Puede haber quedado una versión esperando de una visita anterior en la
+      // que el conductor no tocó "Actualizar": entonces no habrá updatefound.
+      if (reg.waiting && navigator.serviceWorker.controller) ofrecerActualizacion(reg.waiting);
+      reg.addEventListener('updatefound', () => { if (reg.installing) vigilar(reg.installing); });
+      setInterval(() => reg.update().catch(() => {}), 30 * 60000);
+    })
+    .catch(() => { /* sin service worker la aplicación funciona igual, con señal */ });
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recargando) return;
+    // La PRIMERA instalación también dispara este evento. Recargar ahí haría
+    // parpadear la pantalla al primer visitante y le borraría lo que estuviera
+    // escribiendo. Solo se recarga si el relevo lo pidió el conductor, o si ya
+    // había una versión mandando y la relevaron por detrás.
+    if (!pedimosRelevo && !habiaControlador) return;
+    recargando = true;
+    location.reload();
+  });
+}
+
+/** Franja verde: hay versión nueva esperando, pero entra cuando el usuario diga. */
+function ofrecerActualizacion(trabajador) {
+  const franja = $('#barra-nueva');
+  if (!franja) return;
+  franja.innerHTML = `<span>Hay una versión nueva de la aplicación</span>
+    <button type="button" class="btn sm verde" id="btn-actualizar">Actualizar</button>`;
+  franja.classList.add('on');
+  $('#btn-actualizar').onclick = () => {
+    $('#btn-actualizar').disabled = true;
+    pedimosRelevo = true;
+    trabajador.postMessage({ tipo: 'saltar-espera' });   // al activarse, recarga sola
+  };
+}
+
+pintarInstalar();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLANTILLA DE EXCEL

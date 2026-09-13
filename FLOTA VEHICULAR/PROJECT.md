@@ -1,6 +1,6 @@
 # PROJECT.md — Flota Vehicular HRNO
 
-> Borrador v0.8 · 13 sep 2026 · ESE Hospital Regional Noroccidental
+> Borrador v0.9 · 13 sep 2026 · ESE Hospital Regional Noroccidental
 > Responsable: Danilo Torrado Blanco — Coordinador de Salud Pública
 > Estado: **arquitectura, roles y modelo de datos definidos.** Pendientes las preguntas de §11
 
@@ -80,6 +80,7 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D24 | Datos de la marca | Kilometraje, número **y nombres** de tripulantes y **fotografía** son obligatorios |
 | D25 | Día operativo | Se calcula en **hora de Colombia**, no en UTC |
 | D26 | Fotografía | Se toma con **Timemark** (app externa que estampa fecha, hora y GPS). La app, su identificador y si se usa son configurables en Ajustes |
+| D27 | Instalación | **PWA instalable desde el navegador**, sin Play Store ni App Store. Iconos PNG propios, arranque sin señal y aviso cuando hay versión nueva |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -317,9 +318,50 @@ con el ratón y con el dedo. En táctil, mover exige **sostener el dedo 350 ms**
 contrario el gesto sería indistinguible de desplazar la tabla.
 
 Por debajo de 700 px la matriz se reemplaza por una **lista agrupada por día**, que es como se
-consulta en terreno. La aplicación se instala en la pantalla de inicio en Android y en iPhone, y
-se abre sin barra del navegador. Los campos usan letra de 16 px para que iOS no haga zoom al
-enfocar, y los márgenes respetan el *notch*.
+consulta en terreno. Los campos usan letra de 16 px para que iOS no haga zoom al enfocar, y los
+márgenes respetan el *notch*.
+
+### 5.1.4 Instalación en el teléfono del conductor (D27)
+
+La aplicación se instala **desde el propio navegador**: no pasa por Play Store ni por App Store,
+no hay que publicar nada en ninguna tienda, no hay revisiones ni cuotas anuales de desarrollador,
+y cada cambio publicado llega solo. Para el conductor la diferencia es que la abre desde un icono,
+a pantalla completa, y —lo que de verdad importa en el Catatumbo— **abre aunque no haya señal**.
+
+Lo que lo hace posible:
+
+| Pieza | Para qué |
+|---|---|
+| `manifest.json` | Nombre, icono, color y modo `standalone`. Sin él el navegador no ofrece instalar |
+| `iconos/*.png` | Iconos **PNG reales** de 192 y 512 px, normales y con máscara, más `apple-touch-icon.png` de 180 px para iPhone |
+| `sw.js` | Guarda el armazón en el teléfono; es lo que permite abrir sin cobertura |
+| Franja y botón *Instalar* | El ofrecimiento propio de la aplicación, en el ingreso y dentro |
+| Instructivo por sistema | iPhone no permite instalar por código: allí solo cabe explicar los pasos |
+
+Tres cosas que un navegador **no puede** hacer, y que condicionan el diseño:
+
+1. **iPhone no tiene evento de instalación.** Safari no ofrece nada y no existe forma de
+   instalar por código: hay que explicarle al conductor los tres toques del menú *Compartir*.
+   Además solo funciona desde Safari, no desde el navegador incrustado de WhatsApp.
+2. **El aviso de Android es de un solo uso.** Chrome entrega el evento `beforeinstallprompt`
+   una vez; si el usuario dice que no, no lo vuelve a ofrecer en unos días. Por eso el evento se
+   intercepta y se guarda, en lugar de dejar el globo del navegador, y por eso hay instructivo
+   de respaldo.
+3. **Una aplicación instalada no se recarga con F5.** Si sale una versión nueva hay que
+   avisarlo dentro de la aplicación, o el conductor se queda meses con la vieja. De ahí la
+   franja verde *Actualizar*, que pide el relevo al service worker y recarga sola.
+
+Los datos **nunca** se guardan en el teléfono: un itinerario viejo sería peor que ninguno. Lo que
+sí se guarda son las marcas tomadas sin cobertura, que la aplicación envía sola al volver la señal.
+
+> **No cambiar `id` ni `scope` del manifiesto.** El `id` (`flota-hrno`) es lo que identifica la
+> aplicación instalada. Si cambia, cada teléfono ya instalado se queda con una aplicación
+> huérfana que no vuelve a recibir actualizaciones, y hay que desinstalar e instalar a mano
+> celular por celular. Lo mismo si se mueve la carpeta `FLOTA VEHICULAR/`.
+
+El instructivo para repartir a los conductores está en `INSTALAR_EN_EL_CELULAR.md`. Los iconos se
+regeneran con `node iconos/generar.mjs iconos` y todo lo anterior se comprueba con
+`node worker/pruebas/prueba_pwa.mjs`, que incluye cortar la red y recargar.
 
 ### 5.2 Maestro de vehículos
 Ficha y hoja de vida, con **`propiedad` = propio / contratista / comodato** y `valor_dia` (D7),

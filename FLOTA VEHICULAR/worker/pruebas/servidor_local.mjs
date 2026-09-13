@@ -4,6 +4,7 @@
  * tocar Cloudflare.
  *
  *   node worker/pruebas/servidor_local.mjs        →  http://localhost:8788
+ *   PUERTO=8791 node worker/pruebas/servidor_local.mjs
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -15,6 +16,8 @@ import worker from '../src/index.js';
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '../..');
 const W = path.resolve(AQUI, '..');
+const PUERTO = Number(process.env.PUERTO) || 8788;
+const BASE = `http://localhost:${PUERTO}`;
 
 const db = crearD1();
 db.exec(fs.readFileSync(path.join(W, 'schema.sql'), 'utf8'));
@@ -22,7 +25,7 @@ db.exec(fs.readFileSync(path.join(W, 'seed_catalogos.sql'), 'utf8'));
 
 const env = {
   DB: db,
-  ORIGENES_PERMITIDOS: 'http://localhost:8788,http://127.0.0.1:8788',
+  ORIGENES_PERMITIDOS: `${BASE},http://127.0.0.1:${PUERTO}`,
   HORAS_SESION: '12',
   CLAVE_ADMIN_INICIAL: 'demo',
 };
@@ -33,9 +36,9 @@ const dia = n => new Date(Date.now() + n * 864e5).toLocaleDateString('sv-SE');
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
 async function llamar(metodo, ruta, cuerpo, token) {
-  const h = { 'Content-Type': 'application/json', Origin: 'http://localhost:8788' };
+  const h = { 'Content-Type': 'application/json', Origin: BASE };
   if (token) h.Authorization = 'Bearer ' + token;
-  const res = await worker.fetch(new Request('http://localhost:8788' + ruta, {
+  const res = await worker.fetch(new Request(BASE + ruta, {
     method: metodo, headers: h, body: cuerpo ? JSON.stringify(cuerpo) : undefined,
   }), env);
   return res.json();
@@ -154,15 +157,16 @@ for (const [tipo, grav, desc] of [
 
 // ── Servidor ────────────────────────────────────────────────────────────────
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8', '.css': 'text/css; charset=utf-8' };
+  '.json': 'application/json; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
 http.createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://localhost:8788');
+  const url = new URL(req.url, BASE);
 
   if (url.pathname.startsWith('/api/')) {
     const trozos = [];
     for await (const t of req) trozos.push(t);
-    const r = await worker.fetch(new Request('http://localhost:8788' + req.url, {
+    const r = await worker.fetch(new Request(BASE + req.url, {
       method: req.method, headers: req.headers,
       body: trozos.length ? Buffer.concat(trozos) : undefined,
     }), env);
@@ -176,9 +180,9 @@ http.createServer(async (req, res) => {
   }
   res.writeHead(200, { 'Content-Type': TIPOS[path.extname(archivo)] || 'application/octet-stream' });
   res.end(fs.readFileSync(archivo));
-}).listen(8788, () => {
+}).listen(PUERTO, () => {
   const n = db.prepare('SELECT COUNT(*) AS n FROM itinerarios').first().n;
   const t = db.prepare('SELECT COUNT(*) AS n FROM trayectos').first().n;
-  console.log(`listo en http://localhost:8788  ·  ${n} itinerarios, ${t} trayectos`);
+  console.log(`listo en ${BASE}  ·  ${n} itinerarios, ${t} trayectos`);
   console.log('usuarios: danilo/Demo2026Clave · coordina/Coordina2026 · jnavarro/Conductor2026');
 });

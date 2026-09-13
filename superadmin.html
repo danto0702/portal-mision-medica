@@ -497,11 +497,12 @@ async function toggleActivo(id, actual) {
 }
 
 async function resetPass(id, email) {
-  const nueva = prompt('Nueva contraseña para ' + email + ' (mínimo 8 caracteres):');
-  if (!nueva || nueva.length < 8) { alert('Contraseña muy corta o cancelada.'); return; }
-  const { error } = await portalSb.auth.admin.updateUserById(id, { password: nueva });
-  if (error) { showErr('Error al cambiar contraseña: ' + error.message); return; }
-  showOk('Contraseña actualizada para ' + email);
+  if (!confirm('Se enviará un correo de recuperación de contraseña a:\n\n' + email + '\n\nEl usuario recibirá un enlace para elegir su nueva contraseña. ¿Continuar?')) return;
+  const { error } = await portalSb.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://danto0702.github.io/portal-salud-publica-hrno/login.html'
+  });
+  if (error) { showErr('Error al enviar correo: ' + error.message); return; }
+  showOk('Correo de recuperación enviado a ' + email + '. El usuario debe revisar su bandeja de entrada.');
 }
 
 // ════════════════════════════════════════════════════════

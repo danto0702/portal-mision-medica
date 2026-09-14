@@ -2583,7 +2583,7 @@ function modalComoInstalar() {
         <li>Deslice y elija <b>Añadir a pantalla de inicio</b>.</li>
         <li>Toque <b>Añadir</b>, arriba a la derecha.</li>
       </ol>
-      <p class="nota">Quedará el icono azul de la camioneta junto a sus demás aplicaciones.</p>`;
+      <p class="nota">Quedará el icono azul de Flota junto a sus demás aplicaciones.</p>`;
   } else if (esAndroid()) {
     pasos = `<ol class="pasos">
         <li>Toque los <b>tres puntos</b> de la esquina superior derecha del navegador.</li>

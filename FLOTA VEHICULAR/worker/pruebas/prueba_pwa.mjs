@@ -106,10 +106,35 @@ verificar('el nombre bajo el icono en iPhone está definido',
   /name="apple-mobile-web-app-title"/.test(html));
 verificar('el icono del navegador ya no es un dibujo incrustado',
   !/<link rel="icon" href="data:/.test(html));
+verificar('la pantalla de ingreso muestra el logotipo',
+  /<img class="marca-logo" src="iconos\/marca\.png"/.test(html));
+// El crédito de quien desarrolla: en el icono la marca de PascalIA va, pero a
+// 48 px no se lee; aquí sí. Si se cae, nadie lo echa en falta hasta que lo
+// reclama quien lo hizo.
+verificar('la pantalla de ingreso acredita a PascalIA',
+  /<div class="credito">[\s\S]*?iconos\/pascalia\.png/.test(html));
+verificar('existe la marca de PascalIA', existe('iconos/pascalia.png'));
+// El pie va fuera de <main>, una sola vez: así sale en toda pantalla, incluidas
+// las que se escriban mañana, sin que nadie tenga que acordarse de ponerlo.
+verificar('la firma de PascalIA va en el pie de la aplicación',
+  /<footer class="pie">[\s\S]*?iconos\/pascalia\.png/.test(html));
+verificar('el pie está fuera de main, para que salga en todas las vistas',
+  html.indexOf('<footer class="pie">') > html.indexOf('</main>'));
+verificar('los iconos con máscara llevan solo el emblema',
+  /icono-mascara-\d+\.png'[^\n]*corte: EMBLEMA/.test(leer('iconos/generar.mjs')));
+verificar('el icono normal se hace con el logotipo completo',
+  /icono-512\.png'[^\n]*corte: COMPLETO/.test(leer('iconos/generar.mjs')));
+verificar('el logotipo sale dos veces: ingreso y cabecera',
+  (html.match(/class="marca-logo"/g) || []).length === 2);
+verificar('ya no queda el dibujo de la camioneta como logotipo',
+  !/class="logo"[\s\S]{0,200}<svg/.test(html));
+verificar('queda el logotipo original para poder regenerar los iconos',
+  existe('iconos/logo-original.png'));
 verificar('hay sitio para la franja de instalación', html.includes('id="barra-instalar"'));
 verificar('hay sitio para el botón de instalar del ingreso', html.includes('id="instalar-ingreso"'));
 
 const sw = leer('sw.js');
+const CAJA = sw.match(/const CACHE = '([^']+)'/)[1];   // para no repetirla en la prueba
 const enArmazon = sw.slice(sw.indexOf('const ARMAZON'), sw.indexOf('];', sw.indexOf('const ARMAZON')));
 const listados = [...enArmazon.matchAll(/'\.\/([^']+)'/g)].map(m => m[1]);
 verificar('el service worker guarda algo para abrir sin señal', listados.length >= 8);
@@ -184,6 +209,39 @@ if (chromium) {
       }, i.src);
       verificar(`se descarga ${i.src} como PNG`, r.estado === 200 && r.tipo === 'image/png', `${r.estado} ${r.tipo}`);
     }
+    // Que la ruta esté escrita en el HTML no basta: una ruta mal puesta se ve
+    // como un cuadrito roto y nadie lo nota hasta que lo ve un conductor.
+    const logos = await pag.$$eval('.marca-logo',
+      ns => ns.map(n => ({ src: n.getAttribute('src'), ancho: n.naturalWidth })));
+    // Son dos: el del ingreso y el de la cabecera (este último aún oculto,
+    // pero el navegador descarga igual las imágenes con display:none).
+    verificar('los dos logotipos de la pantalla se descargan de verdad',
+      logos.length === 2 && logos.every(l => l.ancho > 0), JSON.stringify(logos));
+
+    // Que el icono lleve de verdad la banda de PascalIA se mira en sus píxeles,
+    // no en el tamaño del archivo: arriba tiene que haber blanco —la tarjeta de
+    // PascalIA— y en el centro azul. Con el emblema solo, arriba sería azul.
+    const tonos = await pag.evaluate(() => new Promise(listo => {
+      const im = new Image();
+      im.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = c.height = im.width;
+        const g = c.getContext('2d');
+        g.drawImage(im, 0, 0);
+        const leerPx = (x, y) => Array.from(g.getImageData(x, y, 1, 1).data).slice(0, 3);
+        listo({ arriba: leerPx(im.width / 2, im.height * 0.07),
+                centro: leerPx(im.width / 2, im.height * 0.5) });
+      };
+      im.onerror = () => listo(null);
+      im.src = 'iconos/icono-512.png';
+    }));
+    const claro = c => c && c.every(v => v > 200);
+    const azul = c => c && c[2] > c[0] + 30 && c[0] < 90;
+    verificar('el icono lleva arriba la marca de PascalIA',
+      claro(tonos?.arriba), JSON.stringify(tonos));
+    verificar('y el emblema sobre el azul de la marca',
+      azul(tonos?.centro), JSON.stringify(tonos));
+
     verificar('ningún archivo de la aplicación falta', malas.length === 0, malas.join(', '));
     await ctx.close();
   }
@@ -199,10 +257,10 @@ if (chromium) {
     });
     verificar('el service worker queda activo', activo);
 
-    const guardados = await pag.evaluate(async () => {
-      const c = await caches.open('flota-v5');
+    const guardados = await pag.evaluate(async caja => {
+      const c = await caches.open(caja);
       return (await c.keys()).map(p => new URL(p.url).pathname);
-    });
+    }, CAJA);
     verificar('quedó guardada la pantalla', guardados.some(p => p.endsWith('/index.html')));
     verificar('quedó guardado el código', guardados.some(p => p.endsWith('/app.js')));
     verificar('quedaron guardados los iconos', guardados.some(p => p.includes('/iconos/icono-512.png')));
@@ -216,6 +274,33 @@ if (chromium) {
     verificar('sin señal se ve el nombre de la aplicación',
       (await pag.title()).includes('Flota Vehicular'));
     await ctx.setOffline(false);
+    await ctx.close();
+  }
+
+  // 2.1 · La firma de PascalIA se ve, y se ve en todas las pantallas.
+  {
+    const ctx = await nav.newContext(movil);
+    const pag = await ctx.newPage();
+    await pag.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+    const marcaCargada = async () => pag.evaluate(() => {
+      const im = document.querySelector('.pie img, .credito img');
+      return !!im && im.naturalWidth > 0;
+    });
+    verificar('el ingreso firma con la marca de PascalIA',
+      await pag.locator('.credito img').isVisible() && await marcaCargada());
+
+    await pag.fill('#in-usuario', 'jnavarro');
+    await pag.fill('#in-clave', 'Conductor2026');
+    await pag.click('#in-btn');
+    await pag.waitForSelector('#app:not([hidden])');
+    await pag.waitForTimeout(900);
+
+    for (const vista of ['hoy', 'eventos']) {
+      await pag.click(`#nav button[data-v="${vista}"]`);
+      await pag.waitForTimeout(900);
+      verificar(`la pantalla "${vista}" lleva la firma de PascalIA abajo`,
+        await pag.locator('.pie img').isVisible() && await marcaCargada());
+    }
     await ctx.close();
   }
 

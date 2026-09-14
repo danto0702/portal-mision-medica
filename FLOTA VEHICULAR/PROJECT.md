@@ -333,6 +333,7 @@ Lo que lo hace posible:
 | Pieza | Para qué |
 |---|---|
 | `manifest.json` | Nombre, icono, color y modo `standalone`. Sin él el navegador no ofrece instalar |
+| `iconos/logo-original.png` | El logotipo tal como lo entregó diseño, con la marca de PascalIA. Es la fuente de todo lo demás |
 | `iconos/*.png` | Iconos **PNG reales** de 192 y 512 px, normales y con máscara, más `apple-touch-icon.png` de 180 px para iPhone |
 | `sw.js` | Guarda el armazón en el teléfono; es lo que permite abrir sin cobertura |
 | Franja y botón *Instalar* | El ofrecimiento propio de la aplicación, en el ingreso y dentro |
@@ -358,6 +359,24 @@ sí se guarda son las marcas tomadas sin cobertura, que la aplicación envía so
 > aplicación instalada. Si cambia, cada teléfono ya instalado se queda con una aplicación
 > huérfana que no vuelve a recibir actualizaciones, y hay que desinstalar e instalar a mano
 > celular por celular. Lo mismo si se mueve la carpeta `FLOTA VEHICULAR/`.
+
+**Los iconos se recortan del logotipo, no se dibujan.** `iconos/generar.mjs` toma
+`logo-original.png` —cuadro azul, marca de **PascalIA** arriba, emblema en el centro, la palabra
+FLOTA abajo— y hace tres recortes, cada uno para donde se lee:
+
+| Recorte | Dónde va | Por qué |
+|---|---|---|
+| **Completo**, con PascalIA | `icono-192`, `icono-512`, `apple-touch-icon` | Es el icono que se ve grande: el cuadro de instalación de Android, la lista de aplicaciones abiertas y el escritorio del iPhone |
+| **Emblema** solo | `icono-mascara-*`, `favicon-*`, `marca.png` | Android **recorta el icono con máscara en un círculo**: con el logotipo entero, la banda de PascalIA y la palabra FLOTA saldrían cortadas por la mitad. Y en un favicon de 16 px, o en la cabecera a 28 px, no se lee ninguna letra |
+| **PascalIA** sola | `pascalia.png` | El crédito *Desarrollado por* del pie de la pantalla de ingreso, que es donde sí se lee y por donde pasa todo el mundo cada mañana |
+
+Es decir: **la marca de PascalIA está en el icono y está, legible, dentro de la aplicación**; lo
+único de lo que queda fuera son las piezas que el sistema recorta o encoge tanto que no se leería.
+
+Si cambia el logotipo se reemplaza `logo-original.png`, se revisan las medidas de los recortes en
+el generador y se vuelve a ejecutar. Ojo: como los archivos conservan el nombre, un teléfono que
+ya tuviera la aplicación instalada puede tardar en cambiar el icono del escritorio; lo seguro es
+desinstalar e instalar de nuevo.
 
 El instructivo para repartir a los conductores está en `INSTALAR_EN_EL_CELULAR.md`. Los iconos se
 regeneran con `node iconos/generar.mjs iconos` y todo lo anterior se comprueba con

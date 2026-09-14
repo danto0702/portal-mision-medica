@@ -58,6 +58,11 @@ a{color:var(--azul)}
 }
 .topbar .marca{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:.9rem;letter-spacing:-.01em}
 .topbar .marca svg{color:var(--azul);flex:none}
+/* El logotipo va como imagen: el emblema de la marca no es un trazo de un
+   color, lleva el azul, el blanco y el amarillo. Es el mismo archivo que el
+   teléfono muestra en el icono instalado, así el conductor reconoce lo mismo
+   dentro y fuera de la aplicación. */
+.marca-logo{flex:none;display:block}   /* las esquinas ya vienen redondeadas en el PNG */
 .topbar .sub{color:var(--muted);font-size:.72rem;font-weight:500;display:block;letter-spacing:0}
 .topbar .der{margin-left:auto;display:flex;align-items:center;gap:.5rem}
 .chip-rol{
@@ -306,6 +311,26 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 }
 #instalar-ingreso button:hover{background:rgba(30,90,168,.14)}
 
+/* Crédito de quien desarrolla, en el ingreso: misma firma que el pie de la
+   aplicación, para que se lea igual antes y después de entrar. */
+.credito{
+  margin-top:1.1rem;padding-top:.9rem;border-top:1px solid var(--border-soft);
+  display:flex;align-items:center;justify-content:center;gap:.45rem;
+}
+.credito span{font-size:.68rem;font-weight:600;color:var(--muted)}
+.credito img{width:104px;height:auto;display:block;opacity:.92}
+
+/* Pie de la aplicación: la firma de quien desarrolla, debajo de cualquier
+   pantalla. Va fuera de <main> para no repetirla en cada vista ni tener que
+   acordarse de ponerla al escribir una nueva. */
+.pie{
+  display:flex;align-items:center;justify-content:center;gap:.45rem;
+  padding:1.1rem 1rem calc(1.1rem + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border-soft);background:var(--surface);
+}
+.pie span{font-size:.68rem;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.pie img{width:104px;height:auto;display:block;opacity:.92}
+
 /* Pasos ilustrados del instructivo "cómo instalar" */
 .pasos{margin:0;padding-left:1.15rem;font-size:.86rem;line-height:1.65}
 .pasos li{margin-bottom:.35rem}
@@ -315,7 +340,6 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 #ingreso{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:max(1.25rem,env(safe-area-inset-top)) 1.25rem max(1.25rem,env(safe-area-inset-bottom));background:linear-gradient(165deg,#eef2f7,#f6f8fa 55%,#eef4f2)}
 #ingreso .caja{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--sh-lg);padding:1.75rem 1.5rem}
 #ingreso .logo{display:flex;align-items:center;gap:.6rem;margin-bottom:.25rem}
-#ingreso .logo svg{color:var(--azul)}
 #ingreso h1{font-size:1.3rem}
 #ingreso .lema{color:var(--muted);font-size:.78rem;margin:.15rem 0 1.35rem}
 .grafica-env{position:relative;height:260px}
@@ -396,7 +420,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
   <form class="caja" onsubmit="entrar(event)">
     <div id="banner-ingreso" class="banner banner-ingreso" style="display:none"></div>
     <div class="logo">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 17H6V5h11l4 6v6h-3"/><circle cx="17.5" cy="17.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/></svg>
+      <img class="marca-logo" src="iconos/marca.png" width="40" height="40"
+           alt="Flota Vehicular">
       <div><h1>Flota Vehicular</h1></div>
     </div>
     <p class="lema">ESE Hospital Regional Noroccidental · Misión Médica</p>
@@ -414,6 +439,10 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
     <p style="text-align:center;margin:.9rem 0 0;font-size:.72rem;color:var(--muted)">
       ¿Problemas para entrar? Comuníquese con la Coordinación de Salud Pública.
     </p>
+    <div class="credito">
+      <span>By</span>
+      <img src="iconos/pascalia.png" alt="PascalIA" width="454" height="120">
+    </div>
   </form>
 </div>
 
@@ -422,7 +451,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
   <div id="banner-cabecera" class="banner banner-cabecera" style="display:none"></div>
   <header class="topbar">
     <div class="marca">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 17H6V5h11l4 6v6h-3"/><circle cx="17.5" cy="17.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/></svg>
+      <img class="marca-logo" src="iconos/marca.png" width="28" height="28" alt="">
       <div>Flota Vehicular<span class="sub">ESE HRNO · Misión Médica</span></div>
     </div>
     <div class="der">
@@ -436,6 +465,10 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
   <div id="barra-nueva"></div>
   <nav class="nav" id="nav"></nav>
   <main id="main"></main>
+  <footer class="pie">
+    <span>By</span>
+    <img src="iconos/pascalia.png" alt="PascalIA" width="454" height="120">
+  </footer>
 </div>
 
 <div class="modal" id="modal" onclick="if(event.target===this)cerrarModal()">

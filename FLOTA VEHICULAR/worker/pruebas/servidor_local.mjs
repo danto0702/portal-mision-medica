@@ -31,8 +31,12 @@ const env = {
 };
 
 // ── Datos de ejemplo ────────────────────────────────────────────────────────
-const hoy = new Date().toLocaleDateString('sv-SE');
-const dia = n => new Date(Date.now() + n * 864e5).toLocaleDateString('sv-SE');
+// En hora de Colombia, igual que hoyISO() en src/lib.js: si se usara la hora
+// del equipo, por la noche los datos de ejemplo caerían en el día siguiente y
+// "la programación de hoy" saldría vacía.
+const enColombia = ms => new Date(ms - 5 * 3600e3).toISOString().slice(0, 10);
+const hoy = enColombia(Date.now());
+const dia = n => enColombia(Date.now() + n * 864e5);
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
 async function llamar(metodo, ruta, cuerpo, token) {

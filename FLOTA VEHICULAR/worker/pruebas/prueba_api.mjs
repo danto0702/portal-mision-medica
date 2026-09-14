@@ -42,7 +42,11 @@ function verificar(nombre, condicion, detalle) {
   else { fallos++; console.log(`  ✗ ${nombre}`, detalle !== undefined ? JSON.stringify(detalle) : ''); }
 }
 
-const hoy = new Date().toISOString().slice(0, 10);
+// El Worker calcula el día operativo en hora de Colombia (UTC-5), no en la del
+// equipo que corre la prueba. Si aquí se usara la hora local, entre las 7 de la
+// tarde y la medianoche de Colombia la prueba pediría el día siguiente y no
+// encontraría nada. Misma cuenta que hoyISO() en src/lib.js.
+const hoy = new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 10);
 // JPEG de 1x1: suficiente para ejercitar la ruta de fotografías
 const FOTO = { mime: 'image/jpeg', datos: '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==' };
 

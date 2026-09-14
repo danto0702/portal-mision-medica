@@ -6,17 +6,19 @@
  * el centro y la palabra FLOTA abajo— y todos los iconos son ese mismo dibujo,
  * entero, sin recortar nada. Lo único que cambia es el tamaño.
  *
- * Dos cosas que sí hace este generador, y que no son cambiar el logotipo:
+ * Lo único que hace este generador, aparte de cambiar el tamaño, es redondear
+ * las esquinas al mismo radio que ya tiene el cuadro azul, para quitar el
+ * blanco que el archivo lleva por fuera de la curva. Sin eso, en el escritorio
+ * del teléfono se verían cuatro esquinas blancas alrededor del icono.
  *
- *   1. Redondea las esquinas al mismo radio que ya tiene el cuadro azul, para
- *      quitar el blanco que queda fuera. Sin eso, en el escritorio del teléfono
- *      se verían cuatro esquinas blancas alrededor del icono.
- *   2. Para el icono CON MÁSCARA mete el logotipo entero dentro de un cuadro
- *      azul más grande. Android recorta ese icono en un círculo, y la zona
- *      segura es el 80 % central: un cuadrado que quepa entero ahí mide el
- *      56 % del lado. Así el círculo corta azul y NO corta el logotipo. Si se
- *      pusiera a tamaño completo, Android le comería la muesca de PascalIA y
- *      la palabra FLOTA.
+ * NO SE DECLARA ICONO CON MÁSCARA, a propósito. Un icono con máscara lo recorta
+ * Android en un círculo, así que para que el círculo no se comiera la muesca de
+ * PascalIA ni la palabra FLOTA había que encoger el logotipo y dejarlo pequeño
+ * en mitad de un cuadro azul. Se veía encogido y con las esquinas del logotipo
+ * marcadas por dentro — que es justo lo que se reportó desde un teléfono. Sin
+ * icono con máscara, Android usa el normal y el logotipo se ve entero y a su
+ * tamaño, que es como diseño lo entregó: el archivo YA viene con forma de icono,
+ * con su cuadro azul y sus esquinas redondeadas.
  *
  * Aparte va `pascalia.png`, la firma del pie de cada pantalla. Esa no sale del
  * logotipo de FLOTA sino de `pascalia-fuente.png`, que es la marca de PascalIA
@@ -49,43 +51,35 @@ const AZUL = '#0c2858';        // el azul exacto del logotipo
  * blanco que el original lleva por fuera de la curva.
  */
 const RADIO = 0.132;
-/** Lado del logotipo dentro del icono con máscara: 0.8 / √2, la zona segura. */
-const EN_MASCARA = 0.56;
-
 const logo = fs.readFileSync(path.join(AQUI, 'logo-original.png')).toString('base64');
 
 /**
- * @param size    lado en píxeles
- * @param dentro  fracción del lado que ocupa el logotipo; 1 = a sangre
- * @param radio   radio de las esquinas del icono, en fracción del lado
+ * @param size   lado en píxeles
+ * @param radio  radio de las esquinas, en fracción del lado; 0 = cuadrado
  */
-function pagina(size, dentro, radio) {
-  const lado = size * dentro;
+function pagina(size, radio) {
   return `<body style="margin:0">
     <div style="width:${size}px;height:${size}px;border-radius:${size * radio}px;
-                background:${AZUL};overflow:hidden;display:flex;
-                align-items:center;justify-content:center">
+                background:${AZUL};overflow:hidden">
       <img src="data:image/png;base64,${logo}"
-           style="width:${lado}px;height:${lado}px;display:block;
-                  border-radius:${lado * RADIO}px">
+           style="width:${size}px;height:${size}px;display:block">
     </div>
   </body>`;
 }
 
 const PIEZAS = [
-  // El logotipo entero, a sangre. Es lo que se ve en el cuadro de instalación,
-  // en la lista de aplicaciones abiertas y en el escritorio del iPhone.
-  { archivo: 'icono-192.png',        size: 192, dentro: 1, radio: RADIO },
-  { archivo: 'icono-512.png',        size: 512, dentro: 1, radio: RADIO },
-  { archivo: 'apple-touch-icon.png', size: 180, dentro: 1, radio: 0 },
+  // El icono de la aplicación: el logotipo entero, a sangre. Es lo que se ve en
+  // el escritorio del teléfono, en la pantalla de arranque, en el cuadro de
+  // instalación y en la lista de aplicaciones abiertas.
+  { archivo: 'icono-192.png',        size: 192, radio: RADIO },
+  { archivo: 'icono-512.png',        size: 512, radio: RADIO },
+  // iPhone redondea por su cuenta: aquí va cuadrado, a sangre.
+  { archivo: 'apple-touch-icon.png', size: 180, radio: 0 },
   // El que la aplicación muestra en el ingreso y en la cabecera.
-  { archivo: 'marca.png',            size: 192, dentro: 1, radio: RADIO },
+  { archivo: 'marca.png',            size: 192, radio: RADIO },
   // Los del navegador.
-  { archivo: 'favicon-32.png',       size: 32,  dentro: 1, radio: RADIO },
-  { archivo: 'favicon-16.png',       size: 16,  dentro: 1, radio: RADIO },
-  // Con máscara: el logotipo entero, metido en la zona que Android no recorta.
-  { archivo: 'icono-mascara-192.png', size: 192, dentro: EN_MASCARA, radio: 0 },
-  { archivo: 'icono-mascara-512.png', size: 512, dentro: EN_MASCARA, radio: 0 },
+  { archivo: 'favicon-32.png',       size: 32,  radio: RADIO },
+  { archivo: 'favicon-16.png',       size: 16,  radio: RADIO },
 ];
 
 const navegador = await chromium.launch(
@@ -94,7 +88,7 @@ const pag = await navegador.newPage({ deviceScaleFactor: 1 });
 
 for (const p of PIEZAS) {
   await pag.setViewportSize({ width: p.size, height: p.size });
-  await pag.setContent(pagina(p.size, p.dentro, p.radio));
+  await pag.setContent(pagina(p.size, p.radio));
   await pag.waitForLoadState('load');
   // Esquinas transparentes: sobre el fondo oscuro de un teléfono, unas esquinas
   // blancas delatarían el recuadro del icono.

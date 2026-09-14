@@ -334,7 +334,7 @@ Lo que lo hace posible:
 |---|---|
 | `manifest.json` | Nombre, icono, color y modo `standalone`. Sin él el navegador no ofrece instalar |
 | `iconos/logo-original.png` | El logotipo tal como lo entregó diseño. Todos los iconos son este dibujo, entero |
-| `iconos/*.png` | Iconos **PNG reales** de 192 y 512 px, normales y con máscara, más `apple-touch-icon.png` de 180 px para iPhone |
+| `iconos/*.png` | Iconos **PNG reales** de 192 y 512 px, más `apple-touch-icon.png` de 180 px para iPhone |
 | `sw.js` | Guarda el armazón en el teléfono; es lo que permite abrir sin cobertura |
 | Franja y botón *Instalar* | El ofrecimiento propio de la aplicación, en el ingreso y dentro |
 | Instructivo por sistema | iPhone no permite instalar por código: allí solo cabe explicar los pasos |
@@ -363,15 +363,17 @@ sí se guarda son las marcas tomadas sin cobertura, que la aplicación envía so
 **El logotipo no se toca.** `iconos/logo-original.png` es el que entregó diseño —cuadro azul, la
 muesca de *By PascalIA* arriba a la derecha, el emblema en el centro y la palabra FLOTA abajo— y
 **todos los iconos son ese mismo dibujo, entero**. Lo único que cambia entre uno y otro es el
-tamaño. `iconos/generar.mjs` hace solo dos cosas más, y ninguna cambia el logotipo:
+tamaño. `iconos/generar.mjs` solo hace una cosa más: **redondea las esquinas** al mismo radio que
+ya tiene el cuadro azul, para quitar el blanco que el archivo lleva por fuera de la curva. Sin eso,
+en el escritorio del teléfono se verían cuatro esquinas blancas alrededor del icono.
 
-1. **Redondea las esquinas** al mismo radio que ya tiene el cuadro azul, para quitar el blanco que
-   el archivo lleva por fuera de la curva. Sin eso, en el escritorio del teléfono se verían cuatro
-   esquinas blancas alrededor del icono.
-2. En el icono **con máscara**, mete el logotipo entero dentro de un cuadro azul más grande.
-   Android recorta ese icono en un círculo y la zona segura es el 80 % central; un cuadrado que
-   quepa entero ahí mide el 56 % del lado. Así **el círculo corta azul y no corta el logotipo**:
-   si se pusiera a tamaño completo, Android se comería la muesca de PascalIA y la palabra FLOTA.
+> **No se declara icono con máscara (`purpose: "maskable"`), a propósito.** Android recorta esos
+> iconos en un círculo. Para que el círculo no se comiera la muesca de PascalIA ni la palabra
+> FLOTA había que encoger el logotipo y dejarlo pequeño en mitad de un cuadro azul — y así se vio
+> en un teléfono de verdad: reducido al centro, con las esquinas del logotipo marcadas por dentro.
+> Sin icono con máscara, Android usa el normal y el logotipo sale entero y a su tamaño, que es lo
+> correcto aquí porque **el archivo ya viene con forma de icono**: su cuadro azul y sus esquinas
+> redondeadas. Volver a añadir uno con máscara reintroduce el defecto.
 
 La firma *By PascalIA* del pie de cada pantalla (`iconos/pascalia.png`) es lo único que no sale de
 ese archivo: viene de `iconos/pascalia-fuente.png`, la marca de PascalIA en horizontal, que es

@@ -65,8 +65,13 @@ const iconos = man.icons;
 const dePropósito = p => iconos.filter(i => (i.purpose || 'any').split(' ').includes(p));
 verificar('hay icono normal de 192 px', dePropósito('any').some(i => i.sizes === '192x192'));
 verificar('hay icono normal de 512 px', dePropósito('any').some(i => i.sizes === '512x512'));
-verificar('hay icono con máscara de 192 px', dePropósito('maskable').some(i => i.sizes === '192x192'));
-verificar('hay icono con máscara de 512 px', dePropósito('maskable').some(i => i.sizes === '512x512'));
+// A PROPÓSITO no hay icono con máscara. Android recorta esos iconos en un
+// círculo, así que para que el círculo no se comiera la muesca de PascalIA ni
+// la palabra FLOTA había que encoger el logotipo dentro de un cuadro azul: en
+// el teléfono se veía pequeño en mitad del icono, y así se reportó. Sin icono
+// con máscara, Android usa el normal y el logotipo sale entero y a su tamaño.
+verificar('no se declara icono con máscara, que encogería el logotipo',
+  dePropósito('maskable').length === 0);
 
 // Todo lo que el manifiesto nombra —iconos, capturas y accesos directos— tiene
 // que existir de verdad y medir lo que dice medir.
@@ -270,16 +275,22 @@ if (chromium) {
       tintaFlota > 0.08, `blanco en la franja: ${(tintaFlota * 100).toFixed(1)} %`);
     verificar('el icono conserva el azul de la marca', azul(t?.fondo), JSON.stringify(t));
 
-    // En el icono CON MÁSCARA, Android recorta un círculo. Todo el borde tiene
-    // que ser azul: si el logotipo llegara hasta ahí, el círculo lo cortaría.
-    const borde = await mirar('iconos/icono-mascara-512.png', [
-      ['arribaIzq', 0.06, 0.06], ['arribaDer', 0.94, 0.06],
-      ['abajoIzq', 0.06, 0.94], ['abajoDer', 0.94, 0.94],
-      ['arriba', 0.50, 0.04], ['abajo', 0.50, 0.96],
-      ['izq', 0.04, 0.50], ['der', 0.96, 0.50],
+    // El logotipo llena el icono de borde a borde. Si algún día volviera a
+    // encogerse dentro de un cuadro azul —que es lo que pasó con el icono con
+    // máscara— la muesca dejaría de tocar la esquina y esto lo cazaría.
+    // El punto se toma a media altura de la muesca y casi pegado al borde
+    // derecho: por debajo de la curva de la esquina, donde el canto ya es recto.
+    // Más arriba caería en la esquina redondeada, que es transparente.
+    const esquina = await mirar('iconos/icono-512.png', [
+      ['muescaBorde', 0.985, 0.16], ['bordeDerecho', 0.985, 0.50],
+      ['centroAbajo', 0.50, 0.97], ['centroArriba', 0.50, 0.03],
     ]);
-    verificar('el icono con máscara deja azul todo el borde, para que el círculo no corte nada',
-      borde && Object.values(borde).every(azul), JSON.stringify(borde));
+    verificar('la muesca de PascalIA llega hasta el borde, sin encoger el logotipo',
+      claro(esquina?.muescaBorde), JSON.stringify(esquina));
+    verificar('el logotipo llega al borde derecho, sin cuadro azul de relleno',
+      azul(esquina?.bordeDerecho), JSON.stringify(esquina));
+    verificar('el logotipo llena el icono de arriba abajo',
+      azul(esquina?.centroArriba) && azul(esquina?.centroAbajo), JSON.stringify(esquina));
 
     verificar('ningún archivo de la aplicación falta', malas.length === 0, malas.join(', '));
     await ctx.close();

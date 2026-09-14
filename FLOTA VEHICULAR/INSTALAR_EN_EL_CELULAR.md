@@ -26,12 +26,7 @@ Si no aparece la franja:
 3. Confirme.
 
 > En Android la aplicación queda en el cajón de aplicaciones como cualquier otra,
-> con el icono azul de Flota, y se puede arrastrar a la pantalla de inicio.
->
-> Nota: al instalarla, Android puede recortar el icono en un círculo. En ese caso
-> muestra solo el emblema, sin la banda de PascalIA ni la palabra FLOTA — no cabrían
-> dentro del círculo. El logotipo completo sí sale en el cuadro de instalación, en
-> la lista de aplicaciones abiertas y al pie de la pantalla de ingreso.
+> con el logotipo de Flota, y se puede arrastrar a la pantalla de inicio.
 
 ## iPhone y iPad
 

@@ -120,10 +120,8 @@ verificar('la firma de PascalIA va en el pie de la aplicación',
   /<footer class="pie">[\s\S]*?iconos\/pascalia\.png/.test(html));
 verificar('el pie está fuera de main, para que salga en todas las vistas',
   html.indexOf('<footer class="pie">') > html.indexOf('</main>'));
-verificar('los iconos con máscara llevan solo el emblema',
-  /icono-mascara-\d+\.png'[^\n]*corte: EMBLEMA/.test(leer('iconos/generar.mjs')));
-verificar('el icono normal se hace con el logotipo completo',
-  /icono-512\.png'[^\n]*corte: COMPLETO/.test(leer('iconos/generar.mjs')));
+verificar('queda la marca de PascalIA en horizontal para la firma del pie',
+  existe('iconos/pascalia-fuente.png'));
 verificar('el logotipo sale dos veces: ingreso y cabecera',
   (html.match(/class="marca-logo"/g) || []).length === 2);
 verificar('ya no queda el dibujo de la camioneta como logotipo',
@@ -218,29 +216,70 @@ if (chromium) {
     verificar('los dos logotipos de la pantalla se descargan de verdad',
       logos.length === 2 && logos.every(l => l.ancho > 0), JSON.stringify(logos));
 
-    // Que el icono lleve de verdad la banda de PascalIA se mira en sus píxeles,
-    // no en el tamaño del archivo: arriba tiene que haber blanco —la tarjeta de
-    // PascalIA— y en el centro azul. Con el emblema solo, arriba sería azul.
-    const tonos = await pag.evaluate(() => new Promise(listo => {
+    // El logotipo va entero en el icono, y eso se mira en los píxeles. Se
+    // comprueban las tres partes que un recorte se llevaría por delante: la
+    // muesca blanca de «By PascalIA» arriba a la derecha, el emblema del centro
+    // y la palabra FLOTA de abajo.
+    const mirar = (src, puntos) => pag.evaluate(([ruta, pts]) => new Promise(listo => {
       const im = new Image();
       im.onload = () => {
         const c = document.createElement('canvas');
-        c.width = c.height = im.width;
+        c.width = im.width; c.height = im.height;
         const g = c.getContext('2d');
         g.drawImage(im, 0, 0);
-        const leerPx = (x, y) => Array.from(g.getImageData(x, y, 1, 1).data).slice(0, 3);
-        listo({ arriba: leerPx(im.width / 2, im.height * 0.07),
-                centro: leerPx(im.width / 2, im.height * 0.5) });
+        const salida = {};
+        for (const [nombre, fx, fy] of pts) {
+          const d = g.getImageData(Math.round(im.width * fx), Math.round(im.height * fy), 1, 1).data;
+          salida[nombre] = [d[0], d[1], d[2]];
+        }
+        listo(salida);
       };
       im.onerror = () => listo(null);
-      im.src = 'iconos/icono-512.png';
-    }));
+      im.src = ruta;
+    }), [src, puntos]);
+
     const claro = c => c && c.every(v => v > 200);
     const azul = c => c && c[2] > c[0] + 30 && c[0] < 90;
-    verificar('el icono lleva arriba la marca de PascalIA',
-      claro(tonos?.arriba), JSON.stringify(tonos));
-    verificar('y el emblema sobre el azul de la marca',
-      azul(tonos?.centro), JSON.stringify(tonos));
+
+    const t = await mirar('iconos/icono-512.png', [
+      ['muesca', 0.88, 0.09], ['centro', 0.50, 0.42], ['fondo', 0.10, 0.09],
+    ]);
+    verificar('el icono conserva la muesca de By PascalIA', claro(t?.muesca), JSON.stringify(t));
+    // La palabra FLOTA no se busca en un píxel suelto —caería entre dos letras—
+    // sino contando cuánta tinta blanca hay en la franja donde va escrita.
+    const tintaFlota = await pag.evaluate(() => new Promise(listo => {
+      const im = new Image();
+      im.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = im.width; c.height = im.height;
+        const g = c.getContext('2d');
+        g.drawImage(im, 0, 0);
+        const x = Math.round(im.width * 0.15), an = Math.round(im.width * 0.70);
+        const y = Math.round(im.height * 0.76), al = Math.round(im.height * 0.14);
+        const d = g.getImageData(x, y, an, al).data;
+        let claros = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i] > 200 && d[i + 1] > 200 && d[i + 2] > 200) claros++;
+        }
+        listo(claros / (an * al));
+      };
+      im.onerror = () => listo(-1);
+      im.src = 'iconos/icono-512.png';
+    }));
+    verificar('el icono conserva la palabra FLOTA',
+      tintaFlota > 0.08, `blanco en la franja: ${(tintaFlota * 100).toFixed(1)} %`);
+    verificar('el icono conserva el azul de la marca', azul(t?.fondo), JSON.stringify(t));
+
+    // En el icono CON MÁSCARA, Android recorta un círculo. Todo el borde tiene
+    // que ser azul: si el logotipo llegara hasta ahí, el círculo lo cortaría.
+    const borde = await mirar('iconos/icono-mascara-512.png', [
+      ['arribaIzq', 0.06, 0.06], ['arribaDer', 0.94, 0.06],
+      ['abajoIzq', 0.06, 0.94], ['abajoDer', 0.94, 0.94],
+      ['arriba', 0.50, 0.04], ['abajo', 0.50, 0.96],
+      ['izq', 0.04, 0.50], ['der', 0.96, 0.50],
+    ]);
+    verificar('el icono con máscara deja azul todo el borde, para que el círculo no corte nada',
+      borde && Object.values(borde).every(azul), JSON.stringify(borde));
 
     verificar('ningún archivo de la aplicación falta', malas.length === 0, malas.join(', '));
     await ctx.close();

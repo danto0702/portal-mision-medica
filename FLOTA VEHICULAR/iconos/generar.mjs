@@ -1,32 +1,32 @@
 /**
  * Genera los iconos de la aplicación a partir del logotipo de la marca.
  *
- * La fuente es `logo-original.png`, el logotipo tal como lo entregó diseño:
- * cuadro azul con la marca de PascalIA —quien desarrolla— arriba, el emblema
- * en el centro y la palabra FLOTA abajo.
+ * REGLA: el logotipo NO SE TOCA. `logo-original.png` es el que entregó diseño
+ * —cuadro azul, la muesca de «By PascalIA» arriba a la derecha, el emblema en
+ * el centro y la palabra FLOTA abajo— y todos los iconos son ese mismo dibujo,
+ * entero, sin recortar nada. Lo único que cambia es el tamaño.
  *
- * De ahí salen tres recortes, y cada icono usa el que le sirve:
+ * Dos cosas que sí hace este generador, y que no son cambiar el logotipo:
  *
- *   COMPLETO  el logotipo entero, con la marca de PascalIA. Es el que se usa
- *             en el icono normal, que es el que se ve en el cuadro de
- *             instalación, en la lista de aplicaciones abiertas y en el
- *             escritorio de iPhone.
- *   EMBLEMA   solo el emblema. Va en los iconos CON MÁSCARA y en los del
- *             navegador, y no es una preferencia: Android recorta el icono
- *             con máscara en un círculo, de modo que con el logotipo entero
- *             la banda de PascalIA y la palabra FLOTA quedarían cortadas por
- *             la mitad. En un favicon de 16 px no se leería ninguna letra.
- *   PASCALIA  la marca de PascalIA sola, sobre blanco, para el crédito que
- *             lleva la pantalla de ingreso, que es donde sí se lee.
+ *   1. Redondea las esquinas al mismo radio que ya tiene el cuadro azul, para
+ *      quitar el blanco que queda fuera. Sin eso, en el escritorio del teléfono
+ *      se verían cuatro esquinas blancas alrededor del icono.
+ *   2. Para el icono CON MÁSCARA mete el logotipo entero dentro de un cuadro
+ *      azul más grande. Android recorta ese icono en un círculo, y la zona
+ *      segura es el 80 % central: un cuadrado que quepa entero ahí mide el
+ *      56 % del lado. Así el círculo corta azul y NO corta el logotipo. Si se
+ *      pusiera a tamaño completo, Android le comería la muesca de PascalIA y
+ *      la palabra FLOTA.
+ *
+ * Aparte va `pascalia.png`, la firma del pie de cada pantalla. Esa no sale del
+ * logotipo de FLOTA sino de `pascalia-fuente.png`, que es la marca de PascalIA
+ * en horizontal, que es como se lee bien en una línea.
  *
  * Chrome solo ofrece "Instalar" si el manifiesto trae iconos PNG reales de
  * 192 y 512 px; iPhone, por su parte, solo lee apple-touch-icon.png. Por eso
  * todo esto se genera una vez aquí y queda versionado como archivos.
  *
  *   node iconos/generar.mjs iconos
- *
- * Si cambia el logotipo se reemplaza `logo-original.png`, se revisan las
- * medidas de los recortes y se vuelve a ejecutar.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -42,64 +42,50 @@ const AQUI = fileURLToPath(new URL('.', import.meta.url));
 const destino = process.argv[2] ?? AQUI;
 fs.mkdirSync(destino, { recursive: true });
 
-const FUENTE = path.join(AQUI, 'logo-original.png');
-const AZUL = '#0c2858';            // el azul exacto del logotipo
-const LIENZO = 800;                // lado del logotipo original
+const AZUL = '#0c2858';        // el azul exacto del logotipo
+/**
+ * Radio de las esquinas del cuadro azul, medido sobre el original: 100/800.
+ * Se recorta un pelo por dentro (0.132) para que no sobreviva ni un píxel del
+ * blanco que el original lleva por fuera de la curva.
+ */
+const RADIO = 0.132;
+/** Lado del logotipo dentro del icono con máscara: 0.8 / √2, la zona segura. */
+const EN_MASCARA = 0.56;
 
-/** Recortes medidos sobre el logotipo de 800 × 800. */
-// El cuadro azul no llega a los bordes de arriba y de abajo: deja cinco
-// píxeles blancos que, a sangre, se verían como una raya.
-const COMPLETO = { x: 0, y: 5, ancho: 800, alto: 790 };
-const EMBLEMA = { x: 189, y: 184, ancho: 458, alto: 403 };
-const PASCALIA = { x: 174, y: 3, ancho: 454, alto: 120 };
-
-const b64 = fs.readFileSync(FUENTE).toString('base64');
+const logo = fs.readFileSync(path.join(AQUI, 'logo-original.png')).toString('base64');
 
 /**
- * Compone un icono cuadrado.
- *
- * @param size   lado en píxeles
- * @param radio  radio de las esquinas, 0 = cuadrado a sangre
- * @param corte  recorte del logotipo que se va a usar
- * @param ocupa  fracción del lado que ocupa el recorte; 1 = a sangre. La zona
- *               segura de un icono con máscara es el 80 % central, de ahí 0.58.
+ * @param size    lado en píxeles
+ * @param dentro  fracción del lado que ocupa el logotipo; 1 = a sangre
+ * @param radio   radio de las esquinas del icono, en fracción del lado
  */
-function pagina(size, radio, corte, ocupa) {
-  const aSangre = ocupa >= 1;
-  // A sangre se estira el recorte al cuadrado (son 790 × 800: un 1 % que no se
-  // nota); si no, se escala por el ancho y se centra sobre el azul.
-  const k = aSangre ? size / corte.ancho : (size * ocupa) / corte.ancho;
-  const w = aSangre ? size : corte.ancho * k;
-  const h = aSangre ? size : corte.alto * k;
-  const ky = aSangre ? size / corte.alto : k;
+function pagina(size, dentro, radio) {
+  const lado = size * dentro;
   return `<body style="margin:0">
-    <div style="width:${size}px;height:${size}px;border-radius:${radio}px;
-                background:${AZUL};overflow:hidden;position:relative">
-      <div style="position:absolute;left:${(size - w) / 2}px;top:${(size - h) / 2}px;
-                  width:${w}px;height:${h}px;overflow:hidden">
-        <img src="data:image/png;base64,${b64}"
-             style="position:absolute;width:${LIENZO * k}px;height:${LIENZO * ky}px;
-                    left:${-corte.x * k}px;top:${-corte.y * ky}px">
-      </div>
+    <div style="width:${size}px;height:${size}px;border-radius:${size * radio}px;
+                background:${AZUL};overflow:hidden;display:flex;
+                align-items:center;justify-content:center">
+      <img src="data:image/png;base64,${logo}"
+           style="width:${lado}px;height:${lado}px;display:block;
+                  border-radius:${lado * RADIO}px">
     </div>
   </body>`;
 }
 
 const PIEZAS = [
-  // Icono normal: el logotipo entero, PascalIA incluido.
-  { archivo: 'icono-192.png',         size: 192, radio: 38,  corte: COMPLETO, ocupa: 1 },
-  { archivo: 'icono-512.png',         size: 512, radio: 102, corte: COMPLETO, ocupa: 1 },
-  { archivo: 'apple-touch-icon.png',  size: 180, radio: 0,   corte: COMPLETO, ocupa: 1 },
-  // Con máscara: Android lo recorta en círculo, así que solo el emblema.
-  { archivo: 'icono-mascara-192.png', size: 192, radio: 0,   corte: EMBLEMA,  ocupa: 0.58 },
-  { archivo: 'icono-mascara-512.png', size: 512, radio: 0,   corte: EMBLEMA,  ocupa: 0.58 },
-  // Dentro de la aplicación el logotipo se ve a 28 px en la cabecera: ahí solo
-  // cabe el emblema. La marca de PascalIA va completa, y legible, en el crédito
-  // del pie de la pantalla de ingreso.
-  { archivo: 'marca.png',             size: 192, radio: 38,  corte: EMBLEMA,  ocupa: 0.74 },
-  // Navegador: a 16 px no cabe ni una letra.
-  { archivo: 'favicon-32.png',        size: 32,  radio: 6,   corte: EMBLEMA,  ocupa: 0.80 },
-  { archivo: 'favicon-16.png',        size: 16,  radio: 3,   corte: EMBLEMA,  ocupa: 0.86 },
+  // El logotipo entero, a sangre. Es lo que se ve en el cuadro de instalación,
+  // en la lista de aplicaciones abiertas y en el escritorio del iPhone.
+  { archivo: 'icono-192.png',        size: 192, dentro: 1, radio: RADIO },
+  { archivo: 'icono-512.png',        size: 512, dentro: 1, radio: RADIO },
+  { archivo: 'apple-touch-icon.png', size: 180, dentro: 1, radio: 0 },
+  // El que la aplicación muestra en el ingreso y en la cabecera.
+  { archivo: 'marca.png',            size: 192, dentro: 1, radio: RADIO },
+  // Los del navegador.
+  { archivo: 'favicon-32.png',       size: 32,  dentro: 1, radio: RADIO },
+  { archivo: 'favicon-16.png',       size: 16,  dentro: 1, radio: RADIO },
+  // Con máscara: el logotipo entero, metido en la zona que Android no recorta.
+  { archivo: 'icono-mascara-192.png', size: 192, dentro: EN_MASCARA, radio: 0 },
+  { archivo: 'icono-mascara-512.png', size: 512, dentro: EN_MASCARA, radio: 0 },
 ];
 
 const navegador = await chromium.launch(
@@ -108,7 +94,7 @@ const pag = await navegador.newPage({ deviceScaleFactor: 1 });
 
 for (const p of PIEZAS) {
   await pag.setViewportSize({ width: p.size, height: p.size });
-  await pag.setContent(pagina(p.size, p.radio, p.corte, p.ocupa));
+  await pag.setContent(pagina(p.size, p.dentro, p.radio));
   await pag.waitForLoadState('load');
   // Esquinas transparentes: sobre el fondo oscuro de un teléfono, unas esquinas
   // blancas delatarían el recuadro del icono.
@@ -118,16 +104,18 @@ for (const p of PIEZAS) {
   console.log(`  ${p.archivo.padEnd(24)} ${p.size}x${p.size}  ${png.length} bytes`);
 }
 
-// ── La marca de PascalIA suelta, para el crédito de la pantalla de ingreso ──
+// ── La firma de PascalIA del pie, en horizontal ─────────────────────────────
 {
-  const ESCALA = 2;                 // al doble, para que se vea nítida en pantallas finas
-  const w = PASCALIA.ancho * ESCALA, h = PASCALIA.alto * ESCALA;
+  const FUENTE = { x: 174, y: 3, ancho: 454, alto: 120, lienzo: 800 };
+  const ESCALA = 2;                 // al doble, para que se vea nítida
+  const b64 = fs.readFileSync(path.join(AQUI, 'pascalia-fuente.png')).toString('base64');
+  const w = FUENTE.ancho * ESCALA, h = FUENTE.alto * ESCALA;
   await pag.setViewportSize({ width: w, height: h });
   await pag.setContent(`<body style="margin:0">
     <div style="width:${w}px;height:${h}px;overflow:hidden;position:relative;background:#fff">
       <img src="data:image/png;base64,${b64}"
-           style="position:absolute;width:${LIENZO * ESCALA}px;
-                  left:${-PASCALIA.x * ESCALA}px;top:${-PASCALIA.y * ESCALA}px">
+           style="position:absolute;width:${FUENTE.lienzo * ESCALA}px;
+                  left:${-FUENTE.x * ESCALA}px;top:${-FUENTE.y * ESCALA}px">
     </div></body>`);
   await pag.waitForLoadState('load');
   const png = await pag.screenshot({ clip: { x: 0, y: 0, width: w, height: h } });

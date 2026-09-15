@@ -221,6 +221,29 @@ navegador: instalada abre siempre, aunque esté sin datos.
 
 ---
 
+## 8.1 · Si bloqueó la ubicación por error (sin imagen)
+
+```
+*SI LE DIO A "BLOQUEAR" EN LA UBICACIÓN* 📍
+
+Le pasó a varios y tiene arreglo, no se preocupe.
+
+En *Mi día* le va a salir una franja roja que dice _"La ubicación está
+bloqueada en este teléfono"_, con un botón *Activar la ubicación*.
+
+Tóquelo: ahí mismo le muestra los pasos de SU teléfono, que son cuatro.
+Apenas lo permita y vuelva a la aplicación, la franja roja se quita sola.
+
+⚠️ Ojo: una vez usted toca *Bloquear*, la aplicación ya no puede volver a
+preguntarle. Hay que cambiarlo en los ajustes del teléfono. Por eso están
+los pasos ahí.
+
+✅ Mientras tanto *siga registrando normal*. Sus salidas y llegadas quedan
+guardadas igual, solo que señaladas *sin GPS*. No pierde el día.
+```
+
+---
+
 ## 9 · Reglas de oro (sin imagen, para fijar en el grupo)
 
 ```
@@ -237,7 +260,7 @@ navegador: instalada abre siempre, aunque esté sin datos.
 4️⃣ Las fotos, *con Timemark* y del momento. Una foto sin sello no sirve
    de soporte.
 
-5️⃣ *Permita la ubicación* cuando se la pida. Solo la toma en ese instante.
+5️⃣ *Permita la ubicación* cuando se la pida. Solo la toma en ese instante. Si la bloqueó por error, en *Mi día* hay un botón para activarla.
 
 6️⃣ Cualquier novedad en la vía —retén, derrumbe, bloqueo, varada— se
    reporta por el botón naranja *Reportar novedad*, con foto si se puede.

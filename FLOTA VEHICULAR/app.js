@@ -265,6 +265,7 @@ async function iniciar() {
     if (sesion.rol !== 'conductor') personas = await api('/api/personas');
   } catch { /* se reintenta al entrar a cada pantalla */ }
 
+  vigilarPermisoUbicacion();      // que la franja se arregle sola al volver de los ajustes
   ir(vistaPedida() || MENU[sesion.rol][0]);
   cola.sincronizar();
   selloDatos = await leerSello();
@@ -411,6 +412,8 @@ async function verHoy() {
       <button class="btn sec sm" onclick="sincronizarAhora()" id="btn-sincronizar">Actualizar</button>
     </div>
 
+    <div id="gps-hoy">${avisoUbicacion('hoy')}</div>
+
     ${diaActual.sin_persona ? `
       <div class="card" style="border-left:4px solid var(--rojo)">
         <b>Su cuenta no está vinculada a una persona</b>
@@ -495,6 +498,10 @@ async function verHoy() {
       </div>`).join('')
       : '<div class="card"><div class="vacio">Todavía no ha registrado viajes hoy.</div></div>'}
   `;
+
+  // El estado del permiso se consulta aparte, porque es asíncrono: la pantalla
+  // se pinta ya y la franja se corrige sola un instante después.
+  leerPermisoUbicacion().then(pintarPermisoUbicacion);
 }
 
 /** Marca salida o llegada. Si no hay señal, guarda en el celular y sigue. */
@@ -556,10 +563,197 @@ async function marcar(hito) {
 
     <div class="campo"><label class="lb">Observaciones</label>
       <textarea class="inp" id="mk-obs" rows="2" placeholder="Opcional"></textarea></div>
-    <div id="mk-gps" class="nota">Al guardar se solicitará su ubicación.</div>`,
+    <div id="mk-gps">${avisoUbicacion('marca')}</div>`,
     `<button class="btn sec" onclick="cerrarModal()">Cancelar</button>
      <button class="btn ${hito === 'salida' ? 'verde' : ''}" id="mk-btn"
        onclick="guardarMarca('${hito}')">Guardar</button>`);
+
+  leerPermisoUbicacion().then(pintarPermisoUbicacion);
+}
+
+// ── Permiso de ubicación ─────────────────────────────────────────────────────
+//
+// Varios conductores tocaron "Bloquear" por error y después no encontraban cómo
+// devolverse. Conviene tener claro el límite, porque manda sobre todo lo demás:
+//
+//   Una página web NO PUEDE volver a mostrar el cuadro del permiso una vez el
+//   conductor tocó "Bloquear". El navegador recuerda esa decisión para el sitio
+//   y las llamadas siguientes fallan de inmediato, sin preguntar nada. Solo se
+//   deshace desde los ajustes del teléfono o del navegador.
+//
+// Lo que sí se puede, y es lo que hace este módulo:
+//
+//   · Si el conductor solo ESQUIVÓ el cuadro —lo deslizó sin contestar—, el
+//     permiso sigue en "prompt" y volver a pedirlo SÍ lo muestra otra vez. Ese
+//     es el caso que el botón arregla de un toque, y es el más común.
+//   · Si está BLOQUEADO, se le explica, con los pasos de su teléfono, dónde
+//     tocar. No se le deja adivinando.
+//   · Se queda escuchando el permiso: cuando lo arregla en los ajustes y vuelve
+//     a la aplicación, la franja se pone verde sola, sin que tenga que hacer nada.
+//
+// Y pase lo que pase, la marca se guarda igual, señalada sin GPS: un conductor
+// en la vía no se puede quedar sin registrar por un permiso.
+
+let permisoUbicacion = null;        // 'granted' | 'prompt' | 'denied' | null
+
+/** Estado del permiso. Devuelve null si el navegador no sabe decirlo. */
+async function leerPermisoUbicacion() {
+  try {
+    const p = await navigator.permissions?.query({ name: 'geolocation' });
+    permisoUbicacion = p?.state ?? null;
+    return permisoUbicacion;
+  } catch {
+    return (permisoUbicacion = null);   // Safari viejo: no sabe. Se asume que hay que pedirlo.
+  }
+}
+
+/**
+ * Deja la aplicación pendiente del permiso.
+ *
+ * Es la parte que evita el peor momento: el conductor sale de la aplicación, lo
+ * arregla en los ajustes del teléfono y vuelve. Sin esto vería la franja roja
+ * igual y creería que no sirvió.
+ */
+async function vigilarPermisoUbicacion() {
+  try {
+    const p = await navigator.permissions?.query({ name: 'geolocation' });
+    if (!p) return;
+    permisoUbicacion = p.state;
+    p.addEventListener('change', () => refrescarPermiso(p.state));
+  } catch { /* si el navegador no lo soporta, se sigue sin vigilancia */ }
+}
+
+function refrescarPermiso(nuevo) {
+  const cambio = nuevo !== permisoUbicacion;
+  permisoUbicacion = nuevo;
+  pintarPermisoUbicacion();
+  if (cambio && nuevo === 'granted') {
+    aviso('Ya puede registrar con ubicación', 'ok', 'Ubicación activada');
+  }
+}
+
+// Volver a mirar el permiso cada vez que la aplicación vuelve al frente.
+//
+// Es EL momento que importa: el conductor sale a los ajustes del teléfono, lo
+// permite y regresa. El evento "change" del permiso no siempre llega —depende
+// del navegador—, pero volver a la aplicación siempre ocurre. Sin esto vería la
+// franja roja igual y creería que no sirvió de nada.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !sesion) return;
+  leerPermisoUbicacion().then(refrescarPermiso);
+});
+
+/**
+ * Franja de aviso.
+ *
+ * @param donde 'marca' en el pie del formulario, donde se espera la nota; 'hoy'
+ *              en la pantalla del día, donde si todo está bien no se dice nada:
+ *              el conductor no necesita un recordatorio diario de algo que ya
+ *              está resuelto.
+ */
+function avisoUbicacion(donde) {
+  if (permisoUbicacion === 'granted') {
+    if (donde === 'hoy') return '';
+    return `<div class="nota" style="background:var(--verde-glow);border-color:rgba(10,125,87,.25);color:#065c40">
+      Ubicación permitida. Al guardar se toma su posición de ese momento.</div>`;
+  }
+  if (permisoUbicacion === 'denied') {
+    return `<div class="nota avi" style="background:var(--rojo-glow);border-color:rgba(194,46,36,.28);color:#8c1f18">
+      <b>La ubicación está bloqueada en este teléfono.</b>
+      <p style="margin:.35rem 0 .6rem">Sus marcas quedarán sin GPS hasta que la active.</p>
+      <button type="button" class="btn bloque" onclick="activarUbicacion()"
+        style="background:var(--rojo)">Activar la ubicación</button></div>`;
+  }
+  return `<div class="nota">${donde === 'hoy'
+      ? 'Todavía no ha permitido la ubicación. Mejor actívela ahora, en la base, y no en la vía.'
+      : 'Al guardar se solicitará su ubicación.'}
+    <button type="button" class="btn sec bloque" onclick="activarUbicacion()"
+      style="margin-top:.5rem">Permitir ubicación ahora</button></div>`;
+}
+
+/** Repinta todos los sitios donde se enseña el estado del permiso. */
+function pintarPermisoUbicacion() {
+  for (const [id, donde] of [['#gps-hoy', 'hoy'], ['#mk-gps', 'marca']]) {
+    const n = $(id);
+    if (n && !n.dataset.ocupado) n.innerHTML = avisoUbicacion(donde);
+  }
+}
+
+/**
+ * El botón. Si el permiso sigue en "prompt" vuelve a pedirlo de verdad —el
+ * navegador muestra el cuadro otra vez— y si está bloqueado explica los pasos,
+ * que es lo único que queda.
+ */
+async function activarUbicacion() {
+  const estado = await leerPermisoUbicacion();
+  if (estado === 'denied') return modalPermisoUbicacion();
+
+  aviso('Toque "Permitir" en el cuadro que aparece', 'avi', 'Pidiendo la ubicación');
+  const geo = await ubicacion();
+  await leerPermisoUbicacion();
+  pintarPermisoUbicacion();
+
+  if (geo.lat) {
+    aviso(`Ubicación tomada (precisión ${Math.round(geo.precision)} m)`, 'ok', 'Listo');
+  } else if (permisoUbicacion === 'denied') {
+    modalPermisoUbicacion();          // contestó que no en ese mismo momento
+  } else {
+    aviso('No se pudo obtener la ubicación. Salga a cielo abierto e intente de nuevo',
+          'avi', 'Sin señal de GPS');
+  }
+}
+
+/** Instructivo por sistema: es lo único que queda cuando ya está bloqueado. */
+function modalPermisoUbicacion() {
+  const instalada = estaInstalada();
+  let pasos;
+  if (esIOS()) {
+    pasos = `<ol class="pasos">
+        <li>Salga a los <b>Ajustes</b> del iPhone.</li>
+        <li>Entre a <b>Privacidad y seguridad</b> → <b>Localización</b>.</li>
+        <li>Confirme que <b>Localización</b> esté encendida.</li>
+        <li>Busque <b>${instalada ? 'Flota HRNO' : 'Safari'}</b> en la lista y elija
+            <b>Preguntar la próxima vez</b> o <b>Al usar la app</b>.</li>
+        <li>Vuelva a Flota y toque de nuevo el botón.</li>
+      </ol>`;
+  } else if (instalada) {
+    pasos = `<ol class="pasos">
+        <li>Salga a los <b>Ajustes</b> del teléfono.</li>
+        <li>Entre a <b>Aplicaciones</b> y busque <b>Flota HRNO</b>.</li>
+        <li>Toque <b>Permisos</b> → <b>Ubicación</b>.</li>
+        <li>Elija <b>Permitir solo mientras se usa la aplicación</b>.</li>
+        <li>Vuelva a Flota. La franja se pone verde sola.</li>
+      </ol>`;
+  } else {
+    pasos = `<ol class="pasos">
+        <li>En Chrome, toque el icono que está a la <b>izquierda de la dirección</b>
+            (un candado o unos controles).</li>
+        <li>Toque <b>Permisos</b> o <b>Configuración del sitio</b>.</li>
+        <li>Busque <b>Ubicación</b> y cámbielo a <b>Permitir</b>.</li>
+        <li>Vuelva a esta pantalla y toque de nuevo el botón.</li>
+      </ol>`;
+  }
+
+  abrirModal('Activar la ubicación',
+    `<p class="nota avi">Usted tocó <b>Bloquear</b> cuando le pidieron la ubicación.
+      Desde aquí no se puede volver a preguntar: el teléfono ya guardó esa
+      respuesta y hay que cambiarla en los ajustes. Son cuatro toques.</p>
+     ${pasos}
+     <p class="nota" style="margin-top:.7rem">Mientras tanto puede seguir
+      registrando sus salidas y llegadas: quedan marcadas <b>sin GPS</b>.</p>`,
+    `<button class="btn sec" onclick="cerrarModal()">Cerrar</button>
+     <button class="btn" onclick="reintentarUbicacion()">Ya lo permití</button>`);
+}
+
+/** Tras arreglarlo en los ajustes, comprobar sin tener que salir y entrar. */
+async function reintentarUbicacion() {
+  const estado = await leerPermisoUbicacion();
+  pintarPermisoUbicacion();
+  if (estado === 'denied') {
+    return aviso('Todavía figura bloqueada. Revise los pasos de arriba', 'mal', 'Sigue bloqueada');
+  }
+  cerrarModal();
+  activarUbicacion();
 }
 
 let fotoTomada = null;         // { mime, datos } de la marca en curso
@@ -752,11 +946,16 @@ async function guardarMarca(hito) {
   }
 
   btn.disabled = true; btn.textContent = 'Ubicando...';
-  $('#mk-gps').textContent = 'Obteniendo su ubicación...';
+  const nota = $('#mk-gps');
+  nota.dataset.ocupado = '1';        // que un repintado no borre el progreso
+  nota.innerHTML = '<div class="nota">Obteniendo su ubicación...</div>';
   const geo = await ubicacion();
-  $('#mk-gps').textContent = geo.lat
-    ? `Ubicación tomada (precisión ${Math.round(geo.precision)} m)`
-    : 'No se pudo obtener la ubicación. La marca se registra igual, señalada sin GPS.';
+  await leerPermisoUbicacion();
+  nota.innerHTML = geo.lat
+    ? `<div class="nota">Ubicación tomada (precisión ${Math.round(geo.precision)} m)</div>`
+    : `<div class="nota avi">No se pudo obtener la ubicación. La marca se registra
+         igual, señalada sin GPS.</div>${permisoUbicacion === 'denied' ? avisoUbicacion('marca') : ''}`;
+  delete nota.dataset.ocupado;
 
   const datos = {
     municipio_id: Number(mun), lugar, ...geo,

@@ -1,6 +1,6 @@
 # PROJECT.md — Flota Vehicular HRNO
 
-> Borrador v0.9 · 13 sep 2026 · ESE Hospital Regional Noroccidental
+> Borrador v1.0 · 15 sep 2026 · ESE Hospital Regional Noroccidental
 > Responsable: Danilo Torrado Blanco — Coordinador de Salud Pública
 > Estado: **arquitectura, roles y modelo de datos definidos.** Pendientes las preguntas de §11
 
@@ -81,6 +81,7 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D25 | Día operativo | Se calcula en **hora de Colombia**, no en UTC |
 | D26 | Fotografía | Se toma con **Timemark** (app externa que estampa fecha, hora y GPS). La app, su identificador y si se usa son configurables en Ajustes |
 | D27 | Instalación | **PWA instalable desde el navegador**, sin Play Store ni App Store. Iconos PNG propios, arranque sin señal y aviso cuando hay versión nueva |
+| D28 | Permiso de ubicación | Si el conductor lo bloquea por error, la aplicación lo detecta, ofrece un botón y explica los pasos de su teléfono. **La marca se guarda igual, señalada sin GPS** |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -466,7 +467,33 @@ justamente la señal que sirve para detectar inconsistencias.
 
 La exigencia de fotografía se puede apagar desde Ajustes (`foto_obligatoria`).
 
-### 5.4.2 Georreferenciación en la pantalla de viajes
+### 5.4.2 Cuando el conductor bloquea la ubicación por error (D28)
+
+Pasó en terreno: varios conductores tocaron **Bloquear** en el cuadro del permiso y después no
+sabían cómo devolverse. Conviene tener claro el límite, porque manda sobre el diseño:
+
+> Una página web **no puede volver a mostrar el cuadro del permiso** una vez se tocó *Bloquear*.
+> El navegador recuerda esa decisión para el sitio y las llamadas siguientes fallan de inmediato,
+> sin preguntar nada. Solo se deshace desde los ajustes del teléfono o del navegador.
+
+Lo que sí se hace:
+
+| Estado | Qué ve el conductor |
+|---|---|
+| **Permitido** | Nada en *Mi día*; en el formulario de marca, una nota verde de confirmación |
+| **Sin contestar** | Un botón *Permitir ubicación ahora*. Aquí el permiso sigue en `prompt`, así que **volver a pedirlo sí muestra el cuadro otra vez**: es el caso que se arregla de un toque, y el más común —el conductor deslizó el aviso sin contestar— |
+| **Bloqueado** | Franja roja con *Activar la ubicación*, que abre el instructivo con los pasos de **su** teléfono: distingue Android instalada, Android en Chrome e iPhone |
+
+Dos detalles que hacen la diferencia en la vía:
+
+1. **La franja se quita sola.** La aplicación vuelve a mirar el permiso cada vez que pasa al frente
+   (`visibilitychange`), que es exactamente lo que ocurre cuando el conductor sale a los ajustes,
+   lo permite y regresa. El evento `change` del permiso también se escucha, pero no todos los
+   navegadores lo entregan; volver a la aplicación siempre ocurre.
+2. **Nunca bloquea la marca.** Sin ubicación, la salida y la llegada se registran igual y quedan
+   señaladas sin GPS. Un conductor en la vía no se puede quedar sin registrar por un permiso.
+
+### 5.4.3 Georreferenciación en la pantalla de viajes
 
 Cada marca muestra sus coordenadas con seis decimales, un botón para **copiarlas** y un enlace
 al mapa. Al lado va la precisión reportada por el GPS: por encima de 100 m se pinta en ámbar,

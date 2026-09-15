@@ -76,6 +76,12 @@ seguimiento en segundo plano.
 **¿Tengo que actualizarla?** No. Se actualiza sola. Cuando hay una versión nueva
 aparece una franja verde con el botón **Actualizar**.
 
+**Le di a "Bloquear" en la ubicación por error.** Tiene arreglo. En *Mi día* le
+aparece una franja roja con el botón **Activar la ubicación**: tóquelo y le
+muestra los pasos de su teléfono. Apenas lo permita y vuelva a la aplicación, la
+franja roja desaparece sola. Mientras tanto puede seguir registrando: las marcas
+quedan guardadas, señaladas *sin GPS*.
+
 **Se me borró el icono.** Vuelva a abrir la dirección e instálela otra vez; no se
 pierde nada, porque la información vive en el servidor.
 

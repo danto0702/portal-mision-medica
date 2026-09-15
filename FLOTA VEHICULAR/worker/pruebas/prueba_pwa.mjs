@@ -439,6 +439,75 @@ if (chromium) {
     await ctx.close();
   }
 
+  // 3.3 · El permiso de ubicación: bloquearlo por error tiene salida.
+  //
+  // Una página web NO PUEDE volver a mostrar el cuadro del permiso cuando ya se
+  // tocó "Bloquear": el navegador recuerda la respuesta. Lo que sí debe pasar es
+  // que la aplicación lo detecte, lo explique, y que al arreglarlo en los
+  // ajustes y volver a la aplicación la franja se quite sola.
+  {
+    const ORIGEN = BASE;
+    const ctx = await nav.newContext(movil);
+    await ctx.grantPermissions([], { origin: ORIGEN });        // bloqueado
+    const pag = await ctx.newPage();
+    await pag.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+    await pag.fill('#in-usuario', 'jnavarro');
+    await pag.fill('#in-clave', 'Conductor2026');
+    await pag.click('#in-btn');
+    await pag.waitForSelector('#app:not([hidden])');
+    await pag.waitForTimeout(1200);
+
+    const franja = pag.locator('#gps-hoy');
+    verificar('con la ubicación bloqueada se avisa en Mi día',
+      /bloqueada/i.test(await franja.innerText()));
+    verificar('y hay un botón para activarla',
+      await franja.locator('button').count() === 1);
+
+    await franja.locator('button').click();
+    await pag.waitForSelector('#modal.on', { timeout: 8000 });
+    await pag.waitForTimeout(400);
+    const pasos = await pag.locator('#modal-cpo').innerText();
+    verificar('el instructivo dice dónde tocar', /Permisos|Localización|Ubicación/i.test(pasos));
+    verificar('y avisa que entre tanto la marca se guarda sin GPS',
+      /sin GPS/i.test(pasos));
+
+    // Dice "ya lo permití" sin haberlo hecho: no se le miente.
+    await pag.locator('#modal-pie button:has-text("Ya lo permití")').click();
+    await pag.waitForTimeout(700);
+    verificar('si dice que ya lo permitió y sigue bloqueado, se le dice',
+      /sigue bloqueada|Todavía figura/i.test(await pag.locator('#avisos').innerText()));
+
+    // Ahora sí lo permite en los ajustes del teléfono y vuelve a la aplicación.
+    await ctx.grantPermissions(['geolocation'], { origin: ORIGEN });
+    await ctx.setGeolocation({ latitude: 8.0796, longitude: -73.2216 });
+    await pag.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await pag.waitForTimeout(1200);
+    verificar('al volver de los ajustes la franja roja se quita sola',
+      (await franja.innerText()).trim() === '');
+    await ctx.close();
+  }
+
+  // 3.4 · Con el permiso dado, la franja no estorba.
+  {
+    const ctx = await nav.newContext({ ...movil, permissions: ['geolocation'],
+      geolocation: { latitude: 8.0796, longitude: -73.2216 } });
+    const pag = await ctx.newPage();
+    await pag.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+    await pag.fill('#in-usuario', 'jnavarro');
+    await pag.fill('#in-clave', 'Conductor2026');
+    await pag.click('#in-btn');
+    await pag.waitForSelector('#app:not([hidden])');
+    await pag.waitForTimeout(1200);
+    verificar('con la ubicación permitida no se le recuerda nada en Mi día',
+      (await pag.locator('#gps-hoy').innerText()).trim() === '');
+    await pag.click('.btn-gigante');
+    await pag.waitForSelector('#modal.on', { timeout: 8000 });
+    await pag.waitForTimeout(500);
+    verificar('pero en la marca sí se confirma que está permitida',
+      /permitida/i.test(await pag.locator('#mk-gps').innerText()));
+    await ctx.close();
+  }
+
   // 4 · La versión nueva se avisa y NO entra sola.
   //
   // Es la parte más delicada: si una versión nueva se activara por su cuenta,

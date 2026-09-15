@@ -411,6 +411,34 @@ if (chromium) {
     await ctx.close();
   }
 
+  // 3.2 · Un teléfono con «Sitio de escritorio» puesto sigue siendo un teléfono.
+  //
+  // Con esa opción Chrome quita la palabra Android del user agent. Pasó en un
+  // teléfono de verdad: la marca de salida mostró el texto de computador en vez
+  // de los dos pasos de Timemark, y el conductor se habría quedado sin saber
+  // que la foto se toma en otra aplicación.
+  {
+    const ESCRITORIO = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+      '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+    const ctx = await nav.newContext({ ...movil, userAgent: ESCRITORIO });
+    const pag = await ctx.newPage();
+    await pag.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+    await pag.fill('#in-usuario', 'jnavarro');
+    await pag.fill('#in-clave', 'Conductor2026');
+    await pag.click('#in-btn');
+    await pag.waitForSelector('#app:not([hidden])');
+    await pag.waitForTimeout(900);
+    await pag.click('.btn-gigante');
+    await pag.waitForSelector('#modal.on', { timeout: 8000 });
+    await pag.waitForTimeout(600);
+    const cuerpo = await pag.locator('#modal-cpo').innerText();
+    verificar('con el user agent falseado sigue ofreciendo abrir Timemark',
+      /1 · Abrir/.test(cuerpo), cuerpo.slice(0, 120).replace(/\n/g, ' | '));
+    verificar('y no le habla al conductor del computador',
+      !/Desde el computador/.test(cuerpo));
+    await ctx.close();
+  }
+
   // 4 · La versión nueva se avisa y NO entra sola.
   //
   // Es la parte más delicada: si una versión nueva se activara por su cuenta,

@@ -582,6 +582,22 @@ const esAndroid = () => /Android/i.test(navigator.userAgent);
 const esIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+/**
+ * ¿Se está usando desde un teléfono?
+ *
+ * No basta con mirar el "user agent". Si el conductor tiene marcada la opción
+ * «Sitio de escritorio» en Chrome —o su teléfono la trae puesta—, el navegador
+ * miente y dice ser un computador: desaparece la palabra Android del user agent.
+ * Pasó en un teléfono de verdad y la marca de salida mostró el texto de
+ * computador en vez de los dos pasos de Timemark.
+ *
+ * Lo que no se puede falsear igual de fácil es la pantalla táctil: un dedo es un
+ * puntero "grueso" (pointer: coarse). Con eso alcanza para decidir si se ofrece
+ * el flujo del teléfono.
+ */
+const esMovil = () => esAndroid() || esIOS() ||
+  window.matchMedia?.('(pointer: coarse)').matches === true;
+
 function bloqueFoto(hito) {
   const usaApp = par('app_foto_activa', '1') === '1';
   const nombre = par('app_foto_nombre', 'Timemark');
@@ -597,7 +613,7 @@ function bloqueFoto(hito) {
     </div>`;
   }
 
-  const movil = esAndroid() || esIOS();
+  const movil = esMovil();
   return `<div class="campo">
     <label class="lb">Fotografía de ${hito} <span class="req">*</span></label>
     ${movil ? `
@@ -634,7 +650,12 @@ const vistaFoto = () => `
  * aplicación ya está, el botón de esa ficha dice "Abrir".
  */
 function urlAppFoto() {
-  if (esAndroid()) {
+  // Si no dice ser iPhone se trata como Android: es lo que usa la flota, y si el
+  // user agent viene falseado por «Sitio de escritorio» esta es la salida útil.
+  if (esIOS()) {
+    return `https://apps.apple.com/app/id${par('app_foto_ios', '6446071834')}`;
+  }
+  if (esMovil()) {
     const paquete = par('app_foto_android', 'com.oceangalaxy.camera.new');
     const tienda = `https://play.google.com/store/apps/details?id=${paquete}`;
     // El respaldo lo aplica el propio Chrome cuando el paquete no está instalado.
@@ -642,9 +663,6 @@ function urlAppFoto() {
       ';category=android.intent.category.LAUNCHER' +
       `;package=${paquete}` +
       `;S.browser_fallback_url=${encodeURIComponent(tienda)};end`;
-  }
-  if (esIOS()) {
-    return `https://apps.apple.com/app/id${par('app_foto_ios', '6446071834')}`;
   }
   return null;                       // en computador no hay a dónde ir
 }
@@ -2516,7 +2534,7 @@ function pintarInstalar() {
   const pie = $('#instalar-ingreso');
   // En el computador solo se ofrece si el navegador de verdad instala; en el
   // celular siempre, porque ahí el instructivo a mano sí tiene sentido.
-  const puede = !estaInstalada() && (avisoInstalar || esAndroid() || esIOS());
+  const puede = !estaInstalada() && (avisoInstalar || esMovil());
 
   if (franja) {
     const mostrar = puede && avisoInstalar && !silenciada();
@@ -2584,7 +2602,7 @@ function modalComoInstalar() {
         <li>Toque <b>Añadir</b>, arriba a la derecha.</li>
       </ol>
       <p class="nota">Quedará el icono azul de Flota junto a sus demás aplicaciones.</p>`;
-  } else if (esAndroid()) {
+  } else if (esMovil()) {          // Android, o un teléfono con el user agent falseado
     pasos = `<ol class="pasos">
         <li>Toque los <b>tres puntos</b> de la esquina superior derecha del navegador.</li>
         <li>Elija <b>Instalar aplicación</b> o <b>Añadir a pantalla de inicio</b>.</li>

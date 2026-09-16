@@ -55,10 +55,15 @@ instalar (una pantalla con una flecha). También está en el menú ⋮ → **Ins
 | Accesos rápidos | no | mantenga pulsado el icono → *Mi día* |
 | Se pierde si… | se cierra la pestaña o se limpia el navegador | se desinstala a propósito |
 
-**Sin señal** la aplicación abre y deja registrar la salida y la llegada. Las marcas
-se guardan en el celular y se envían solas apenas vuelve la cobertura: la franja
-amarilla de arriba dice cuántas están pendientes. La hora que queda registrada es
-la del momento en que el conductor marcó, no la del envío.
+**Sin señal** la aplicación abre y deja registrar la salida y la llegada, **con
+fotografía y todo**. Las marcas y las fotos se guardan en el celular y se envían
+solas apenas vuelve la cobertura: la franja amarilla de arriba dice cuántas están
+pendientes, y en *Viajes de hoy* aparecen marcadas como *Guardado en el celular*
+hasta que suben. La hora que queda registrada es la del momento en que el
+conductor marcó, no la del envío.
+
+> Para que funcione sin señal hay que **haber entrado una vez con señal** ese
+> mismo día: es cuando el teléfono se guarda su copia de la programación.
 
 ## Preguntas que suelen hacer los conductores
 

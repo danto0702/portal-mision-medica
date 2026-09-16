@@ -508,6 +508,122 @@ if (chromium) {
     await ctx.close();
   }
 
+  // 3.5 · SIN SEÑAL, DE VERDAD: el conductor cierra y reabre la aplicación,
+  //       registra salida y llegada con fotografía, y todo sube al volver la señal.
+  //
+  // Es la prueba que faltaba. Los conductores reportaron que "no abre sin
+  // internet": la aplicación validaba la sesión contra el servidor y cualquier
+  // fallo —incluido no tener datos— borraba la sesión guardada. Quedaban en la
+  // pantalla de ingreso sin poder entrar, porque entrar tambien necesita red.
+  {
+    const JPEG = Buffer.from(
+      '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRof' +
+      'Hh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwh' +
+      'MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAAR' +
+      'CAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAA' +
+      'AgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2Jyggk' +
+      'KFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIW' +
+      'Gh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+T' +
+      'l5ufo6erx8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigD//2Q==', 'base64');
+
+    // Hora de Colombia: el día operativo lo calcula el servidor en UTC-5 y el
+    // teléfono del conductor está allá. Sin esto, de noche la prueba marcaría el
+    // día siguiente y buscaría el viaje donde no está.
+    const ctx = await nav.newContext({ ...movil, permissions: ['geolocation'],
+      timezoneId: 'America/Bogota',
+      geolocation: { latitude: 8.0796, longitude: -73.2216 } });
+    const pag = await ctx.newPage();
+    const errores = [];
+    pag.on('pageerror', e => errores.push(e.message));
+
+    // Una vez con señal, para que el teléfono guarde su copia.
+    await pag.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+    await pag.fill('#in-usuario', 'jnavarro');
+    await pag.fill('#in-clave', 'Conductor2026');
+    await pag.click('#in-btn');
+    await pag.waitForSelector('#app:not([hidden])');
+    await pag.waitForTimeout(2200);
+    const token = await pag.evaluate(() => JSON.parse(localStorage.getItem('flota_sesion')).token);
+
+    // Se corta la señal y CIERRA Y REABRE la aplicación.
+    await ctx.setOffline(true);
+    await pag.reload({ waitUntil: 'domcontentloaded' });
+    await pag.waitForTimeout(2200);
+
+    verificar('sin señal la aplicación abre DIRECTO, sin pedir ingreso otra vez',
+      await pag.locator('#app').isVisible() && !(await pag.locator('#ingreso').isVisible()));
+    verificar('sin señal NO le borra la sesión al conductor',
+      await pag.evaluate(() => !!localStorage.getItem('flota_sesion')));
+    verificar('sin señal conserva los catálogos para poder marcar',
+      await pag.evaluate(() => cat.municipios?.length) > 0);
+    verificar('sin señal ve su programación del día',
+      /PROGRAMACIÓN DE HOY|Sin destino|Disponible/i.test(await pag.locator('#main').innerText()));
+
+    const marcar = async (lugar, km, salida) => {
+      await pag.click('.btn-gigante');
+      await pag.waitForSelector('#modal.on', { timeout: 8000 });
+      await pag.waitForTimeout(500);
+      await pag.selectOption('#mk-mun', { index: 1 });
+      await pag.fill('#mk-lugar', lugar);
+      await pag.fill('#mk-km', String(km));
+      if (salida) {
+        await pag.fill('#mk-trip', '3');
+        await pag.fill('#mk-tripulantes', 'Pedro P, Ana G, Luis D');
+      }
+      await pag.setInputFiles('#mk-foto', { name: 'tm.jpg', mimeType: 'image/jpeg', buffer: JPEG });
+      await pag.waitForTimeout(700);
+      await pag.click('#mk-btn');
+      await pag.waitForTimeout(2000);
+    };
+
+    await marcar('IPS Abrego', 200000, true);
+    verificar('sin señal se puede registrar la salida',
+      await pag.evaluate(() => pendientes) === 1);
+    verificar('y la fotografía queda guardada en el teléfono, no se descarta',
+      await pag.evaluate(async () => {
+        const m = (await baul.todos('cola'))[0];
+        return !!(m?.foto?.datos?.length);
+      }));
+    verificar('el conductor VE en pantalla lo que acaba de registrar',
+      /Guardado en el celular/.test(await pag.locator('#main').innerText()));
+
+    await pag.waitForTimeout(600);
+    await marcar('LA SIERRA', 200150, false);
+    verificar('sin señal también se puede registrar la llegada',
+      await pag.evaluate(() => pendientes) === 2);
+
+    // Vuelve la señal.
+    await ctx.setOffline(false);
+    await pag.evaluate(() => window.dispatchEvent(new Event('online')));
+    await pag.waitForTimeout(7000);
+    verificar('al volver la señal se envía todo y no queda nada pendiente',
+      await pag.evaluate(() => pendientes) === 0);
+
+    // Lo que de verdad quedó en el servidor.
+    const hoyCol = new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 10);
+    const dia = await pag.evaluate(async ([t, f]) =>
+      (await fetch('/api/mi-dia?fecha=' + f, { headers: { Authorization: 'Bearer ' + t } })).json(),
+      [token, hoyCol]);
+    const via = (dia.trayectos || []).find(t => t.lugar_salida === 'IPS Abrego');
+    verificar('el viaje llegó al servidor, cerrado y con los dos lugares',
+      via && via.estado === 'cerrado' && via.lugar_llegada === 'LA SIERRA',
+      JSON.stringify(via || null).slice(0, 120));
+    verificar('con los dos kilometrajes',
+      via && Number(via.km_inicial) === 200000 && Number(via.km_final) === 200150);
+
+    if (via) {
+      const fotos = await pag.evaluate(async ([t, id]) =>
+        (await fetch(`/api/trayectos/${id}/fotos`, { headers: { Authorization: 'Bearer ' + t } })).json(),
+        [token, via.id]);
+      const momentos = Array.isArray(fotos) ? fotos.map(f => f.momento).sort() : [];
+      verificar('y LAS DOS FOTOGRAFÍAS subieron al servidor',
+        momentos.join(',') === 'llegada,salida', JSON.stringify(fotos).slice(0, 120));
+    }
+
+    verificar('nada de esto produjo errores en la página', errores.length === 0, errores[0]);
+    await ctx.close();
+  }
+
   // 4 · La versión nueva se avisa y NO entra sola.
   //
   // Es la parte más delicada: si una versión nueva se activara por su cuenta,

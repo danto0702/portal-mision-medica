@@ -207,10 +207,15 @@ repite. Puede hacer los que necesite; todos quedan en *Viajes de hoy*.
 En el Catatumbo pasa, y está previsto. 📵
 
 La aplicación *abre igual sin señal* y lo deja registrar la salida y la
-llegada normalmente. Las marcas se guardan en su celular y se envían solas
-apenas vuelva la cobertura.
+llegada normalmente, *con fotografía y todo*. Las marcas y las fotos se
+guardan en su celular y se envían solas apenas vuelva la cobertura.
 
-Arriba le aparece una franja amarilla diciéndole cuántas están pendientes.
+Arriba le aparece una franja amarilla diciéndole cuántas están pendientes, y
+en *Viajes de hoy* los verá marcados como _"Guardado en el celular"_ hasta
+que suban.
+
+👉 Un consejo: *abra la aplicación una vez antes de salir*, con señal. Ahí el
+celular se guarda su programación del día y ya funciona en toda la ruta.
 
 *La hora que queda registrada es la del momento en que usted marcó*, no la
 del momento en que se envió. No pierde nada y no le perjudica.

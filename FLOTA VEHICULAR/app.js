@@ -17,7 +17,7 @@
  * peticiones e ignora en silencio lo que no entiende — un campo que no se
  * guarda y ningún mensaje de error. Por eso se comprueba y se avisa.
  */
-const VERSION_API_REQUERIDA = 6;
+const VERSION_API_REQUERIDA = 7;
 
 const esLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 const API = localStorage.getItem('flota_api') ||
@@ -119,6 +119,9 @@ async function api(ruta, opciones = {}) {
   });
   let datos = {};
   try { datos = await res.json(); } catch { /* respuesta sin cuerpo */ }
+  // Solo aquí se cierra la sesión: el servidor contestó y dijo que no vale. Un
+  // fallo de red ni siquiera llega a esta línea —fetch lanza antes—, que es lo
+  // que evita que quedarse sin señal le borre la sesión al conductor.
   if (res.status === 401 && sesion) { salir(true); throw new Error('Su sesión expiró'); }
   if (!res.ok) throw new Error(datos.error || `Error ${res.status}`);
   return datos;
@@ -126,30 +129,169 @@ async function api(ruta, opciones = {}) {
 
 // ── Cola sin señal ───────────────────────────────────────────────────────────
 // Las marcas tomadas sin cobertura se guardan aquí y se envían solas al volver.
+// ── Almacén local: IndexedDB ─────────────────────────────────────────────────
+//
+// localStorage NO sirve para esto. Son unos 5 MB por sitio y una sola fotografía
+// ocupa cerca de 200 KB una vez codificada; con cuatro o cinco marcas sin señal
+// se llenaba, el navegador lanzaba un error de cuota y la marca se perdía sin
+// que nadie se enterara. IndexedDB tiene espacio de sobra y es el sitio correcto
+// para lo que aquí se guarda:
+//
+//   cola   las marcas tomadas sin señal, CON su fotografía, hasta que se envían.
+//   caja   lo último que se alcanzó a bajar del servidor —catálogos, parámetros,
+//          vehículos y el día del conductor—, para que la aplicación abra y sea
+//          usable sin ninguna señal.
+const BAUL = 'flota-local';
+let baulAbierto = null;
+
+function abrirBaul() {
+  if (baulAbierto) return baulAbierto;
+  baulAbierto = new Promise((listo, falla) => {
+    const p = indexedDB.open(BAUL, 1);
+    p.onupgradeneeded = () => {
+      const db = p.result;
+      if (!db.objectStoreNames.contains('cola')) db.createObjectStore('cola', { keyPath: 'local_id' });
+      if (!db.objectStoreNames.contains('caja')) db.createObjectStore('caja', { keyPath: 'clave' });
+    };
+    p.onsuccess = () => listo(p.result);
+    p.onerror = () => falla(p.error);
+  });
+  return baulAbierto;
+}
+
+/** Envuelve una operación de IndexedDB en una promesa. */
+function pedir(peticion) {
+  return new Promise((listo, falla) => {
+    peticion.onsuccess = () => listo(peticion.result);
+    peticion.onerror = () => falla(peticion.error);
+  });
+}
+
+const baul = {
+  async poner(almacen, valor) {
+    const db = await abrirBaul();
+    return pedir(db.transaction(almacen, 'readwrite').objectStore(almacen).put(valor));
+  },
+  async todos(almacen) {
+    const db = await abrirBaul();
+    return pedir(db.transaction(almacen, 'readonly').objectStore(almacen).getAll());
+  },
+  async obtener(almacen, clave) {
+    const db = await abrirBaul();
+    return pedir(db.transaction(almacen, 'readonly').objectStore(almacen).get(clave));
+  },
+  async quitar(almacen, clave) {
+    const db = await abrirBaul();
+    return pedir(db.transaction(almacen, 'readwrite').objectStore(almacen).delete(clave));
+  },
+};
+
+// ── Caja: la última copia buena de lo que manda el servidor ──────────────────
+//
+// Sin esto la aplicación abre pero no sirve de nada: no sabe los municipios, ni
+// los vehículos, ni qué le tocaba hoy al conductor. Se guarda cada vez que se
+// baja con señal y se lee cuando no la hay.
+
+async function guardarEnCaja(clave, valor) {
+  try { await baul.poner('caja', { clave, valor, ts: Date.now() }); }
+  catch { /* sin almacén, la aplicación sigue funcionando con señal */ }
+}
+
+async function leerDeCaja(clave) {
+  try { return (await baul.obtener('caja', clave))?.valor ?? null; }
+  catch { return null; }
+}
+
+/**
+ * Baja algo del servidor y lo deja en la caja; si no hay señal, devuelve la
+ * última copia buena. Devuelve { datos, deCaja } para poder avisarlo en pantalla.
+ */
+async function conRespaldo(clave, ruta) {
+  try {
+    const datos = await api(ruta);
+    await guardarEnCaja(clave, datos);
+    return { datos, deCaja: false };
+  } catch (e) {
+    if (!esFalloDeRed(e)) throw e;          // un 403 o un 500 no se disimulan
+    const datos = await leerDeCaja(clave);
+    if (datos == null) throw e;
+    return { datos, deCaja: true };
+  }
+}
+
+/**
+ * ¿El error viene de que no hay señal, o el servidor contestó que no?
+ *
+ * La diferencia es la que evita el peor defecto que tuvo esta aplicación: al no
+ * distinguirlos, un simple fallo de red se trataba como "su sesión expiró" y le
+ * borraba la sesión al conductor. Quedaba en la pantalla de ingreso, sin poder
+ * entrar porque entrar también necesita red.
+ *
+ * fetch solo rechaza cuando la petición no llegó a ninguna parte. Si el servidor
+ * respondió —aunque sea 401 o 500— no rechaza, y eso NO es un fallo de red.
+ */
+const esFalloDeRed = e => e instanceof TypeError || e?.sinRed === true;
+
+let pendientes = 0;            // marcas en la cola, para pintar sin consultar
+
 const cola = {
-  leer:   () => { try { return JSON.parse(localStorage.getItem('flota_cola') || '[]'); } catch { return []; } },
-  guardar(l) { localStorage.setItem('flota_cola', JSON.stringify(l)); this.pintar(); },
-  agregar(m) { const l = this.leer(); l.push({ ...m, local_id: 'l' + Date.now() }); this.guardar(l); },
+  async leer() {
+    try { return await baul.todos('cola'); } catch { return []; }
+  },
+  async agregar(m) {
+    const marca = { ...m, local_id: 'l' + Date.now() + Math.random().toString(36).slice(2, 6) };
+    await baul.poner('cola', marca);
+    await this.contar();
+    return marca;
+  },
+  async contar() {
+    pendientes = (await this.leer()).length;
+    this.pintar();
+    return pendientes;
+  },
   pintar() {
-    const n = this.leer().length;
-    $('#offline-n').textContent = n;
-    $('#barra-offline').classList.toggle('on', n > 0 || !navigator.onLine);
+    const n = $('#offline-n');
+    if (n) n.textContent = pendientes;
+    $('#barra-offline')?.classList.toggle('on', pendientes > 0 || !navigator.onLine);
   },
   async sincronizar() {
-    const marcas = this.leer();
+    const marcas = await this.leer();
     if (!marcas.length || !navigator.onLine || !sesion) return;
     try {
-      const r = await api('/api/sync', { metodo: 'POST', cuerpo: { marcas } });
-      const ok = r.resultados.filter(x => x.ok).map(x => x.local_id);
-      this.guardar(marcas.filter(m => !ok.includes(m.local_id)));
-      if (ok.length) {
-        aviso(`${ok.length} marca(s) enviada(s) al recuperar la señal`, 'ok', 'Sincronizado');
+      // De a una y EN ORDEN. Con fotografía cada marca pesa, así una que falle no
+      // arrastra a las demás; y el orden importa porque una llegada tomada sin
+      // señal apunta al identificador LOCAL de su salida, que todavía no existía
+      // en el servidor. Al enviar la salida, el servidor devuelve su id de
+      // verdad; aquí se guarda la equivalencia y se le aplica a la llegada. Sin
+      // esto el servidor no encontraría el viaje y la llegada se perdería.
+      marcas.sort((a, b) => String(a.ts_dispositivo).localeCompare(String(b.ts_dispositivo)));
+      const equivale = new Map();
+      let enviadas = 0;
+      for (const m of marcas) {
+        const envio = { ...m };
+        if (envio.hito === 'llegada' && equivale.has(envio.trayecto_id)) {
+          envio.trayecto_id = equivale.get(envio.trayecto_id);
+        }
+        // Una llegada cuya salida sigue en el teléfono no se puede enviar todavía.
+        if (envio.hito === 'llegada' && String(envio.trayecto_id).startsWith('l')) continue;
+
+        const r = await api('/api/sync', { metodo: 'POST', cuerpo: { marcas: [envio] } });
+        const res = r.resultados?.[0];
+        if (res?.ok) {
+          if (m.hito === 'salida' && res.id) equivale.set(m.local_id, res.id);
+          await baul.quitar('cola', m.local_id);
+          enviadas++;
+        }
+      }
+      await this.contar();
+      if (enviadas) {
+        aviso(`${enviadas} marca(s) enviada(s) al recuperar la señal`, 'ok', 'Sincronizado');
         if (vistaActual === 'hoy') verHoy();
       }
     } catch { /* se reintenta en la próxima oportunidad */ }
   },
 };
-window.addEventListener('online', () => { cola.pintar(); cola.sincronizar(); });
+window.addEventListener('online', () => { cola.contar(); cola.sincronizar(); });
 window.addEventListener('offline', () => cola.pintar());
 
 // ── Ubicación ────────────────────────────────────────────────────────────────
@@ -253,15 +395,22 @@ async function iniciar() {
   $('#nav').innerHTML = MENU[sesion.rol].map(v =>
     `<button data-v="${v}" onclick="ir('${v}')">${ICONOS[v] || ''}${VISTAS[v].et}</button>`).join('');
 
-  cola.pintar();
+  cola.contar();
   comprobarVersion();
   cargarBanner();
-  try { cat = await api('/api/catalogos'); } catch { /* se reintenta luego */ }
+
+  // Catálogos, parámetros y vehículos van con respaldo: con señal se bajan y se
+  // guardan; sin señal se usa la última copia buena. Sin esto la aplicación
+  // abría pero no sabía ni los municipios ni los vehículos, y el formulario de
+  // marca salía vacío — que para el conductor es lo mismo que no funcionar.
+  try { cat = (await conRespaldo('catalogos', '/api/catalogos')).datos; }
+  catch { /* se reintenta luego */ }
   try {
-    parametros = Object.fromEntries((await api('/api/parametros')).map(p => [p.clave, p.valor]));
+    const { datos } = await conRespaldo('parametros', '/api/parametros');
+    parametros = Object.fromEntries(datos.map(p => [p.clave, p.valor]));
   } catch { /* se usan los valores por defecto */ }
   try {
-    vehiculos = await api('/api/vehiculos');
+    vehiculos = (await conRespaldo('vehiculos', '/api/vehiculos')).datos;
     if (sesion.rol !== 'conductor') personas = await api('/api/personas');
   } catch { /* se reintenta al entrar a cada pantalla */ }
 
@@ -393,13 +542,70 @@ async function guardarClave() {
 
 let diaActual = null;
 
+/**
+ * Mezcla las marcas de la cola sobre el día bajado del servidor.
+ *
+ * Sin esto, el conductor sin señal toca "Registrar salida", la marca se guarda
+ * en el teléfono... y la pantalla sigue igual, ofreciéndole registrar la salida
+ * otra vez. Volvería a tocarla, y quedarían dos salidas del mismo viaje.
+ *
+ * Lo que se pinta desde la cola se marca con `pendiente: true`, para que la
+ * pantalla lo distinga de lo que ya está en el servidor y no se le prometa al
+ * conductor algo que todavía no ha salido del teléfono.
+ */
+async function superponerCola(dia) {
+  const marcas = (await cola.leer())
+    .filter(m => m.fecha_operacion === hoy())
+    .sort((a, b) => String(a.ts_dispositivo).localeCompare(String(b.ts_dispositivo)));
+  if (!marcas.length) return dia;
+
+  const d = { ...dia, trayectos: [...(dia.trayectos || [])] };
+  for (const m of marcas) {
+    if (m.hito === 'salida') {
+      const suelto = {
+        id: m.local_id, consecutivo: 'Sin enviar', pendiente: true,
+        estado: 'en_curso', ts_salida: m.ts_dispositivo,
+        lugar_salida: m.lugar, km_inicial: m.km_inicial,
+        vehiculo_id: m.vehiculo_id,
+      };
+      d.trayectos.unshift(suelto);
+      d.trayecto_abierto = suelto;
+    } else {
+      // La llegada cierra el viaje al que apunta, esté en el servidor o en la cola.
+      const t = d.trayectos.find(x => String(x.id) === String(m.trayecto_id));
+      if (t) {
+        Object.assign(t, {
+          estado: 'cerrado', pendiente: true,
+          ts_llegada: m.ts_dispositivo, lugar_llegada: m.lugar, km_final: m.km_final,
+        });
+      }
+      if (String(d.trayecto_abierto?.id) === String(m.trayecto_id)) d.trayecto_abierto = null;
+    }
+  }
+  return d;
+}
+
 async function verHoy() {
   $('#main').innerHTML = '<div class="cargando">Cargando su día...</div>';
+  let deCaja = false;
   try {
-    diaActual = await api('/api/mi-dia?fecha=' + hoy());
+    // Con señal se baja y se guarda; sin señal se trabaja con la última copia.
+    // La clave lleva la fecha: la copia de ayer no debe hacerse pasar por hoy.
+    ({ datos: diaActual, deCaja } =
+      await conRespaldo('mi-dia:' + hoy(), '/api/mi-dia?fecha=' + hoy()));
   } catch (e) {
-    return $('#main').innerHTML = `<div class="card"><div class="nota avi">${esc(e.message)}</div></div>`;
+    return $('#main').innerHTML = `<div class="card"><div class="nota avi">
+      ${esFalloDeRed(e)
+        ? `Sin señal y todavía no se ha guardado el día de hoy en este teléfono.
+           Ábralo una vez con señal y de ahí en adelante funciona sin ella.`
+        : esc(e.message)}</div></div>`;
   }
+
+  // Las marcas que están en la cola aún no existen en el servidor. Se superponen
+  // sobre la copia para que el conductor VEA lo que acaba de registrar: sin esto
+  // tocaría "Registrar salida", no pasaría nada visible y volvería a tocarlo.
+  diaActual = await superponerCola(diaActual);
+
   const { itinerario: it, trayecto_abierto: abierto, trayectos } = diaActual;
   const f = hoy();
 
@@ -477,9 +683,11 @@ async function verHoy() {
       <div class="card" style="padding:.75rem .85rem;margin-bottom:.5rem">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
           <b style="font-size:.8rem;color:var(--muted)">${esc(t.consecutivo || '')}</b>
-          ${t.estado === 'cerrado'
-            ? '<span class="etq verde">Cerrado</span>'
-            : '<span class="etq ambar">En curso</span>'}
+          ${t.pendiente
+            ? '<span class="etq ambar">Guardado en el celular</span>'
+            : t.estado === 'cerrado'
+              ? '<span class="etq verde">Cerrado</span>'
+              : '<span class="etq ambar">En curso</span>'}
         </div>
         <div style="display:flex;align-items:center;gap:.6rem;margin-top:.5rem">
           <div style="flex:1">
@@ -981,20 +1189,27 @@ async function guardarMarca(hito) {
     aviso(hito === 'salida' ? 'Salida registrada' : 'Llegada registrada', 'ok', 'Listo');
     verHoy();
   } catch (e) {
-    // Sin señal: se guarda en el celular y se envía cuando vuelva la cobertura.
-    if (!navigator.onLine || /fetch|network|failed/i.test(e.message)) {
-      // La fotografía no se guarda en la cola: unas pocas llenarían el
-      // almacenamiento del navegador. La marca se envía sola y la foto se
-      // agrega después desde la lista de viajes del día.
-      const { foto, ...sinFoto } = datos;
-      cola.agregar({
-        hito, ...sinFoto,
-        fecha_operacion: hoy(),
-        trayecto_id: hito === 'llegada' ? diaActual.trayecto_abierto.id : undefined,
-      });
+    // Sin señal: se guarda en el celular, CON su fotografía, y se envía cuando
+    // vuelva la cobertura. Antes la foto se descartaba porque la cola vivía en
+    // localStorage y no cabía; ahora vive en IndexedDB, donde sí hay sitio.
+    if (esFalloDeRed(e)) {
+      try {
+        await cola.agregar({
+          hito, ...datos,
+          fecha_operacion: hoy(),
+          trayecto_id: hito === 'llegada' ? diaActual.trayecto_abierto.id : undefined,
+        });
+      } catch {
+        // Si ni así se pudo guardar, hay que decirlo: callarlo sería perder la
+        // marca sin que el conductor se entere.
+        btn.disabled = false; btn.textContent = 'Guardar';
+        return aviso('No se pudo guardar en el teléfono. Libere espacio e intente de nuevo',
+                     'mal', 'Sin espacio');
+      }
       cerrarModal();
-      aviso('Sin señal: la marca quedó guardada y se enviará sola. Agregue la fotografía cuando vuelva la señal.',
+      aviso('Sin señal: la marca y la fotografía quedaron guardadas en el celular y se enviarán solas.',
             'avi', 'Guardado en el celular');
+      verHoy();
     } else {
       aviso(e.message, 'mal', 'No se pudo registrar');
       btn.disabled = false; btn.textContent = 'Guardar';
@@ -2647,14 +2862,27 @@ async function verAuditoria() {
 }
 
 // ── Arranque ─────────────────────────────────────────────────────────────────
+/**
+ * Arranque.
+ *
+ * ESTE ERA EL FALLO que dejaba la aplicación inservible sin señal: se validaba
+ * la sesión contra el servidor y CUALQUIER fallo —incluido no tener datos—
+ * llamaba a salir(), que borra la sesión guardada. El conductor quedaba en la
+ * pantalla de ingreso y no podía entrar, porque entrar también necesita red.
+ * Desde su lado, "la aplicación no abre sin internet".
+ *
+ * Ahora se entra de una vez con la sesión guardada y la comprobación va por
+ * detrás: solo se cierra la sesión si el servidor CONTESTA que ya no vale.
+ */
 (function arrancar() {
   try {
     const guardada = JSON.parse(localStorage.getItem('flota_sesion') || 'null');
     if (guardada?.token) {
       sesion = guardada;
+      iniciar();                       // no se espera al servidor para abrir
       api('/api/auth/yo')
-        .then(u => { sesion = { ...sesion, ...u }; iniciar(); })
-        .catch(() => salir(true));
+        .then(u => { sesion = { ...sesion, ...u }; localStorage.setItem('flota_sesion', JSON.stringify(sesion)); })
+        .catch(e => { if (!esFalloDeRed(e)) salir(true); });
       return;
     }
   } catch { /* sesión ilegible: se pide ingreso */ }
@@ -3301,7 +3529,10 @@ async function cargarBanner() {
   try {
     const r = await (await fetch(API + '/api/banner')).json();
     banner = r && !r.vacio && r.datos ? r : null;
-  } catch { banner = null; }
+    await guardarEnCaja('banner', banner);
+  } catch {
+    banner = await leerDeCaja('banner');     // sin señal, el último que se vio
+  }
   pintarBanner();
 }
 

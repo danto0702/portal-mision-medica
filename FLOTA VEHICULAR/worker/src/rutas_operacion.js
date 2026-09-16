@@ -860,9 +860,12 @@ ruta('POST', '/api/sync', async ({ db, sesion, cuerpo }) => {
                 m.lat ?? null, m.lon ?? null, m.precision ?? null,
                 m.km_inicial || null, sesion.id, ahora()).run();
         await recalcularDia(db, m.fecha_operacion || hoyISO(), m.vehiculo_id);
+        // La fotografía viaja con la marca: sin señal el conductor la toma igual
+        // y se guarda en el teléfono, así que aquí hay que aterrizarla.
+        await guardarFoto(db, r.meta.last_row_id, 'salida', m.foto, sesion, m);
         resultados.push({ local_id: m.local_id, ok: true, id: r.meta.last_row_id });
       } else if (m.hito === 'llegada') {
-        await db.prepare(`
+        const u = await db.prepare(`
           UPDATE trayectos
              SET municipio_llegada_id = ?, lugar_llegada = ?, ts_llegada = ?,
                  ts_llegada_disp = ?, origen_llegada = 'offline_sincronizado',
@@ -872,9 +875,17 @@ ruta('POST', '/api/sync', async ({ db, sesion, cuerpo }) => {
           .bind(m.municipio_id || null, m.lugar || null, m.ts_dispositivo,
                 m.ts_dispositivo, m.lat ?? null, m.lon ?? null, m.precision ?? null,
                 m.km_final || null, ahora(), m.trayecto_id).run();
+        // Si no tocó ninguna fila, la llegada NO se guardó. Decirlo: darla por
+        // buena haría que el teléfono la borrara y el viaje quedaría sin cerrar.
+        if (!u.meta.changes) {
+          resultados.push({ local_id: m.local_id, ok: false,
+                            error: 'No se encontró el viaje abierto que cierra esta llegada' });
+          continue;
+        }
         const t = await db.prepare('SELECT fecha_operacion, vehiculo_id FROM trayectos WHERE id = ?')
           .bind(m.trayecto_id).first();
         if (t) await recalcularDia(db, t.fecha_operacion, t.vehiculo_id);
+        await guardarFoto(db, m.trayecto_id, 'llegada', m.foto, sesion, m);
         resultados.push({ local_id: m.local_id, ok: true });
       }
     } catch (e) {

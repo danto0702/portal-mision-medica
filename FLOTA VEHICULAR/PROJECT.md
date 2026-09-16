@@ -1,6 +1,6 @@
 # PROJECT.md — Flota Vehicular HRNO
 
-> Borrador v1.0 · 15 sep 2026 · ESE Hospital Regional Noroccidental
+> Borrador v1.1 · 16 sep 2026 · ESE Hospital Regional Noroccidental
 > Responsable: Danilo Torrado Blanco — Coordinador de Salud Pública
 > Estado: **arquitectura, roles y modelo de datos definidos.** Pendientes las preguntas de §11
 
@@ -82,6 +82,7 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D26 | Fotografía | Se toma con **Timemark** (app externa que estampa fecha, hora y GPS). La app, su identificador y si se usa son configurables en Ajustes |
 | D27 | Instalación | **PWA instalable desde el navegador**, sin Play Store ni App Store. Iconos PNG propios, arranque sin señal y aviso cuando hay versión nueva |
 | D28 | Permiso de ubicación | Si el conductor lo bloquea por error, la aplicación lo detecta, ofrece un botón y explica los pasos de su teléfono. **La marca se guarda igual, señalada sin GPS** |
+| D29 | Sin señal | La aplicación **abre y es usable sin ninguna señal**. Copia local en IndexedDB de catálogos, parámetros, vehículos y el día; la cola guarda las marcas **con su fotografía** |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -467,7 +468,39 @@ justamente la señal que sirve para detectar inconsistencias.
 
 La exigencia de fotografía se puede apagar desde Ajustes (`foto_obligatoria`).
 
-### 5.4.2 Cuando el conductor bloquea la ubicación por error (D28)
+### 5.4.2 Funcionar sin señal, de verdad (D29)
+
+Los conductores reportaron que «la aplicación no abre sin internet». Abría —el service worker
+guardaba la pantalla— pero quedaba **inservible**, por cinco defectos encadenados:
+
+| Defecto | Qué veía el conductor |
+|---|---|
+| El arranque validaba la sesión contra el servidor y **cualquier** fallo, red incluida, llamaba a `salir()`, que borra la sesión guardada | Lo echaba a la pantalla de ingreso. Y no podía entrar, porque entrar también necesita red. **Esta era la queja** |
+| Catálogos, parámetros y vehículos se bajaban del servidor sin respaldo | El formulario de marca salía sin municipios ni vehículo |
+| `/api/mi-dia` fallaba y se pintaba el error | Sin programación y **sin el botón de registrar salida** |
+| La fotografía se **descartaba** al encolar la marca | El soporte se perdía |
+| La cola vivía en `localStorage`, unos 5 MB | Con cuatro o cinco marcas se llenaba y la marca se perdía sin avisar |
+
+Lo que hay ahora:
+
+- **La sesión solo se cierra si el servidor lo dice.** `fetch` únicamente rechaza cuando la
+  petición no llegó a ninguna parte; si el servidor respondió —aunque sea 401— no rechaza. Esa
+  distinción (`esFalloDeRed`) es la que separa «no hay señal» de «su sesión expiró».
+- **Copia local en IndexedDB** (`baul`), con dos almacenes: `cola` —marcas pendientes con su
+  fotografía— y `caja` —la última copia buena de catálogos, parámetros, vehículos, banner y el día
+  del conductor—. IndexedDB y no `localStorage` porque una fotografía ocupa cerca de 200 KB.
+- **Las marcas de la cola se superponen** sobre el día guardado. Sin eso el conductor tocaba
+  *Registrar salida*, no pasaba nada visible y volvía a tocarla: dos salidas del mismo viaje.
+- **Al volver la señal se envía de a una y en orden.** Importa el orden: una llegada tomada sin
+  señal apunta al identificador **local** de su salida, que aún no existía en el servidor. Al
+  enviar la salida, el servidor devuelve su id real y la equivalencia se aplica a la llegada. Sin
+  eso el `UPDATE` no encontraba el viaje y **la llegada se perdía en silencio** — por eso el
+  servidor ahora responde `ok: false` cuando el update no toca ninguna fila.
+- **`/api/sync` guarda las fotografías** (antes las ignoraba). Sube `VERSION_API` a **7**.
+
+Lo que no cambió, y no debe cambiar: sin ubicación la marca se registra igual, señalada sin GPS.
+
+### 5.4.3 Cuando el conductor bloquea la ubicación por error (D28)
 
 Pasó en terreno: varios conductores tocaron **Bloquear** en el cuadro del permiso y después no
 sabían cómo devolverse. Conviene tener claro el límite, porque manda sobre el diseño:
@@ -493,7 +526,7 @@ Dos detalles que hacen la diferencia en la vía:
 2. **Nunca bloquea la marca.** Sin ubicación, la salida y la llegada se registran igual y quedan
    señaladas sin GPS. Un conductor en la vía no se puede quedar sin registrar por un permiso.
 
-### 5.4.3 Georreferenciación en la pantalla de viajes
+### 5.4.4 Georreferenciación en la pantalla de viajes
 
 Cada marca muestra sus coordenadas con seis decimales, un botón para **copiarlas** y un enlace
 al mapa. Al lado va la precisión reportada por el GPS: por encima de 100 m se pinta en ámbar,

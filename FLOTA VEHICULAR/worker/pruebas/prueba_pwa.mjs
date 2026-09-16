@@ -624,6 +624,50 @@ if (chromium) {
     await ctx.close();
   }
 
+  // 3.6 · El conductor ve su itinerario, y solo el suyo.
+  {
+    const ctx = await nav.newContext({ ...movil, timezoneId: 'America/Bogota' });
+    const pag = await ctx.newPage();
+    await pag.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+    await pag.fill('#in-usuario', 'jnavarro');
+    await pag.fill('#in-clave', 'Conductor2026');
+    await pag.click('#in-btn');
+    await pag.waitForSelector('#app:not([hidden])');
+    await pag.waitForTimeout(1500);
+
+    verificar('el conductor tiene "Mi itinerario" en su menú',
+      (await pag.locator('#nav button').allInnerTexts()).includes('Mi itinerario'));
+
+    await pag.click('#nav button[data-v="miItinerario"]');
+    await pag.waitForTimeout(1600);
+    verificar('se listan los días del período, programados o no',
+      await pag.locator('.dia-itin').count() === 15);
+    verificar('y al menos uno trae programación',
+      await pag.locator('.dia-itin:not(.libre)').count() > 0);
+    verificar('el día de hoy se distingue',
+      await pag.locator('.dia-itin.es-hoy').count() === 1);
+    verificar('se le dice que es de consulta, no de edición',
+      /Solo de consulta/i.test(await pag.locator('#main').innerText()));
+
+    // Cambiar el período y que se recuerde.
+    await pag.click('.chips .chip:has-text("7 días")');
+    await pag.waitForTimeout(1400);
+    verificar('puede cambiar el período a 7 días',
+      await pag.locator('.dia-itin').count() === 7);
+
+    // Sin señal sigue viéndolo, avisando que es una copia.
+    await ctx.setOffline(true);
+    await pag.click('#nav button[data-v="hoy"]');
+    await pag.waitForTimeout(700);
+    await pag.click('#nav button[data-v="miItinerario"]');
+    await pag.waitForTimeout(1600);
+    verificar('sin señal sigue viendo su itinerario',
+      await pag.locator('.dia-itin').count() === 7);
+    verificar('y se le avisa que es la copia guardada',
+      /Sin señal/i.test(await pag.locator('#main').innerText()));
+    await ctx.close();
+  }
+
   // 4 · La versión nueva se avisa y NO entra sola.
   //
   // Es la parte más delicada: si una versión nueva se activara por su cuenta,

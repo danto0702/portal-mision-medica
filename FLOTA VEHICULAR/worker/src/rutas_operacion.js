@@ -592,6 +592,40 @@ async function guardarFoto(db, trayectoId, momento, foto, sesion, geo) {
 
 
 /** Lo que el conductor ve al abrir la aplicación: su programación de hoy. */
+/**
+ * El itinerario del propio conductor: lo que le toca en los próximos días.
+ *
+ * No se reutiliza /api/itinerario porque esa es la matriz de Coordinación —trae
+ * TODOS los vehículos y sirve para editar—. Aquí el filtro por conductor va en
+ * el servidor, no en la pantalla: así un conductor no puede ver la programación
+ * de sus compañeros ni cambiando la dirección a mano.
+ */
+ruta('GET', '/api/mi-itinerario', async ({ db, sesion, url }) => {
+  const desde = url.searchParams.get('desde') || hoyISO();
+  const dias = Math.min(Math.max(Number(url.searchParams.get('dias')) || 15, 1), 60);
+  const hasta = new Date(Date.parse(desde + 'T12:00:00') + (dias - 1) * 864e5)
+    .toISOString().slice(0, 10);
+  const personaId = sesion.persona_id;
+
+  if (!personaId) return { desde, hasta, sin_persona: true, dias: [] };
+
+  const r = await db.prepare(`
+    SELECT i.fecha, i.tipo_jornada, i.estado, i.observaciones,
+           v.placa, m.nombre AS municipio,
+           IFNULL(d.nombre, i.destino_texto) AS destino,
+           (SELECT COUNT(*) FROM trayectos t
+             WHERE t.conductor_id = i.conductor_id AND t.fecha_operacion = i.fecha
+               AND t.estado != 'anulado') AS viajes
+      FROM itinerarios i
+      JOIN vehiculos v ON v.id = i.vehiculo_id
+      LEFT JOIN cat_municipios m ON m.id = i.municipio_id
+      LEFT JOIN cat_destinos d ON d.id = i.destino_id
+     WHERE i.conductor_id = ? AND i.fecha BETWEEN ? AND ? AND i.estado != 'cancelado'
+     ORDER BY i.fecha`).bind(personaId, desde, hasta).all();
+
+  return { desde, hasta, dias: r.results };
+}, TODOS);
+
 ruta('GET', '/api/mi-dia', async ({ db, sesion, url }) => {
   const fecha = url.searchParams.get('fecha') || hoyISO();
   const personaId = sesion.persona_id;

@@ -107,6 +107,28 @@ ubicación en el momento exacto en que usted toca Salida o Llegada._
 
 ---
 
+## 3.1 · Mi itinerario (imagen: la pantalla Mi itinerario)
+
+```
+*MI ITINERARIO — LO QUE LE VIENE*
+
+Al lado de *Mi día* tiene la pestaña *Mi itinerario*. 📅
+
+Ahí ve su programación de los próximos días: para dónde va, con qué
+vehículo y qué tipo de jornada. Puede ver *7, 15 o 30 días*.
+
+Los días que le salen en gris con _"Sin programación"_ son días en que no
+tiene asignación.
+
+👀 Es *solo para consultar*. Si ve algo que no cuadra —un destino que no
+es, o un día que le aparece libre y usted sabe que sale— me avisa y yo lo
+corrijo. Los cambios los hace la Coordinación.
+
+📵 También funciona sin señal, con lo último que se haya guardado.
+```
+
+---
+
 ## 4 · Registrar la salida (imagen: formulario vacío)
 
 ```

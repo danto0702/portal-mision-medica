@@ -396,6 +396,25 @@ r = await api('POST', '/api/itinerario/lote', {
 verificar('el conductor NO puede cargar lotes', r.estado === 403, r.datos);
 
 console.log('\n── Marcación con GPS ─────────────────────────────────────────');
+console.log('\n── Itinerario del conductor ──────────────────────────────────');
+r = await api('GET', '/api/mi-itinerario?dias=15', null, tCond);
+verificar('el conductor puede consultar su itinerario', r.estado === 200, r.datos);
+verificar('viene la lista de días', Array.isArray(r.datos.dias), r.datos);
+
+// Lo esencial: el filtro por conductor lo hace el SERVIDOR. Si un conductor
+// pudiera ver la programación de sus compañeros sería una fuga de datos, y
+// filtrar en la pantalla no sirve: basta con pedir la dirección a mano.
+{
+  const placas = [...new Set(r.datos.dias.map(d => d.placa))];
+  verificar('solo ve la programación de su propio vehículo',
+    placas.length <= 1, placas.join(', '));
+  const suyos = r.datos.dias.every(d => d.destino !== undefined);
+  verificar('cada día trae su destino', suyos);
+}
+
+r = await api('GET', '/api/mi-itinerario?dias=999', null, tCond);
+verificar('un número de días disparatado no tumba la consulta', r.estado === 200, r.datos);
+
 r = await api('GET', '/api/mi-dia', null, tCond);
 verificar('el conductor ve su programación de hoy',
   r.estado === 200 && r.datos.itinerario && r.datos.itinerario.placa === 'GEU-665', r.datos);

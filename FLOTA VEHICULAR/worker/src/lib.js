@@ -33,7 +33,7 @@
  *      y día operativo en hora de Colombia
  *   6  kilometraje y tripulación obligatorios, fotografías de salida y llegada
  */
-const VERSION_API = 7;
+const VERSION_API = 8;
 
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 /**

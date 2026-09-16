@@ -17,7 +17,7 @@
  * peticiones e ignora en silencio lo que no entiende — un campo que no se
  * guarda y ningún mensaje de error. Por eso se comprueba y se avisa.
  */
-const VERSION_API_REQUERIDA = 7;
+const VERSION_API_REQUERIDA = 8;
 
 const esLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 const API = localStorage.getItem('flota_api') ||
@@ -343,6 +343,7 @@ const ico = d => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" st
 const ICONOS = {
   hoy:        ico('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
   itinerario: ico('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
+  miItinerario: ico('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 15h6"/>'),
   dashboard:  ico('<path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/>'),
   trayectos:  ico('<path d="M14 17H6V5h11l4 6v6h-3"/><circle cx="17.5" cy="17.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/>'),
   eventos:    ico('<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>'),
@@ -354,6 +355,7 @@ const ICONOS = {
 };
 const VISTAS = {
   hoy:        { et: 'Mi día',      fn: () => verHoy() },
+  miItinerario: { et: 'Mi itinerario', fn: () => verMiItinerario() },
   itinerario: { et: 'Itinerario',  fn: () => verItinerario() },
   dashboard:  { et: 'Dashboard',   fn: () => verDashboard() },
   trayectos:  { et: 'Trayectos',   fn: () => verTrayectos() },
@@ -364,7 +366,7 @@ const VISTAS = {
   ajustes:    { et: 'Ajustes',     fn: () => verAjustes() },
 };
 const MENU = {
-  conductor:    ['hoy', 'eventos'],
+  conductor:    ['hoy', 'miItinerario', 'eventos'],
   coordinacion: ['itinerario', 'dashboard', 'trayectos', 'eventos', 'hoy'],
   principal:    ['itinerario', 'dashboard', 'trayectos', 'eventos', 'vehiculos', 'personas', 'usuarios', 'ajustes'],
 };
@@ -583,6 +585,97 @@ async function superponerCola(dia) {
     }
   }
   return d;
+}
+
+// ── Itinerario del conductor ─────────────────────────────────────────────────
+//
+// No es la matriz de Coordinación, que trae todos los vehículos y sirve para
+// editar. Aquí el conductor ve SOLO lo suyo y solo lo lee: qué le toca los
+// próximos días, con qué vehículo y para dónde. El filtro por conductor lo hace
+// el servidor, no esta pantalla.
+
+let itinDiasConductor = Number(localStorage.getItem('flota_mi_itin_dias')) || 15;
+
+async function verMiItinerario() {
+  $('#main').innerHTML = '<div class="cargando">Cargando su itinerario...</div>';
+  let datos, deCaja = false;
+  try {
+    ({ datos, deCaja } = await conRespaldo(
+      `mi-itinerario:${hoy()}:${itinDiasConductor}`,
+      `/api/mi-itinerario?desde=${hoy()}&dias=${itinDiasConductor}`));
+  } catch (e) {
+    return $('#main').innerHTML = `<div class="card"><div class="nota avi">
+      ${esFalloDeRed(e)
+        ? 'Sin señal y todavía no se ha guardado su itinerario en este teléfono. Ábralo una vez con señal.'
+        : esc(e.message)}</div></div>`;
+  }
+
+  const porFecha = new Map((datos.dias || []).map(d => [d.fecha, d]));
+
+  // Se listan TODOS los días del período, con programación o sin ella: un día en
+  // blanco es información —"ese día no me toca"— y si solo se pintaran los días
+  // programados el conductor no sabría si es que no le toca o si falta cargarlo.
+  const filas = [];
+  for (let i = 0; i < itinDiasConductor; i++) {
+    const f = nDias(hoy(), i);
+    filas.push({ fecha: f, it: porFecha.get(f) || null, esHoy: i === 0 });
+  }
+
+  $('#main').innerHTML = `
+    <div class="cab">
+      <div><h1>Mi itinerario</h1>
+        <p>Su programación de los próximos días. Solo de consulta: los cambios
+           los hace la Coordinación de Salud Pública.</p></div>
+      <button class="btn sec sm" onclick="verMiItinerario()">Actualizar</button>
+    </div>
+
+    ${deCaja ? `<div class="nota avi" style="margin-bottom:.8rem">
+      Sin señal: esto es lo último que se guardó en el teléfono. Puede que la
+      Coordinación lo haya cambiado desde entonces.</div>` : ''}
+
+    ${datos.sin_persona ? `
+      <div class="card" style="border-left:4px solid var(--rojo)">
+        <b>Su cuenta no está vinculada a una persona</b>
+        <p style="margin:.4rem 0 0;font-size:.88rem;color:var(--text-soft)">
+          Por eso no ve su programación. Avise a la Coordinación de Salud Pública.</p>
+      </div>` : ''}
+
+    <div class="chips" style="margin-bottom:.9rem">
+      ${[7, 15, 30].map(n => `<button class="chip ${n === itinDiasConductor ? 'on' : ''}"
+        onclick="cambiarDiasMiItinerario(${n})">${n} días</button>`).join('')}
+    </div>
+
+    ${filas.map(({ fecha, it, esHoy }) => {
+      const tj = it ? (TIPOS_JORNADA[it.tipo_jornada] || TIPOS_JORNADA.ebs) : null;
+      return `
+      <div class="card dia-itin ${esHoy ? 'es-hoy' : ''} ${it ? '' : 'libre'}">
+        <div class="dia-fecha">
+          <div class="dia-nombre">${diaSemana(fecha)}${esHoy ? ' · HOY' : ''}</div>
+          <div class="dia-num">${new Date(fecha + 'T12:00:00')
+            .toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+            .replace(' de ', ' ').replace('.', '')}</div>
+        </div>
+        <div class="dia-cuerpo">
+          ${it ? `
+            <div class="dia-destino">${esc(it.destino || 'Sin destino asignado')}</div>
+            <div class="dia-sub">${esc(it.municipio || '')}${it.placa ? ' · ' : ''}
+              ${it.placa ? `<span class="placa">${esc(it.placa)}</span>` : ''}</div>
+            ${it.observaciones ? `<div class="dia-obs">${esc(it.observaciones)}</div>` : ''}`
+          : '<div class="dia-libre">Sin programación</div>'}
+        </div>
+        <div class="dia-etq">
+          ${tj ? `<span class="etq ${tj.color}">${tj.et}</span>` : ''}
+          ${it && it.viajes > 0 ? `<span class="etq verde">${it.viajes} viaje(s)</span>` : ''}
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function cambiarDiasMiItinerario(n) {
+  itinDiasConductor = n;
+  localStorage.setItem('flota_mi_itin_dias', String(n));
+  verMiItinerario();
 }
 
 async function verHoy() {

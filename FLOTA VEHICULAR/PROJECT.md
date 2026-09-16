@@ -83,6 +83,7 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D27 | Instalación | **PWA instalable desde el navegador**, sin Play Store ni App Store. Iconos PNG propios, arranque sin señal y aviso cuando hay versión nueva |
 | D28 | Permiso de ubicación | Si el conductor lo bloquea por error, la aplicación lo detecta, ofrece un botón y explica los pasos de su teléfono. **La marca se guarda igual, señalada sin GPS** |
 | D29 | Sin señal | La aplicación **abre y es usable sin ninguna señal**. Copia local en IndexedDB de catálogos, parámetros, vehículos y el día; la cola guarda las marcas **con su fotografía** |
+| D30 | Itinerario del conductor | Pantalla propia, **solo de consulta**, con su programación de los próximos días. El filtro por conductor lo hace el **servidor**, no la pantalla |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -400,6 +401,21 @@ móvil de ese vehículo. Semáforo de vencimientos: verde (> 30 días), amarillo
 Conductores y tripulación en una sola tabla con banderas de rol. Vigencia de licencia por
 categoría, **curso de Misión Médica** (exigido por la Res. 4481), APH, exámenes ocupacionales y
 ARL, con el mismo semáforo.
+
+### 5.3.1 Mi itinerario: lo que el conductor consulta (D30)
+
+El conductor necesitaba ver más allá de hoy: con qué vehículo sale mañana, si el domingo le toca,
+cuándo tiene una jornada de vacunación. Es una pantalla **aparte**, no la matriz de §5.1:
+
+- **Solo de consulta.** La matriz de Coordinación trae todos los vehículos y sirve para editar
+  arrastrando; en un teléfono no se usa, y un conductor no debe cambiar su propia programación.
+- **Una tarjeta por día, en una columna**, incluidos los días **sin programación** — que un día
+  salga en blanco es información («ese día no me toca»). Si solo se pintaran los días programados,
+  el conductor no sabría si es que descansa o si falta cargarlo.
+- **El filtro lo hace el servidor.** `/api/mi-itinerario` consulta por `sesion.persona_id`; filtrar
+  en la pantalla no serviría de nada, porque basta con pedir la dirección a mano para ver la
+  programación de los compañeros. La prueba comprueba que solo aparezca su propio vehículo.
+- **Funciona sin señal**, con la copia local, avisando que puede estar desactualizada.
 
 ### 5.4 Trayectos: marcación en vivo con GPS (D5)
 

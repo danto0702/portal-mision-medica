@@ -27,3 +27,24 @@ from information_schema.columns
 where table_schema='public' and table_name like 'dnt%'
 order by table_name, ordinal_position;
 ```
+
+| 12 | `dnt_12_carga_historica_temporal` | Función temporal de carga (reemplazada por la 13) |
+| 13 | `dnt_13_carga_historica_v2` | Mesa de trabajo y expansor de la carga compactada |
+| 14 | `dnt_14_retirar_carga_historica` | Retiro del andamiaje y registro del cargue |
+
+## Carga histórica
+
+Los cinco informes institucionales de enero a agosto de 2026 quedaron cargados el
+16 de septiembre de 2026, con los puntajes Z recalculados con las tablas OMS 2006:
+
+| Archivo | Municipio | Atenciones | Niños |
+|---|---|---|---|
+| Informe_de_Desnutricion_PrimeraInfancia_Abrego | Ábrego | 111 | 102 |
+| Informe_..._Convencion_Enero_Agosto_2026 | Convención | 54 | 52 |
+| Informe_..._el_Carmen | El Carmen | 22 | 17 |
+| Informe_..._Guamalito_Enero_Agosto_2026 | El Carmen | 23 | 21 |
+| Informe_..._San_Pablo_Enero_Agosto_2026 | Teorama | 61 | 50 |
+| **Total** | | **271** | **242** |
+
+Clasificación resultante: 208 casos en riesgo, 27 con desnutrición aguda moderada y
+7 con desnutrición aguda severa. Ninguna fila se descartó.

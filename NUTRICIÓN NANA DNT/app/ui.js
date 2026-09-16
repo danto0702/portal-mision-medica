@@ -158,7 +158,12 @@ var DNTApp = (function () {
 
     DNTAuth.registrar('ingreso', { detalle: { rol: s.rol } });
     await recargarCasos();
-    ir('tablero');
+
+    // El portal puede pedir una vista concreta al entrar (por ejemplo «Información»).
+    var pedida = null;
+    try { pedida = sessionStorage.getItem('dnt-nav'); sessionStorage.removeItem('dnt-nav'); } catch (e) {}
+    var valida = ['tablero','casos','cargar','indicadores','apoyo','informacion','admin'];
+    ir(valida.indexOf(pedida) >= 0 && (pedida !== 'admin' || DNTAuth.esAdmin()) ? pedida : 'tablero');
   }
 
   function ir(vista, param) {

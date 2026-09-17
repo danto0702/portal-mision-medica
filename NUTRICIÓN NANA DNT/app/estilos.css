@@ -12,6 +12,11 @@
   --naranja-2:  #F97316;
   --naranja-luz:#FFF1E7;
 
+  /* Marca NANA DNT. No se usa en el semáforo nutricional: el dorado se
+     confundiría con el amarillo del riesgo. */
+  --marca-azul:   #0C2858;
+  --marca-dorado: #E1A823;
+
   --bg:         #F2FAF8;
   --surface:    #FFFFFF;
   --surface-2:  #F7FBFA;
@@ -56,11 +61,11 @@ a { color: var(--menta); }
   box-shadow: 0 2px 14px rgba(15,138,126,.10);
 }
 .marca { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+/* El logotipo trae su propio fondo azul y sus esquinas redondeadas */
 .marca-icono {
-  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--menta), var(--menta-2));
-  display: grid; place-items: center; font-size: 21px;
-  box-shadow: 0 4px 14px rgba(15,138,126,.34);
+  width: 42px; height: 42px; flex-shrink: 0; display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 10px rgba(12,40,88,.30));
 }
 .marca-txt strong { display: block; font-size: .96rem; font-weight: 700; letter-spacing: -.01em; }
 .marca-txt span   { display: block; font-size: .72rem; color: var(--texto-3); }

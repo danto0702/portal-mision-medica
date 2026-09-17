@@ -1105,12 +1105,19 @@ var DNTFicha = (function () {
     }
     function salto(mm) { y += (mm || 6); if (y > 260) { doc.addPage(); y = 18; } }
 
-    doc.setFillColor(15, 138, 126); doc.rect(0, 0, 216, 24, 'F');
+    doc.setFillColor(12, 40, 88); doc.rect(0, 0, 216, 26, 'F');   // azul de la marca
+    // El logotipo ya está cargado en el encabezado de la página
+    var logo = document.querySelector('.marca-icono');
+    if (logo && logo.complete && logo.naturalWidth) {
+      try { doc.addImage(logo, 'PNG', 188, 4, 18, 18); } catch (e) { /* sin logotipo, el PDF igual sale */ }
+    }
     doc.setTextColor(255, 255, 255); doc.setFontSize(14); doc.setFont('helvetica', 'bold');
-    doc.text('Ficha de seguimiento nutricional infantil', 14, 11);
+    doc.text('NANA DNT', 14, 11);
     doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-    doc.text('ESE Hospital Regional Noroccidental · Res. 2350 de 2020 y Res. 115 de 2026', 14, 18);
-    y = 34;
+    doc.text('Ficha de seguimiento nutricional infantil · ESE Hospital Regional Noroccidental', 14, 17);
+    doc.setFontSize(8);
+    doc.text('Res. 2350 de 2020 y Res. 115 de 2026', 14, 22);
+    y = 36;
 
     texto(n.primer_nombre + ' ' + (n.segundo_nombre || '') + ' ' + n.primer_apellido + ' ' + (n.segundo_apellido || ''), 14, 13, 'bold');
     salto(7);
@@ -1120,7 +1127,7 @@ var DNTFicha = (function () {
 
     function seccion(titulo) {
       doc.setDrawColor(185, 229, 222); doc.line(14, y - 3, 202, y - 3);
-      texto(titulo, 14, 11, 'bold', [15, 138, 126]); salto(7);
+      texto(titulo, 14, 11, 'bold', [12, 40, 88]); salto(7);
     }
     function par(k, v) {
       texto(k + ':', 14, 9, 'bold', [75, 107, 103]);

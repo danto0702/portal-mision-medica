@@ -32,6 +32,8 @@ order by table_name, ordinal_position;
 | 13 | `dnt_13_carga_historica_v2` | Mesa de trabajo y expansor de la carga compactada |
 | 14 | `dnt_14_retirar_carga_historica` | Retiro del andamiaje y registro del cargue |
 | 15 | `dnt_15_gestion_usuarios` | `dnt_rol_de()` y `dnt_auth_id_por_correo()`, apoyo de la función de borde |
+| 16 | `dnt_16_perimetros_cefalico_abdominal` | Perímetro abdominal, y puntaje Z y clasificación del cefálico |
+| 17 | `dnt_17_vista_casos_con_perimetros` | `dnt_v_casos_detalle` arrastra los dos perímetros de la última medición |
 
 ## Carga histórica
 

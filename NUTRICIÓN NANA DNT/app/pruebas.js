@@ -181,6 +181,54 @@ ok(DNTClinico.puntajeRiesgo([], cat).nivel === 'bajo', 'sin factores → riesgo 
 ok(DNTClinico.puntajeRiesgo(['a','b'], cat).nivel === 'medio', 'puntaje 6 → riesgo medio');
 ok(DNTClinico.puntajeRiesgo(['a','b','c','d'], cat).puntaje === 9, 'suma de pesos');
 
+// ── 13 · Perímetro cefálico para la edad ───────────────────────────
+titulo('13 · Perímetro cefálico para la edad (OMS 2006 · Res. 2465/2016)');
+[ // [sexo, mes, z, cm publicado por la OMS]
+  ['M',  0, -3, 30.7], ['M',  0, -2, 31.9], ['M',  0, 0, 34.5], ['M',  0, 2, 37.0],
+  ['M', 12, -2, 43.5], ['M', 12,  0, 46.1], ['M', 12, 2, 48.6],
+  ['M', 24, -2, 45.5], ['M', 24,  0, 48.3], ['M', 60, 0, 50.7], ['M', 60, 2, 53.7],
+  ['F',  0, -2, 31.5], ['F',  0,  0, 33.9], ['F', 12, -2, 42.2], ['F', 12, 0, 44.9],
+  ['F', 24,  0, 47.2], ['F', 60,  0, 49.9], ['F', 60, 2, 52.8]
+].forEach(function (c) {
+  var p = DNTAntro.buscarLMS(DNT_LMS.hcfa[c[0]], c[1]);
+  casi(+DNTAntro.valorEnZ(p, c[2]).toFixed(1), c[3], 0.06,
+       'PC ' + c[0] + ' mes ' + c[1] + ' en Z=' + c[2]);
+});
+
+// La tabla se indexa por meses cumplidos, igual que P/E y T/E.
+var pcNino = { fecha_nac: '2025-09-17', sexo: 'M' };
+function evalPC(fecha, pc) {
+  return DNTAntro.evaluar({ fecha_nac: pcNino.fecha_nac, sexo: pcNino.sexo, fecha: fecha, pc_cm: pc });
+}
+casi(evalPC('2026-09-17', 46.1).z_pc, 0, 0.05, 'PC en la mediana de los 12 meses da Z ≈ 0');
+ok(evalPC('2026-09-16', 46.1).edad_meses_cumplidos === 11,
+   'un día antes del cumpleaños son 11 meses cumplidos, no 12');
+
+ok(evalPC('2026-09-17', 43.4).clasificacion_pc.codigo === 'PC_BAJO',
+   'por debajo de -2 DE → PC_BAJO', evalPC('2026-09-17', 43.4).z_pc);
+ok(evalPC('2026-09-17', 46.1).clasificacion_pc.codigo === 'PC_ADECUADO', 'en la mediana → PC_ADECUADO');
+ok(evalPC('2026-09-17', 48.7).clasificacion_pc.codigo === 'PC_ALTO',
+   'por encima de +2 DE → PC_ALTO', evalPC('2026-09-17', 48.7).z_pc);
+ok(evalPC('2026-09-17', null).z_pc === null, 'sin medida no inventa puntaje');
+
+// El perímetro cefálico NO entra en la clasificación nutricional: la
+// desnutrición aguda no se diagnostica por el tamaño de la cabeza.
+var conPC = DNTAntro.evaluar({ fecha_nac: '2025-09-17', sexo: 'M', fecha: '2026-09-17',
+                               peso_kg: 9.6, talla_cm: 75.7, pc_cm: 40 });
+ok(conPC.clasificacion_pc.codigo === 'PC_BAJO', 'PC bajo se clasifica aparte');
+ok(conPC.clasificacion_final === 'PESO_ADECUADO',
+   'y no arrastra la clasificación nutricional', conPC.clasificacion_final);
+
+// ── 14 · Perímetro abdominal ───────────────────────────────────────
+titulo('14 · Perímetro abdominal');
+var pa = DNTAntro.evaluar({ fecha_nac: '2025-09-17', sexo: 'M', fecha: '2026-09-17',
+                            peso_kg: 9.6, talla_cm: 75.7, pa_cm: 45.4 });
+casi(pa.perimetro_abdominal, 45.4, 0.001, 'se guarda el valor tal cual');
+ok(pa.z_pc === null, 'no genera puntaje Z: no hay patrón OMS para menores de 5 años');
+ok(pa.clasificacion_final === 'PESO_ADECUADO', 'tampoco toca la clasificación nutricional');
+ok(DNTAntro.evaluar({ fecha_nac: '2025-09-17', sexo: 'M', fecha: '2026-09-17' })
+     .perimetro_abdominal === null, 'sin medida queda en nulo');
+
 // ── Resumen ────────────────────────────────────────────────────────
 console.log('\n' + (fallos ? '✗ ' : '✓ ') + (pruebas - fallos) + '/' + pruebas + ' comprobaciones correctas');
 process.exit(fallos ? 1 : 0);

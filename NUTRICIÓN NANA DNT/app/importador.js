@@ -30,6 +30,7 @@ var DNTImportador = (function () {
     nacionalidad: 'Nacionalidad', eps: 'EPS Atención', sede: 'Nombre Sede',
     peso_nacer: 'Peso Al Nacer', talla_nacer: 'Talla Al Nacer', edad_gestacional: 'Edad Gestacional Al Nacer',
     hemoglobina: 'Resultado Hemoglobina', pb: 'Perimetro Braquial', pc: 'PerimetroCefalico',
+    pa: 'PerimetroAbdominal',
     pt_archivo: 'Peso para la Talla(P/T)', profesional: 'Nombre Profesional'
   };
 
@@ -238,6 +239,7 @@ var DNTImportador = (function () {
         fecha: fcons, peso_kg: peso, talla_cm: talla,
         pb_cm: numero(v(fila, OPCIONALES.pb)),
         perimetro_cefalico_cm: numero(v(fila, OPCIONALES.pc)),
+        perimetro_abdominal_cm: numero(v(fila, OPCIONALES.pa)),
         hemoglobina: numero(v(fila, OPCIONALES.hemoglobina)),
         pt_archivo: v(fila, OPCIONALES.pt_archivo) || null,
         profesional: v(fila, OPCIONALES.profesional) || null
@@ -258,7 +260,8 @@ var DNTImportador = (function () {
       porNino[k].forEach(function (a) {
         a.ev = DNTAntro.evaluar({
           fecha_nac: a.fecha_nac, fecha: a.fecha, sexo: a.sexo,
-          peso_kg: a.peso_kg, talla_cm: a.talla_cm, pb_cm: a.pb_cm
+          peso_kg: a.peso_kg, talla_cm: a.talla_cm, pb_cm: a.pb_cm,
+          pc_cm: a.perimetro_cefalico_cm, pa_cm: a.perimetro_abdominal_cm
         });
         if (a.pt_archivo && a.ev.clasificacion_pt) {
           var mapa = { 'desnutricion aguda severa': 'DNT_AGUDA_SEVERA',
@@ -461,8 +464,11 @@ var DNTImportador = (function () {
         modalidad: 'intramural', sede_id: caso.sede_id,
         peso_kg: a.peso_kg, talla_cm: a.talla_cm, medicion: 'auto',
         pb_cm: a.pb_cm, perimetro_cefalico_cm: a.perimetro_cefalico_cm,
+        perimetro_abdominal_cm: a.perimetro_abdominal_cm,
         edema: 'ninguno', edad_meses: a.ev.edad_meses,
         z_pt: a.ev.z_pt, z_pe: a.ev.z_pe, z_te: a.ev.z_te, z_imc: a.ev.z_imc,
+        z_pc: a.ev.z_pc,
+        clasificacion_pc: a.ev.clasificacion_pc ? a.ev.clasificacion_pc.codigo : null,
         clasificacion_pt: a.ev.clasificacion_pt ? a.ev.clasificacion_pt.codigo : null,
         clasificacion_pe: a.ev.clasificacion_pe ? a.ev.clasificacion_pe.codigo : null,
         clasificacion_te: a.ev.clasificacion_te ? a.ev.clasificacion_te.codigo : null,
@@ -599,8 +605,13 @@ var DNTImportador = (function () {
       '</div>' +
       '<div class="fila">' +
         c('mPB', 'Perímetro braquial (cm)', '<input type="number" id="mPB" step="0.1" min="5" max="25">') +
+        c('mPC', 'Perímetro cefálico (cm)', '<input type="number" id="mPC" step="0.1" min="25" max="60">') +
+        c('mPA', 'Perímetro abdominal (cm)', '<input type="number" id="mPA" step="0.1" min="20" max="90">') +
+      '</div>' +
+      '<div class="fila">' +
         c('mEdema', 'Edema bilateral', '<select id="mEdema">' + A.opcion('ninguno', 'Ninguno') +
           A.opcion('+', 'Leve (+)') + A.opcion('++', 'Moderado (++)') + A.opcion('+++', 'Severo (+++)') + '</select>') +
+        '<div class="campo"></div><div class="campo"></div>' +
       '</div>' +
       '<div id="mCalculo"></div>',
       [
@@ -608,7 +619,7 @@ var DNTImportador = (function () {
         { texto: 'Crear el caso', accion: crearCasoManual }
       ]);
 
-    ['mFNac', 'mSexo', 'mPeso', 'mTalla', 'mPB', 'mEdema', 'mFecha'].forEach(function (id) {
+    ['mFNac', 'mSexo', 'mPeso', 'mTalla', 'mPB', 'mPC', 'mPA', 'mEdema', 'mFecha'].forEach(function (id) {
       $(id).oninput = $(id).onchange = calcularManual;
     });
     $('mNumDoc').onblur = comprobarDuplicado;
@@ -644,7 +655,9 @@ var DNTImportador = (function () {
     }
     var ev = DNTAntro.evaluar({
       fecha_nac: fnac, fecha: $('mFecha').value, sexo: $('mSexo').value,
-      peso_kg: peso, talla_cm: talla, pb_cm: parseFloat($('mPB').value), edema: $('mEdema').value
+      peso_kg: peso, talla_cm: talla, pb_cm: parseFloat($('mPB').value),
+      pc_cm: parseFloat($('mPC').value), pa_cm: parseFloat($('mPA').value),
+      edema: $('mEdema').value
     });
     calculoManual = ev;
     var clas = CLAS_CASO[ev.clasificacion_final];
@@ -707,9 +720,14 @@ var DNTImportador = (function () {
       await DNTDatos.guardarSeguimiento({
         caso_id: caso.id, numero: 1, fecha: $('mFecha').value, tipo: 'ingreso', modalidad: 'intramural',
         peso_kg: parseFloat($('mPeso').value), talla_cm: parseFloat($('mTalla').value), medicion: 'auto',
-        pb_cm: parseFloat($('mPB').value) || null, edema: $('mEdema').value,
+        pb_cm: parseFloat($('mPB').value) || null,
+        perimetro_cefalico_cm: parseFloat($('mPC').value) || null,
+        perimetro_abdominal_cm: parseFloat($('mPA').value) || null,
+        edema: $('mEdema').value,
         edad_meses: calculoManual.edad_meses,
         z_pt: calculoManual.z_pt, z_pe: calculoManual.z_pe, z_te: calculoManual.z_te, z_imc: calculoManual.z_imc,
+        z_pc: calculoManual.z_pc,
+        clasificacion_pc: calculoManual.clasificacion_pc ? calculoManual.clasificacion_pc.codigo : null,
         clasificacion_pt: calculoManual.clasificacion_pt ? calculoManual.clasificacion_pt.codigo : null,
         clasificacion_te: calculoManual.clasificacion_te ? calculoManual.clasificacion_te.codigo : null,
         clasificacion_final: calculoManual.clasificacion_final,

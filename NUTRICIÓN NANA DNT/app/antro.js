@@ -138,6 +138,14 @@
       { max: -1,       codigo: 'RIESGO_PESO_BAJO',   texto: 'Riesgo de peso bajo para la edad',                        color: 'amarillo' },
       { max: 1,        codigo: 'PESO_ADECUADO_EDAD', texto: 'Peso adecuado para la edad',                              color: 'verde'    },
       { max: Infinity, codigo: 'PESO_ELEVADO',       texto: 'Peso elevado para la edad (evaluar con P/T)',             color: 'azul'     }
+    ],
+    // Perímetro cefálico para la edad. La Res. 2465/2016 lo nombra por el punto
+    // de corte, no por el diagnóstico: microcefalia y macrocefalia son lecturas
+    // clínicas que confirma el pediatra, no una salida de la tabla.
+    pc: [
+      { max: -2,       codigo: 'PC_BAJO',     texto: 'Perímetro cefálico bajo para la edad (evaluar microcefalia)', color: 'naranja' },
+      { max: 2,        codigo: 'PC_ADECUADO', texto: 'Perímetro cefálico adecuado para la edad',                    color: 'verde'   },
+      { max: Infinity, codigo: 'PC_ALTO',     texto: 'Perímetro cefálico alto para la edad (evaluar macrocefalia)', color: 'naranja' }
     ]
   };
 
@@ -187,15 +195,17 @@
   /**
    * @param {Object} m
    *   fecha_nac, sexo ('M'|'F'), fecha, peso_kg, talla_cm,
-   *   medicion ('auto'|'longitud'|'talla'), pb_cm, edema ('ninguno'|'+'|'++'|'+++')
+   *   medicion ('auto'|'longitud'|'talla'), pb_cm, pc_cm, pa_cm,
+   *   edema ('ninguno'|'+'|'++'|'+++')
    * @returns {Object} puntajes Z, clasificaciones por indicador y clasificación final.
    */
   function evaluar(m) {
     var out = {
       edad_meses: null, edad_dias: null, edad_texto: '',
-      z_pt: null, z_pe: null, z_te: null, z_imc: null,
+      z_pt: null, z_pe: null, z_te: null, z_imc: null, z_pc: null,
       clasificacion_pt: null, clasificacion_pe: null, clasificacion_te: null,
-      clasificacion_pb: null, clasificacion_final: null,
+      clasificacion_pb: null, clasificacion_pc: null, clasificacion_final: null,
+      perimetro_abdominal: null,
       imc: null, tabla_pt: null, talla_usada: null, talla_ajustada: false,
       avisos: []
     };
@@ -260,6 +270,25 @@
 
     // Perímetro braquial
     out.clasificacion_pb = clasificarPB(parseFloat(m.pb_cm), cumplidos);
+
+    // Perímetro cefálico para la edad. No entra en la clasificación nutricional
+    // —la desnutrición aguda no se diagnostica por la cabeza— pero en menores de
+    // 2 años es el tamizaje de neurodesarrollo que exige la ruta de promoción y
+    // mantenimiento, y aquí ya se tiene la edad y el sexo para calcularlo.
+    var pc = parseFloat(m.pc_cm);
+    if (pc > 0) {
+      var ph = buscarLMS(DNT_LMS.hcfa[sexo], mesesTabla);
+      if (ph) {
+        out.z_pc = +calcularZ(pc, ph, false).toFixed(3);
+        out.clasificacion_pc = clasificar('pc', out.z_pc);
+      }
+    }
+
+    // Perímetro abdominal. Se guarda tal cual: no tiene patrón de referencia de
+    // la OMS para menores de 5 años, y su valor está en la tendencia —la
+    // distensión que acompaña al edema o a la realimentación—, no en un corte.
+    var pa = parseFloat(m.pa_cm);
+    if (pa > 0) out.perimetro_abdominal = +pa.toFixed(1);
 
     // ── Clasificación final: gana el criterio más severo ───────────
     var candidatos = [];

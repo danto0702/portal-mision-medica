@@ -15,7 +15,8 @@ semáforo nutricional, porque se confundiría con el amarillo del riesgo.
 
 | Función | Detalle |
 |---|---|
-| **Clasificación automática** | Calcula el puntaje Z de P/T-L, P/E, T/E e IMC/E con las tablas OMS 2006 adoptadas por la Res. 2465 de 2016. Integra perímetro braquial y edema: gana el criterio más severo. |
+| **Clasificación automática** | Calcula el puntaje Z de P/T-L, P/E, T/E, IMC/E y PC/E con las tablas OMS 2006 adoptadas por la Res. 2465 de 2016. Integra perímetro braquial y edema: gana el criterio más severo. |
+| **Perímetros** | Braquial, cefálico —con su puntaje Z y su clasificación— y abdominal, que no tiene patrón de referencia y se lee por la diferencia contra el control anterior. |
 | **Algoritmo de atención** | Ruta por grupo etario (menor de 6 meses y 6 a 59 meses), prueba de apetito con FTLC, criterios de remisión y paquete de estabilización. |
 | **Tratamiento** | Esquema de FTLC por diagnóstico y día, calculadora farmacológica (amoxicilina, albendazol, ácido fólico, hierro) y esquema de transición del numeral 5.1.8. |
 | **Check-list** | Listas A (atención inicial), B (cada control) y C (egreso) con estado, fecha, observación y soportes en PDF o imagen, versionados. |

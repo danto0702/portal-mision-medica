@@ -47,11 +47,38 @@ body {
   margin: 0; background: var(--bg); color: var(--texto);
   font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif;
   min-height: 100vh; line-height: 1.55;
+  /* Columna flexible: el pie de PascalIA queda abajo aunque la vista sea corta.
+     login.html redefine el display en su propio <style>. */
+  display: flex; flex-direction: column;
 }
 h1,h2,h3,h4 { font-family: 'Lora', Georgia, serif; margin: 0 0 .4em; line-height: 1.25; }
 h1 { font-size: 1.7rem; } h2 { font-size: 1.3rem; } h3 { font-size: 1.08rem; }
 a { color: var(--menta); }
 :focus-visible { outline: 3px solid var(--menta-2); outline-offset: 2px; border-radius: 6px; }
+
+
+/* ═══ Firma de quien desarrolla ════════════════════
+   Va una sola vez y fuera de <main>, para que salga en todas las vistas sin
+   tener que acordarse de ponerla al escribir una nueva. `.credito` es la
+   misma firma cuando toca ir dentro de una tarjeta (el ingreso). */
+.pie-pascalia {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  background: var(--surface); border-top: 1px solid var(--borde);
+}
+.credito {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--borde);
+}
+.pie-pascalia span, .credito span {
+  font-size: .69rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--texto-3);
+}
+/* El archivo trae fondo blanco, por eso el pie y la tarjeta son blancos. */
+.pie-pascalia img, .credito img { width: 96px; height: auto; display: block; }
+@media (max-width: 480px) {
+  .pie-pascalia img, .credito img { width: 84px; }
+}
 
 /* ═══ Encabezado ═══════════════════════════════════════════════ */
 .enc {
@@ -108,7 +135,7 @@ a { color: var(--menta); }
 }
 
 /* ═══ Estructura ═══════════════════════════════════════════════ */
-.envoltura { max-width: 1320px; margin: 0 auto; padding: 22px 18px 72px; }
+.envoltura { max-width: 1320px; width: 100%; margin: 0 auto; padding: 22px 18px 44px; flex: 1 1 auto; }
 .vista { display: none; animation: aparece .22s ease; }
 .vista.activa { display: block; }
 @keyframes aparece { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

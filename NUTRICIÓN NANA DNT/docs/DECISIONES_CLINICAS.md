@@ -150,6 +150,20 @@ perímetro braquial ni del edema. Se muestra aparte porque es el tamizaje de neu
 que la ruta de promoción y mantenimiento pide en los menores de 2 años, y aquí ya se tienen
 la edad y el sexo para calcularlo sin pedir nada más.
 
+### Los dos perímetros son complementarios, y eso está blindado
+
+Ni el cefálico ni el abdominal pueden mover el diagnóstico nutricional. No es una intención:
+la verificación de los motores hace un barrido sobre casos de cada clasificación —severa,
+moderada, riesgo, adecuado, sobrepeso, severa por perímetro braquial y un caso sin peso ni
+talla— y comprueba que al añadir perímetros extremos no cambie **ninguno** de los campos que
+definen el diagnóstico: `z_pt`, `z_pe`, `z_te`, `z_imc`, `clasificacion_final`, el criterio
+que la produjo, la tabla usada y la talla corregida.
+
+Si alguien más adelante mete estos perímetros en la clasificación, esa prueba se cae. En la
+pantalla, además, las dos tarjetas quedan **fuera** del recuadro del cálculo nutricional y
+llevan la leyenda «Medidas complementarias: no modifican la clasificación nutricional del
+caso».
+
 **El perímetro abdominal no tiene patrón de referencia** de la OMS para menores de 5 años, así
 que no se le calcula puntaje Z ni se clasifica. Se guarda el valor y se muestra **cuánto
 cambió desde el control anterior**: lo que informa es la tendencia —la distensión que

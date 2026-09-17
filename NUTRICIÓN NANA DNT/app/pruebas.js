@@ -229,6 +229,42 @@ ok(pa.clasificacion_final === 'PESO_ADECUADO', 'tampoco toca la clasificación n
 ok(DNTAntro.evaluar({ fecha_nac: '2025-09-17', sexo: 'M', fecha: '2026-09-17' })
      .perimetro_abdominal === null, 'sin medida queda en nulo');
 
+// ── Garantía: los perímetros nuevos son complementarios ────────────
+// Barrido sobre casos de cada clasificación. Para cada uno se evalúa sin los
+// perímetros y luego con valores extremos, y todo lo que define el diagnóstico
+// nutricional tiene que salir idéntico. Si alguien los mete en la clasificación
+// más adelante, esta prueba se cae.
+titulo('15 · Los perímetros nuevos no tocan el diagnóstico nutricional');
+var DIAGNOSTICO = ['z_pt', 'z_pe', 'z_te', 'z_imc', 'clasificacion_final',
+                   'clasificacion_final_criterio', 'tabla_pt', 'talla_usada'];
+var BASES = [
+  { n: 'severa por Z',        peso_kg:  6.0, talla_cm: 80,   pb_cm: 14 },
+  { n: 'moderada por Z',      peso_kg:  8.2, talla_cm: 87,   pb_cm: 14 },
+  { n: 'riesgo por Z',        peso_kg:  9.6, talla_cm: 88,   pb_cm: 14 },
+  { n: 'adecuado',            peso_kg: 12.5, talla_cm: 88,   pb_cm: 15 },
+  { n: 'severa por braquial', peso_kg: 12.5, talla_cm: 88,   pb_cm: 11.0 },
+  { n: 'sobrepeso',           peso_kg: 16.0, talla_cm: 88,   pb_cm: 16 },
+  { n: 'sin peso ni talla',   pb_cm: 11.0 }
+];
+var PERIMETROS = [
+  { n: 'sin perímetros' },
+  { n: 'PC muy bajo',   pc_cm: 36 },
+  { n: 'PC muy alto',   pc_cm: 56 },
+  { n: 'PA grande',     pa_cm: 80 },
+  { n: 'los dos juntos', pc_cm: 36, pa_cm: 80 }
+];
+BASES.forEach(function (b) {
+  var base = { fecha_nac: '2024-09-17', sexo: 'M', fecha: '2026-09-17',
+               peso_kg: b.peso_kg, talla_cm: b.talla_cm, pb_cm: b.pb_cm, edema: 'ninguno' };
+  var limpio = DNTAntro.evaluar(base);
+  PERIMETROS.slice(1).forEach(function (pp) {
+    var con = DNTAntro.evaluar(Object.assign({}, base, { pc_cm: pp.pc_cm, pa_cm: pp.pa_cm }));
+    var distinto = DIAGNOSTICO.filter(function (k) { return con[k] !== limpio[k]; });
+    ok(distinto.length === 0, b.n + ' + ' + pp.n + ': el diagnóstico no cambia',
+       distinto.length ? 'cambió ' + distinto.join(', ') : '');
+  });
+});
+
 // ── Resumen ────────────────────────────────────────────────────────
 console.log('\n' + (fallos ? '✗ ' : '✓ ') + (pruebas - fallos) + '/' + pruebas + ' comprobaciones correctas');
 process.exit(fallos ? 1 : 0);

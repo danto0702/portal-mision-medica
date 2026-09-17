@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NANA DNT · Seguimiento Nutricional Infantil HRNO</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icono-32.png">
+<link rel="apple-touch-icon" href="assets/icono-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="app/estilos.css">
+</head>
+<body>
+
+<header class="enc">
+  <a class="marca" href="index.html">
+    <img class="marca-icono" src="assets/nana-dnt-logo.png"
+         alt="NANA DNT" width="52" height="52">
+    <div class="marca-txt">
+      <strong>NANA DNT</strong>
+      <span>Seguimiento Nutricional Infantil · ESE HRNO</span>
+    </div>
+  </a>
+  <div class="enc-sep"></div>
+  <a class="btn sec chico" href="../index.html" title="Volver al Portal de Salud Pública">← Portal</a>
+  <div class="chip-usuario" id="chipUsuario" hidden>
+    <span class="avatar" id="avatar">–</span>
+    <span class="nombre-usuario" id="nombreUsuario">…</span>
+    <span class="rol-tag" id="rolUsuario">…</span>
+    <button class="cerrar" id="btnSalir" title="Cerrar sesión" style="font-size:1.1rem">⏻</button>
+  </div>
+</header>
+
+<nav class="nav" id="nav" hidden>
+  <button data-vista="tablero"      class="activo">📊 Tablero</button>
+  <button data-vista="casos">👶 Casos <span class="globo oculto" id="globoAlertas">0</span></button>
+  <button data-vista="cargar">📥 Cargar datos</button>
+  <button data-vista="indicadores">📈 Indicadores</button>
+  <button data-vista="apoyo">🧰 Apoyo</button>
+  <button data-vista="informacion">📚 Información</button>
+  <button data-vista="admin" id="navAdmin" hidden>⚙️ Administración</button>
+</nav>
+
+<main class="envoltura">
+  <div id="arranque" class="cargando"><span class="hilo">◐</span> Verificando la sesión…</div>
+
+  <section class="vista activa" id="vista-tablero"></section>
+  <section class="vista" id="vista-casos"></section>
+  <section class="vista" id="vista-ficha"></section>
+  <section class="vista" id="vista-cargar"></section>
+  <section class="vista" id="vista-indicadores"></section>
+  <section class="vista" id="vista-apoyo"></section>
+  <section class="vista" id="vista-informacion"></section>
+  <section class="vista" id="vista-admin"></section>
+</main>
+
+<footer class="pie-pascalia">
+  <span>By</span>
+  <img src="assets/pascalia.png" alt="PascalIA" width="681" height="228">
+</footer>
+
+<div class="modal-fondo" id="modalFondo">
+  <div class="modal">
+    <div class="modal-cab">
+      <h3 id="modalTitulo">—</h3>
+      <button class="cerrar" id="modalCerrar">&times;</button>
+    </div>
+    <div class="modal-cuerpo" id="modalCuerpo"></div>
+    <div class="modal-pie" id="modalPie"></div>
+  </div>
+</div>
+
+<div id="avisos"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="libs/chart.umd.min.js"></script>
+<script src="libs/xlsx.full.min.js"></script>
+<script src="libs/jspdf.umd.min.js"></script>
+<script src="app/lms.js"></script>
+<script src="app/antro.js"></script>
+<script src="app/clinico.js"></script>
+<script src="app/auth-dnt.js"></script>
+<script src="app/datos.js"></script>
+<script src="app/ui.js"></script>
+<script src="app/ficha.js"></script>
+<script src="app/importador.js"></script>
+<script src="app/informacion.js"></script>
+<script src="app/gestion.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () { DNTApp.iniciar(); });
+</script>
+</body>
+</html>

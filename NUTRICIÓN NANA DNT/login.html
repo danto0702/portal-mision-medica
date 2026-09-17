@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ingreso · NANA DNT</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icono-32.png">
+<link rel="apple-touch-icon" href="assets/icono-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app/estilos.css">
+<style>
+  /* Azul de la marca NANA DNT, para que el logotipo se pose sobre su propio color */
+  body { display: grid; place-items: center; padding: 22px;
+         background: linear-gradient(160deg, #0C2858 0%, #16407F 58%, #F2FAF8 58.1%); }
+  .caja { width: 100%; max-width: 440px; }
+  /* El azul del logotipo es el mismo del fondo: un borde tenue lo separa */
+  .escudo {
+    width: 124px; height: 124px; margin: 0 auto 14px; display: block;
+    border-radius: 22px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 12px 34px rgba(5,18,42,.45);
+  }
+  .cab { text-align: center; color: #fff; margin-bottom: 22px; }
+  .cab h1 { color: #fff; font-size: 1.24rem; margin-bottom: 4px; }
+  .cab p  { margin: 0; font-size: .84rem; opacity: .92; }
+  .panel { background: var(--surface); border-radius: 18px; padding: 26px; box-shadow: var(--sombra-2); }
+  .cambia { text-align: center; margin-top: 16px; font-size: .84rem; color: var(--texto-2); }
+  .cambia button { background: none; border: none; color: var(--menta); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+  .pie-legal { text-align: center; margin-top: 18px; font-size: .74rem; color: var(--texto-3); }
+  .pie-legal a { color: var(--texto-2); }
+</style>
+</head>
+<body>
+<div class="caja">
+  <div class="cab">
+    <img class="escudo" src="assets/nana-dnt-logo.png" alt="NANA DNT">
+    <h1>Seguimiento Nutricional Infantil</h1>
+    <p>ESE Hospital Regional Noroccidental · Norte de Santander</p>
+  </div>
+
+  <div class="panel">
+    <div id="mensaje"></div>
+
+    <!-- ── Ingreso ── -->
+    <form id="formIngreso">
+      <h2 style="font-size:1.1rem">Ingresar</h2>
+      <p class="tarjeta-sub">Use la misma cuenta del Portal de Salud Pública.</p>
+      <div class="campo">
+        <label for="correo">Correo institucional</label>
+        <input type="email" id="correo" autocomplete="username" required placeholder="nombre@esehrno.gov.co">
+      </div>
+      <div class="campo">
+        <label for="clave">Contraseña</label>
+        <input type="password" id="clave" autocomplete="current-password" required>
+      </div>
+      <button class="btn" style="width:100%" id="btnIngresar">Ingresar</button>
+      <div class="cambia">
+        <button type="button" id="irOlvide">Olvidé mi contraseña</button>
+      </div>
+      <div class="cambia" style="margin-top:6px">
+        ¿No tiene cuenta? <button type="button" id="irRegistro">Solicitar acceso</button>
+      </div>
+    </form>
+
+    <!-- ── Autoregistro ── -->
+    <form id="formRegistro" class="oculto">
+      <h2 style="font-size:1.1rem">Solicitar acceso</h2>
+      <p class="tarjeta-sub">Su solicitud queda pendiente hasta que el administrador la apruebe y le asigne municipio. Si ya tiene cuenta del Portal de Salud Pública, use ese mismo correo: no se le cambia la contraseña.</p>
+      <div class="campo">
+        <label for="rNombre">Nombre completo</label>
+        <input type="text" id="rNombre" required autocomplete="name">
+      </div>
+      <div class="campo">
+        <label for="rCorreo">Correo institucional</label>
+        <input type="email" id="rCorreo" required autocomplete="email">
+      </div>
+      <div class="fila">
+        <div class="campo">
+          <label for="rCargo">Cargo</label>
+          <input type="text" id="rCargo" placeholder="Enfermera, médico, nutricionista…">
+        </div>
+        <div class="campo">
+          <label for="rTelefono">Teléfono</label>
+          <input type="tel" id="rTelefono" autocomplete="tel">
+        </div>
+      </div>
+      <div class="campo">
+        <label for="rMunicipio">Municipio en el que trabaja</label>
+        <select id="rMunicipio" required>
+          <option value="">Seleccione…</option>
+          <option>ABREGO</option><option>CONVENCION</option>
+          <option>EL CARMEN</option><option>TEORAMA</option>
+        </select>
+      </div>
+      <div class="fila">
+        <div class="campo">
+          <label for="rClave">Contraseña</label>
+          <input type="password" id="rClave" required minlength="8" autocomplete="new-password">
+          <div class="ayuda">Mínimo 8 caracteres.</div>
+        </div>
+        <div class="campo">
+          <label for="rClave2">Repetir contraseña</label>
+          <input type="password" id="rClave2" required minlength="8" autocomplete="new-password">
+        </div>
+      </div>
+      <button class="btn" style="width:100%" id="btnRegistrar">Enviar solicitud</button>
+      <div class="cambia"><button type="button" class="volver">Volver al ingreso</button></div>
+    </form>
+
+    <!-- ── Recuperación ── -->
+    <form id="formOlvide" class="oculto">
+      <h2 style="font-size:1.1rem">Recuperar contraseña</h2>
+      <p class="tarjeta-sub">Le enviaremos un enlace al correo registrado.</p>
+      <div class="campo">
+        <label for="oCorreo">Correo institucional</label>
+        <input type="email" id="oCorreo" required autocomplete="email">
+      </div>
+      <button class="btn" style="width:100%" id="btnRecuperar">Enviar enlace</button>
+      <div class="cambia"><button type="button" class="volver">Volver al ingreso</button></div>
+    </form>
+
+    <!-- ── Nueva contraseña (llegando desde el enlace del correo) ── -->
+    <form id="formNueva" class="oculto">
+      <h2 style="font-size:1.1rem">Definir nueva contraseña</h2>
+      <div class="campo">
+        <label for="nClave">Nueva contraseña</label>
+        <input type="password" id="nClave" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="campo">
+        <label for="nClave2">Repetir contraseña</label>
+        <input type="password" id="nClave2" required minlength="8" autocomplete="new-password">
+      </div>
+      <button class="btn" style="width:100%" id="btnNueva">Guardar</button>
+    </form>
+
+    <div class="credito">
+      <span>By</span>
+      <img src="assets/pascalia.png" alt="PascalIA" width="681" height="228">
+    </div>
+  </div>
+
+  <p class="pie-legal">
+    Este sistema trata datos personales de menores de edad conforme a la Ley 1581 de 2012.
+    El acceso queda registrado en la auditoría del módulo.
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app/auth-dnt.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var MOTIVOS = {
+    sin_perfil:  ['ojo',   'Su cuenta existe en el portal pero todavía no tiene acceso a este módulo. Solicite el acceso con el botón de abajo.'],
+    pendiente:   ['ojo',   'Su solicitud está pendiente de aprobación. El administrador debe autorizarla y asignarle municipio.'],
+    rechazado:   ['grave', 'Su solicitud de acceso fue rechazada. Comuníquese con la Coordinación de Salud Pública.'],
+    inactivo:    ['grave', 'Su usuario está inactivo. Comuníquese con el administrador.']
+  };
+
+  function mostrar(tipo, texto) {
+    $('mensaje').innerHTML = '<div class="aviso ' + tipo + '"><span class="ic">' +
+      (tipo === 'ok' ? '✓' : tipo === 'grave' ? '⚠' : tipo === 'ojo' ? '!' : 'i') +
+      '</span><div>' + texto + '</div></div>';
+  }
+  function limpiar() { $('mensaje').innerHTML = ''; }
+
+  function panel(cual) {
+    ['formIngreso','formRegistro','formOlvide','formNueva'].forEach(function (id) {
+      $(id).classList.toggle('oculto', id !== cual);
+    });
+    limpiar();
+  }
+
+  // Mensaje traído desde la app al expulsar la sesión
+  var motivo = new URLSearchParams(location.search).get('motivo');
+  if (motivo && MOTIVOS[motivo]) mostrar(MOTIVOS[motivo][0], MOTIVOS[motivo][1]);
+  else if (motivo) mostrar('grave', 'No fue posible validar la sesión: ' + motivo);
+
+  // Enlace de recuperación de contraseña
+  if (location.hash.indexOf('type=recovery') >= 0) panel('formNueva');
+
+  $('irRegistro').onclick = function () { panel('formRegistro'); };
+  $('irOlvide').onclick   = function () { panel('formOlvide'); };
+  Array.prototype.forEach.call(document.querySelectorAll('.volver'), function (b) {
+    b.onclick = function () { panel('formIngreso'); };
+  });
+
+  function ocupado(btn, texto) {
+    btn.disabled = true; btn.dataset.txt = btn.textContent; btn.textContent = texto;
+  }
+  function libre(btn) { btn.disabled = false; btn.textContent = btn.dataset.txt; }
+
+  $('formIngreso').onsubmit = async function (e) {
+    e.preventDefault(); limpiar();
+    var btn = $('btnIngresar'); ocupado(btn, 'Verificando…');
+    try {
+      await DNTAuth.ingresar($('correo').value, $('clave').value);
+      location.href = 'index.html';
+    } catch (err) {
+      var m = MOTIVOS[err.message];
+      if (m) mostrar(m[0], m[1]);
+      else if (/Invalid login/i.test(err.message)) mostrar('grave', 'Correo o contraseña incorrectos.');
+      else mostrar('grave', err.message);
+      libre(btn);
+    }
+  };
+
+  $('formRegistro').onsubmit = async function (e) {
+    e.preventDefault(); limpiar();
+    if ($('rClave').value !== $('rClave2').value) { mostrar('grave', 'Las contraseñas no coinciden.'); return; }
+    var btn = $('btnRegistrar'); ocupado(btn, 'Enviando…');
+    try {
+      var r = await DNTAuth.registrarse({
+        nombre: $('rNombre').value, email: $('rCorreo').value, clave: $('rClave').value,
+        cargo: $('rCargo').value, telefono: $('rTelefono').value, municipio: $('rMunicipio').value
+      });
+      panel('formIngreso');
+      if (r && r.ya_existe) {
+        mostrar(r.estado === 'activo' ? 'ok' : 'ojo', r.estado === 'activo'
+          ? '<strong>Ya tiene acceso</strong>Ingrese con la contraseña de su cuenta del portal.'
+          : '<strong>Ya hay una solicitud suya</strong>Está en estado «' + r.estado +
+            '». Comuníquese con la Coordinación de Salud Pública si lleva mucho tiempo así.');
+      } else {
+        mostrar('ok', '<strong>Solicitud enviada</strong>El administrador debe aprobarla y asignarle ' +
+          'municipio. ' + (r && r.cuenta_nueva
+            ? 'Cuando lo haga, ingrese con la contraseña que acaba de elegir.'
+            : 'Ya tenía cuenta en el portal: ingrese con esa misma contraseña.'));
+      }
+    } catch (err) {
+      mostrar('grave', err.message);
+    } finally { libre(btn); }
+  };
+
+  $('formOlvide').onsubmit = async function (e) {
+    e.preventDefault(); limpiar();
+    var btn = $('btnRecuperar'); ocupado(btn, 'Enviando…');
+    try {
+      await DNTAuth.recuperar($('oCorreo').value);
+      panel('formIngreso');
+      mostrar('ok', 'Si el correo está registrado, recibirá un enlace para restablecer la contraseña.');
+    } catch (err) { mostrar('grave', err.message); } finally { libre(btn); }
+  };
+
+  $('formNueva').onsubmit = async function (e) {
+    e.preventDefault(); limpiar();
+    if ($('nClave').value !== $('nClave2').value) { mostrar('grave', 'Las contraseñas no coinciden.'); return; }
+    var btn = $('btnNueva'); ocupado(btn, 'Guardando…');
+    try {
+      await DNTAuth.cambiarClave($('nClave').value);
+      panel('formIngreso');
+      mostrar('ok', 'Contraseña actualizada. Ya puede ingresar.');
+    } catch (err) { mostrar('grave', err.message); } finally { libre(btn); }
+  };
+})();
+</script>
+</body>
+</html>

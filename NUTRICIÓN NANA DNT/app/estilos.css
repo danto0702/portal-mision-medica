@@ -118,13 +118,15 @@ a { color: var(--menta); }
   box-shadow: 0 2px 14px rgba(15,138,126,.10);
 }
 .marca { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
-/* El logotipo trae su propio fondo azul y sus esquinas redondeadas */
+/* El logotipo completo: trae su propio fondo azul y sus esquinas redondeadas.
+   Va al mayor tamaño que permite la barra de 64 px, porque lleva la palabra
+   NANA DNT dentro y encogerlo la vuelve ilegible. */
 .marca-icono {
-  width: 46px; height: 46px; flex-shrink: 0; display: block;
+  width: 52px; height: 52px; flex-shrink: 0; display: block;
   object-fit: contain;
   filter: drop-shadow(0 3px 10px rgba(12,40,88,.30));
 }
-@media (max-width: 720px) { .marca-icono { width: 40px; height: 40px; } }
+@media (max-width: 720px) { .marca-icono { width: 44px; height: 44px; } }
 .marca-txt strong { display: block; font-size: .96rem; font-weight: 700; letter-spacing: -.01em; }
 .marca-txt span   { display: block; font-size: .72rem; color: var(--texto-3); }
 .enc-sep { flex: 1; }

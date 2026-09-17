@@ -67,8 +67,7 @@ NUTRICIÓN NANA DNT/
 ├── assets/                 ← logotipo NANA DNT, firma PascalIA e iconos
 │   ├── nana-dnt-logo-original.png ← el lockup tal como llegó: la fuente de todo
 │   ├── generar-iconos.py   ← regenera los iconos (python3 assets/generar-iconos.py)
-│   ├── nana-dnt-logo.png   ← lockup completo, para la pantalla de ingreso
-│   ├── nana-dnt-simbolo.png← sólo el emblema, para el encabezado y el PDF
+│   ├── nana-dnt-logo.png   ← el logotipo, el mismo en todas las pantallas
 │   ├── icono-{32,180,192}.png ← pestaña del navegador y pantalla de inicio
 │   └── pascalia.png       ← firma del pie, igual que en Flota Vehicular
 ├── libs/                   ← Chart.js, SheetJS y jsPDF locales

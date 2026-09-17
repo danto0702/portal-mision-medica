@@ -73,6 +73,13 @@ var DNTApp = (function () {
     return '<span class="sem ' + c[0] + '">' + c[1] + '</span>';
   }
 
+  // Perímetro cefálico para la edad (Res. 2465/2016).
+  var TXT_PC = {
+    PC_BAJO:     'Bajo para la edad',
+    PC_ADECUADO: 'Adecuado para la edad',
+    PC_ALTO:     'Alto para la edad'
+  };
+
   var CONTROL_TXT = {
     vencido:       ['rojo',     'Control vencido'],
     por_vencer:    ['amarillo', 'Por vencer'],
@@ -551,7 +558,10 @@ var DNTApp = (function () {
         'Edad': DNTAntro.edadTexto(c.fecha_nac), 'Zona': c.zona || '', 'EPS': c.eps || '',
         'Clasificación de ingreso': (CLASES_TXT[c.clasificacion_ingreso] || [, c.clasificacion_ingreso])[1],
         'Clasificación actual': (CLASES_TXT[c.clasificacion_actual] || [, ''])[1],
-        'Z P/T-L último': c.z_pt_ultimo, 'Perímetro braquial': c.pb_ultimo, 'Edema': c.edema_ultimo,
+        'Z P/T-L último': c.z_pt_ultimo, 'Perímetro braquial': c.pb_ultimo,
+        'Perímetro cefálico': c.pc_ultimo, 'Z PC/E': c.z_pc_ultimo,
+        'Clasificación PC/E': TXT_PC[c.clasificacion_pc_ultima] || '',
+        'Perímetro abdominal': c.pa_ultimo, 'Edema': c.edema_ultimo,
         'Estado': (ESTADOS_CASO[c.estado] || [, c.estado])[1],
         'Nivel de riesgo': c.nivel_riesgo || '', 'Puntaje de riesgo': c.puntaje_riesgo,
         'Fecha de apertura': fecha(c.fecha_apertura), 'Última medición': fecha(c.fecha_ultima_medicion),

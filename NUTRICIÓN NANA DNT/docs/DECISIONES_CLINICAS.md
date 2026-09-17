@@ -133,7 +133,47 @@ seguimiento y hace visible el contexto social del caso.
 
 ---
 
-## 9 · Lo que el sistema no hace
+## 9 · Perímetro cefálico y perímetro abdominal
+
+Los dos se registran en cada medición, pero **no significan lo mismo** y el sistema los trata
+distinto a propósito.
+
+**El perímetro cefálico sí tiene patrón.** Se compara con las tablas OMS 2006 de perímetro
+cefálico para la edad (0 a 60 meses) y se clasifica con los cortes de la Resolución 2465 de
+2016: bajo por debajo de −2 DE, adecuado entre −2 y +2, alto por encima de +2. El sistema
+escribe *«bajo para la edad (evaluar microcefalia)»*, no *«microcefalia»*: la medida sola no
+diagnostica: hay que confirmar la técnica de medición, la edad y la curva del niño.
+
+**No entra en la clasificación nutricional.** La desnutrición aguda no se diagnostica por el
+tamaño de la cabeza, así que el perímetro cefálico nunca cambia el resultado de P/T-L, del
+perímetro braquial ni del edema. Se muestra aparte porque es el tamizaje de neurodesarrollo
+que la ruta de promoción y mantenimiento pide en los menores de 2 años, y aquí ya se tienen
+la edad y el sexo para calcularlo sin pedir nada más.
+
+**El perímetro abdominal no tiene patrón de referencia** de la OMS para menores de 5 años, así
+que no se le calcula puntaje Z ni se clasifica. Se guarda el valor y se muestra **cuánto
+cambió desde el control anterior**: lo que informa es la tendencia —la distensión que
+acompaña al edema o a la realimentación—, no el número suelto.
+
+### Hallazgos al recalcular lo ya cargado
+
+Los cinco informes institucionales traían el perímetro cefálico de las 271 atenciones, pero
+nadie lo había comparado con el patrón. Al calcularlo:
+
+| Clasificación | Mediciones |
+|---|---|
+| Adecuado para la edad | 247 |
+| **Bajo para la edad** | **18** |
+| Alto para la edad | 6 |
+
+Los casos extremos —hasta −5,6 DE— **requieren revisión clínica antes de darlos por ciertos**.
+Un perímetro de 38,0 cm a los 9 meses es posible, pero también es exactamente lo que se ve
+cuando se transcribe mal una cifra o se mide con la cinta floja. Ninguno de estos valores
+cambió la clasificación nutricional de su caso.
+
+---
+
+## 10 · Lo que el sistema no hace
 
 - **No prescribe.** Las calculadoras de FTLC y de medicamentos son apoyo; no reemplazan la
   prescripción médica ni la valoración individual.

@@ -14,6 +14,7 @@ Row Level Security activo.
 | `dnt_ninos` | Datos del niño. Único por (tipo de documento, número) |
 | `dnt_casos` | Un caso por episodio. Un solo caso abierto por niño a la vez |
 | `dnt_seguimientos` | Cada atención: antropometría, puntajes Z, apetito, conducta, FTLC |
+| ↳ perímetros | Braquial, cefálico (con `z_pc` y `clasificacion_pc`) y abdominal (valor crudo) |
 | `dnt_factores_catalogo` · `dnt_caso_factores` | Catálogo de 16 factores y los presentes en cada caso |
 | `dnt_checklist_catalogo` · `dnt_checklist_respuestas` | 24 ítems (A, B y C) y su estado por caso o por seguimiento |
 | `dnt_soportes` | Archivos con versionado y borrado lógico recuperable |
@@ -27,7 +28,13 @@ Row Level Security activo.
 ## Vistas
 
 - **`dnt_v_casos_detalle`** — caso con su último seguimiento y el estado del control
-  (al día, por vencer, vencido, sin programar, cerrado).
+  (al día, por vencer, vencido, sin programar, cerrado). Arrastra del último seguimiento el
+  Z P/T-L, el edema y los tres perímetros: braquial, cefálico (con su Z y su clasificación)
+  y abdominal.
+
+  > El perímetro cefálico se compara con el patrón OMS 2006 (`hcfa`, 0 a 60 meses) y se
+  > clasifica con los cortes de la Res. 2465 de 2016. El abdominal no tiene patrón de
+  > referencia para menores de 5 años: se guarda el valor y se lee por la tendencia.
 - **`dnt_v_indicadores`** — numeradores y denominadores de los indicadores mensuales.
 
 Ambas con `security_invoker = true`: respetan la RLS del usuario que consulta.

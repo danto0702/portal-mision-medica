@@ -252,6 +252,13 @@ var DNTFicha = (function () {
     });
   }
 
+  // Texto de la clasificación de perímetro cefálico, para tabla y detalle.
+  var TXT_PC = {
+    PC_BAJO:     'Perímetro cefálico bajo para la edad',
+    PC_ADECUADO: 'Perímetro cefálico adecuado para la edad',
+    PC_ALTO:     'Perímetro cefálico alto para la edad'
+  };
+
   // ═══ Seguimientos ════════════════════════════════════════════════
   function panelSeguimientos() {
     var segs = d.seguimientos;
@@ -274,7 +281,8 @@ var DNTFicha = (function () {
   function tablaSeguimientos(segs) {
     return '<div class="tabla-env" style="margin-top:12px"><table class="t"><thead><tr>' +
       '<th>#</th><th>Fecha</th><th>Tipo</th><th class="num">Peso</th><th class="num">Talla</th>' +
-      '<th class="num">PB</th><th>Edema</th><th class="num">Z P/T-L</th><th>Clasificación</th>' +
+      '<th class="num">PB</th><th class="num">PC</th><th class="num">PA</th>' +
+      '<th>Edema</th><th class="num">Z P/T-L</th><th>Clasificación</th>' +
       '<th>Apetito</th><th>Escenario</th><th></th></tr></thead><tbody>' +
       segs.slice().reverse().map(function (s, i) {
         return '<tr>' +
@@ -285,6 +293,11 @@ var DNTFicha = (function () {
           '<td class="num mono">' + A.num(s.peso_kg, 2) + '</td>' +
           '<td class="num mono">' + A.num(s.talla_cm, 1) + '</td>' +
           '<td class="num mono">' + A.num(s.pb_cm, 1) + '</td>' +
+          '<td class="num mono"' +
+            (s.clasificacion_pc && s.clasificacion_pc !== 'PC_ADECUADO'
+              ? ' title="' + esc(TXT_PC[s.clasificacion_pc] || '') + '" style="color:var(--naranja-s);font-weight:700"'
+              : '') + '>' + A.num(s.perimetro_cefalico_cm, 1) + '</td>' +
+          '<td class="num mono">' + A.num(s.perimetro_abdominal_cm, 1) + '</td>' +
           '<td>' + (s.edema === 'ninguno' ? '—' : '<span class="sem rojo">' + esc(s.edema) + '</span>') + '</td>' +
           '<td class="num mono"><strong>' + A.num(s.z_pt, 2) + '</strong></td>' +
           '<td>' + A.semaforo(s.clasificacion_final) + '</td>' +
@@ -308,7 +321,14 @@ var DNTFicha = (function () {
         ['Tipo', s.tipo], ['Modalidad', s.modalidad],
         ['Edad', s.edad_meses != null ? s.edad_meses + ' meses' : '—'],
         ['Peso', A.num(s.peso_kg, 2) + ' kg'], ['Talla o longitud', A.num(s.talla_cm, 1) + ' cm'],
-        ['Perímetro braquial', A.num(s.pb_cm, 1) + ' cm'], ['Edema', s.edema],
+        ['Perímetro braquial', A.num(s.pb_cm, 1) + ' cm'],
+        ['Perímetro cefálico', s.perimetro_cefalico_cm
+          ? A.num(s.perimetro_cefalico_cm, 1) + ' cm · Z ' + A.num(s.z_pc, 2) +
+            (s.clasificacion_pc ? ' · ' + (TXT_PC[s.clasificacion_pc] || s.clasificacion_pc) : '')
+          : '—'],
+        ['Perímetro abdominal', s.perimetro_abdominal_cm
+          ? A.num(s.perimetro_abdominal_cm, 1) + ' cm' : '—'],
+        ['Edema', s.edema],
         ['Z P/T-L', A.num(s.z_pt, 2)], ['Z P/E', A.num(s.z_pe, 2)], ['Z T/E', A.num(s.z_te, 2)],
         ['Clasificación', (A.CLASES_TXT[s.clasificacion_final] || [, '—'])[1]],
         ['Ganancia de peso', s.ganancia_g_dia != null ? s.ganancia_g_dia + ' g/día' : '—'],
@@ -352,8 +372,8 @@ var DNTFicha = (function () {
       { texto: 'Guardar seguimiento', clase: '', accion: guardarSeguimiento }
     ]);
 
-    ['sFecha', 'sPeso', 'sTalla', 'sPB', 'sEdema', 'sMedicion', 'sApetitoConsumo',
-     'sTemp', 'sFR', 'sHb', 'sTipo'].forEach(function (id) {
+    ['sFecha', 'sPeso', 'sTalla', 'sPB', 'sPC', 'sPA', 'sEdema', 'sMedicion',
+     'sApetitoConsumo', 'sTemp', 'sFR', 'sHb', 'sTipo'].forEach(function (id) {
       var el = $(id); if (el) el.oninput = el.onchange = recalcular;
     });
     Array.prototype.forEach.call(document.querySelectorAll('[name=signo]'), function (ch) {
@@ -385,10 +405,16 @@ var DNTFicha = (function () {
       '<div class="fila">' +
         campo('sPB', 'Perímetro braquial (cm)', '<input type="number" id="sPB" step="0.1" min="5" max="25" placeholder="0,0">' +
           (edadM < 6 ? '<div class="ayuda">No aplica en menores de 6 meses.</div>' : '')) +
-        campo('sPC', 'Perímetro cefálico (cm)', '<input type="number" id="sPC" step="0.1" min="25" max="60">') +
+        campo('sPC', 'Perímetro cefálico (cm)', '<input type="number" id="sPC" step="0.1" min="25" max="60" placeholder="0,0">' +
+          '<div class="ayuda">Se compara con el patrón OMS para la edad.</div>') +
+      '</div>' +
+      '<div class="fila">' +
+        campo('sPA', 'Perímetro abdominal (cm)', '<input type="number" id="sPA" step="0.1" min="20" max="90" placeholder="0,0">' +
+          '<div class="ayuda">Sin punto de corte: se lee por la tendencia entre controles.</div>') +
         campo('sEdema', 'Edema bilateral', '<select id="sEdema">' +
           A.opcion('ninguno', 'Ninguno') + A.opcion('+', 'Leve (+)') +
           A.opcion('++', 'Moderado (++)') + A.opcion('+++', 'Severo (+++)') + '</select>') +
+        '<div class="campo"></div>' +
       '</div>' +
 
       '<div id="calculo"></div>' +
@@ -424,6 +450,34 @@ var DNTFicha = (function () {
     return '<div class="campo"><label for="' + id + '">' + esc(etiqueta) + '</label>' + control + '</div>';
   }
 
+  /**
+   * Perímetro cefálico y abdominal.
+   *
+   * El cefálico tiene patrón OMS y punto de corte en la Res. 2465/2016, así que
+   * se muestra con su puntaje Z. El abdominal no tiene referencia para menores
+   * de 5 años: lo que informa es cuánto cambió desde el control anterior, no el
+   * número suelto, de modo que se muestra con su diferencia.
+   */
+  function bloquePerimetros(ev, previo) {
+    var pa = ev.perimetro_abdominal;
+    if (ev.z_pc === null && pa === null) return '';
+
+    var partes = [];
+    if (ev.z_pc !== null) {
+      partes.push(A.kpi('Z PC/E', A.num(ev.z_pc, 2),
+        ev.clasificacion_pc.color, ev.clasificacion_pc.texto));
+    }
+    if (pa !== null) {
+      var dif = previo && previo.perimetro_abdominal_cm > 0
+        ? +(pa - previo.perimetro_abdominal_cm).toFixed(1) : null;
+      partes.push(A.kpi('Perímetro abdominal', A.num(pa, 1) + ' cm', '',
+        dif === null ? 'Primer registro: queda como línea de base'
+                     : (dif > 0 ? '+' : '') + A.num(dif, 1) + ' cm desde el control anterior'));
+    }
+    return '<div style="display:grid;gap:12px;margin:0 0 12px;' +
+      'grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">' + partes.join('') + '</div>';
+  }
+
   /** Recalcula puntajes, prueba de apetito, conducta y esquemas en tiempo real. */
   var ultimoCalculo = null;
   function recalcular() {
@@ -435,7 +489,8 @@ var DNTFicha = (function () {
     var ev = DNTAntro.evaluar({
       fecha_nac: n.fecha_nac, fecha: fechaAt, sexo: n.sexo,
       peso_kg: peso, talla_cm: talla, medicion: $('sMedicion').value,
-      pb_cm: parseFloat($('sPB').value), edema: $('sEdema').value
+      pb_cm: parseFloat($('sPB').value), pc_cm: parseFloat($('sPC').value),
+      pa_cm: parseFloat($('sPA').value), edema: $('sEdema').value
     });
 
     var previo = d.seguimientos[d.seguimientos.length - 1];
@@ -464,6 +519,11 @@ var DNTFicha = (function () {
         '</div>'
       : '<div class="aviso info" style="margin:12px 0"><span class="ic">i</span><div>' +
         'Ingrese peso y talla para calcular automáticamente los puntajes Z y la clasificación.</div></div>';
+
+    // Perímetros cefálico y abdominal. Van aparte del bloque de peso y talla
+    // porque no entran en la clasificación nutricional y porque se pueden
+    // registrar solos, sin que haya peso ni talla en esa consulta.
+    $('calculo').innerHTML += bloquePerimetros(ev, previo);
 
     // Prueba de apetito
     var min = DNTClinico.minimoApetito(peso);
@@ -612,8 +672,11 @@ var DNTFicha = (function () {
         medicion: $('sMedicion').value,
         pb_cm: parseFloat($('sPB').value) || null,
         perimetro_cefalico_cm: parseFloat($('sPC').value) || null,
+        perimetro_abdominal_cm: parseFloat($('sPA').value) || null,
         edema: $('sEdema').value, edad_meses: c.edadM,
         z_pt: c.ev.z_pt, z_pe: c.ev.z_pe, z_te: c.ev.z_te, z_imc: c.ev.z_imc,
+        z_pc: c.ev.z_pc,
+        clasificacion_pc: c.ev.clasificacion_pc ? c.ev.clasificacion_pc.codigo : null,
         clasificacion_pt: c.ev.clasificacion_pt ? c.ev.clasificacion_pt.codigo : null,
         clasificacion_pe: c.ev.clasificacion_pe ? c.ev.clasificacion_pe.codigo : null,
         clasificacion_te: c.ev.clasificacion_te ? c.ev.clasificacion_te.codigo : null,
@@ -1152,14 +1215,17 @@ var DNTFicha = (function () {
 
     seccion('Seguimientos');
     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(75, 107, 103);
-    ['Fecha', 'Peso', 'Talla', 'PB', 'Edema', 'Z P/T-L', 'Clasificación', 'Escenario']
-      .forEach(function (h, i) { doc.text(h, 14 + i * 24, y); });
+    // Columnas con ancho propio: con diez campos, un paso fijo se sale de la hoja.
+    var COL_X = [14, 36, 50, 64, 76, 88, 100, 116, 132, 172];
+    ['Fecha', 'Peso', 'Talla', 'PB', 'PC', 'PA', 'Edema', 'Z P/T-L', 'Clasificación', 'Escenario']
+      .forEach(function (h, i) { doc.text(h, COL_X[i], y); });
     salto(4);
     doc.setFont('helvetica', 'normal'); doc.setTextColor(11, 43, 40);
     d.seguimientos.forEach(function (s) {
       [A.fecha(s.fecha), A.num(s.peso_kg, 2), A.num(s.talla_cm, 1), A.num(s.pb_cm, 1),
+       A.num(s.perimetro_cefalico_cm, 1), A.num(s.perimetro_abdominal_cm, 1),
        s.edema, A.num(s.z_pt, 2), (A.CLASES_TXT[s.clasificacion_final] || [, '—'])[1].slice(0, 16),
-       s.escenario || '—'].forEach(function (v, i) { doc.text(String(v), 14 + i * 24, y); });
+       s.escenario || '—'].forEach(function (v, i) { doc.text(String(v), COL_X[i], y); });
       salto(4.5);
     });
     salto(4);

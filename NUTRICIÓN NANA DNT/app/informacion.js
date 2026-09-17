@@ -449,8 +449,67 @@ var DNTInfo = (function () {
   }
 
   // ═══ Tratamiento ═════════════════════════════════════════════════
+
+  // Calculadora oficial de FTLC del lineamiento nacional. Se incrusta para no
+  // sacar al profesional del módulo en mitad de una atención, pero nunca se
+  // carga sola: es un sitio ajeno y no tiene por qué pedirse cada vez que
+  // alguien entra a leer los esquemas.
+  var FTLC_URL = 'https://lineamientodesnutricion.unicef.org.co/ftlc';
+
+  function tarjetaCalculadora() {
+    return '<div class="tarjeta" id="tjCalc">' +
+      '<h3 style="margin-bottom:6px">🧮 Calculadora de FTLC</h3>' +
+      '<p class="tarjeta-sub">Herramienta oficial del lineamiento nacional para el manejo integrado de la ' +
+        'desnutrición aguda, de UNICEF Colombia. Calcula los sobres de fórmula terapéutica lista para el ' +
+        'consumo a partir del peso y la clasificación del niño.</p>' +
+      '<div id="zonaCalc">' +
+        '<div style="display:flex;gap:9px;flex-wrap:wrap">' +
+          '<button class="btn" id="btnAbrirCalc">Abrir la calculadora aquí</button>' +
+          '<a class="btn sec" href="' + FTLC_URL + '" target="_blank" rel="noopener noreferrer">' +
+            'Abrir en una pestaña nueva ↗</a>' +
+        '</div>' +
+      '</div>' +
+      '<div class="aviso ojo" style="margin-top:12px"><span class="ic">!</span><div>' +
+        '<strong>La calculadora no sustituye el esquema de la tabla</strong>' +
+        'Es una ayuda de cálculo: la dosis y la duración las define la clasificación del caso según ' +
+        'las Resoluciones 2350 de 2020 y 115 de 2026.</div></div>' +
+    '</div>';
+  }
+
+  function abrirCalculadora() {
+    $('zonaCalc').innerHTML =
+      '<div class="ext">' +
+        '<div class="ext-cab">' +
+          '<div><div class="tit">Calculadora de FTLC</div>' +
+            '<div class="url">lineamientodesnutricion.unicef.org.co</div></div>' +
+          '<div class="der">' +
+            '<a class="btn sec chico" href="' + FTLC_URL + '" target="_blank" rel="noopener noreferrer">' +
+              'Pestaña nueva ↗</a>' +
+            '<button class="btn sec chico" id="btnCerrarCalc">Cerrar</button>' +
+          '</div>' +
+        '</div>' +
+        '<iframe class="ext-marco" id="marcoCalc" src="' + FTLC_URL + '" loading="lazy" ' +
+          'title="Calculadora de FTLC — UNICEF Colombia" ' +
+          'sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox">' +
+        '</iframe>' +
+        '<div class="ext-pie">Contenido de UNICEF Colombia, mostrado dentro del módulo. ' +
+          'Si el recuadro queda en blanco es porque ese sitio no permite incrustarse: ' +
+          '<a href="' + FTLC_URL + '" target="_blank" rel="noopener noreferrer">ábralo en una pestaña nueva</a>.</div>' +
+      '</div>';
+    $('btnCerrarCalc').onclick = function () {
+      // Quitar el marco descarga el sitio ajeno en vez de dejarlo corriendo detrás.
+      $('zonaCalc').innerHTML = '';
+      panelTratamiento();
+      $('tjCalc').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    // Al recuadro completo y por su borde superior, para que la cabecera con el
+    // origen y la salida a pestaña nueva no queden bajo la barra pegajosa.
+    $('zonaCalc').querySelector('.ext').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function panelTratamiento() {
     $('panelInfo').innerHTML =
+      tarjetaCalculadora() +
       '<div class="tarjeta">' +
         '<h2>🥜 Esquemas de tratamiento nutricional y farmacológico ambulatorio</h2>' +
 
@@ -506,6 +565,8 @@ var DNTInfo = (function () {
           'o no es posible amamantar (Res. 115/2026).</li>' +
           '</ul></div>' +
       '</div>';
+
+    $('btnAbrirCalc').onclick = abrirCalculadora;
   }
 
   // ═══ Responsabilidades e indicadores ═════════════════════════════

@@ -668,6 +668,46 @@ if (chromium) {
     await ctx.close();
   }
 
+  // 3.7 · El contador de días no depende de la ventana que se esté viendo.
+  //
+  // Contaba los días del período visible: con dos semanas a la vista un vehículo
+  // "tenía" 10 días y con una semana, 5. Para comparar qué vehículos trabajan
+  // más que otros eso no sirve.
+  {
+    const ctx = await nav.newContext({ viewport: { width: 1280, height: 900 },
+      locale: 'es-CO', timezoneId: 'America/Bogota' });
+    const pag = await ctx.newPage();
+    await pag.goto(`${BASE}/index.html`, { waitUntil: 'networkidle' });
+    await pag.fill('#in-usuario', 'coordina');
+    await pag.fill('#in-clave', 'Coordina2026');
+    await pag.click('#in-btn');
+    await pag.waitForSelector('#app:not([hidden])');
+    await pag.waitForTimeout(2500);
+
+    const contadores = () => pag.$$eval('tbody tr td:first-child', tds => tds.map(td => {
+      const placa = td.querySelector('.placa')?.textContent.trim();
+      const txt = [...td.querySelectorAll('div')]
+        .map(d => d.textContent.trim()).find(t => /día\(s\)/.test(t)) || '';
+      return placa + '|' + txt;
+    }));
+
+    const conDosSemanas = await contadores();
+    verificar('la matriz muestra el contador de días por vehículo',
+      conDosSemanas.length > 0 && /día\(s\)/.test(conDosSemanas[0]), conDosSemanas[0]);
+
+    await pag.selectOption('select', '7');
+    await pag.waitForTimeout(2500);
+    const conUnaSemana = await contadores();
+
+    verificar('cambiar el período NO cambia la cuenta de días',
+      JSON.stringify(conDosSemanas) === JSON.stringify(conUnaSemana),
+      `${conDosSemanas[0]}  vs  ${conUnaSemana[0]}`);
+    verificar('y la matriz sí cambió de tamaño, o la prueba no probaría nada',
+      await pag.locator('thead th').count() === 8,
+      String(await pag.locator('thead th').count()));
+    await ctx.close();
+  }
+
   // 4 · La versión nueva se avisa y NO entra sola.
   //
   // Es la parte más delicada: si una versión nueva se activara por su cuenta,

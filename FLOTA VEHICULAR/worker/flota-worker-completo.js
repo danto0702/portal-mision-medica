@@ -94,7 +94,7 @@ const totalRutas = () => rutas.length;
  *      y día operativo en hora de Colombia
  *   6  kilometraje y tripulación obligatorios, fotografías de salida y llegada
  */
-const VERSION_API = 8;
+const VERSION_API = 9;
 
 const ahora = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 /**
@@ -849,6 +849,37 @@ async function aplicarPredeterminado(db, id) {
     .bind(ahora(), id).run();
   return p;
 }
+
+/**
+ * Totales de días programados por vehículo, de TODA la operación.
+ *
+ * El contador que se ve al lado de cada placa contaba los días del período
+ * visible, así que cambiaba al mover la ventana: con dos semanas a la vista un
+ * vehículo "tenía" 10 días y con una semana, 5. Para lo que sirve el contador
+ * —comparar qué vehículos están trabajando más que otros— eso no vale: la
+ * cuenta tiene que ser la general.
+ *
+ * Por defecto va sin límites de fecha. Se aceptan `desde` y `hasta` por si
+ * algún día se quiere acotar a un año o a un contrato.
+ */
+ruta('GET', '/api/itinerario/resumen', async ({ db, url }) => {
+  const desde = url.searchParams.get('desde');
+  const hasta = url.searchParams.get('hasta');
+  const donde = ["i.estado != 'cancelado'"];
+  const args = [];
+  if (desde) { donde.push('i.fecha >= ?'); args.push(desde); }
+  if (hasta) { donde.push('i.fecha <= ?'); args.push(hasta); }
+
+  const r = await db.prepare(`
+    SELECT i.vehiculo_id,
+           COUNT(*) AS dias,
+           SUM(CASE WHEN i.tipo_jornada != 'disponible' THEN 1 ELSE 0 END) AS con_salida,
+           MIN(i.fecha) AS primera, MAX(i.fecha) AS ultima
+      FROM itinerarios i
+     WHERE ${donde.join(' AND ')}
+     GROUP BY i.vehiculo_id`).bind(...args).all();
+  return { desde, hasta, vehiculos: r.results };
+}, GESTION);
 
 ruta('GET', '/api/itinerario', async ({ db, url, sesion }) => {
   const desde = url.searchParams.get('desde') || hoyISO();

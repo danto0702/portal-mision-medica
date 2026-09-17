@@ -17,7 +17,7 @@
  * peticiones e ignora en silencio lo que no entiende — un campo que no se
  * guarda y ningún mensaje de error. Por eso se comprueba y se avisa.
  */
-const VERSION_API_REQUERIDA = 8;
+const VERSION_API_REQUERIDA = 9;
 
 const esLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 const API = localStorage.getItem('flota_api') ||
@@ -1422,6 +1422,8 @@ async function guardarEvento() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 let itinDesde = null, itinDatos = [], predeterminados = [];
+/** vehiculo_id -> { dias, con_salida, primera, ultima } de TODA la operación. */
+let totalesItin = new Map();
 let itinDias = Number(localStorage.getItem('flota_itin_dias')) || 14;
 
 async function verItinerario() {
@@ -1434,10 +1436,16 @@ async function verItinerario() {
 
   $('#main').innerHTML = '<div class="cargando">Cargando itinerario...</div>';
   try {
-    [itinDatos, predeterminados] = await Promise.all([
+    let resumen;
+    [itinDatos, predeterminados, resumen] = await Promise.all([
       api(`/api/itinerario?desde=${itinDesde}&hasta=${hasta}`),
       api('/api/predeterminados'),
+      // Los totales NO salen del período visible: se piden aparte, de toda la
+      // operación. Si este endpoint falla —por ejemplo contra un Worker viejo—
+      // el itinerario se dibuja igual, sin contador, que es mejor que no abrir.
+      api('/api/itinerario/resumen').catch(() => null),
     ]);
+    totalesItin = new Map((resumen?.vehiculos || []).map(v => [v.vehiculo_id, v]));
   } catch (e) {
     return $('#main').innerHTML = `<div class="card"><div class="nota avi">${esc(e.message)}</div></div>`;
   }
@@ -1537,12 +1545,19 @@ async function verItinerario() {
           <th style="position:sticky;left:0;background:var(--surface-2);z-index:2;min-width:150px">Vehículo</th>
           ${dias.map(rotulo).join('')}
         </tr></thead>
-        <tbody>${activos.map(v => {
-          const suyos = itinDatos.filter(i => i.vehiculo_id === v.id && i.estado !== 'cancelado');
-          const conDespl = suyos.filter(i => i.tipo_jornada !== 'disponible').length;
-          const media = activos.length
-            ? itinDatos.filter(i => i.estado !== 'cancelado').length / activos.length : 0;
-          const desvio = suyos.length - media;
+        <tbody>${(() => {
+          // La media, para el color, se calcula sobre los mismos totales: si se
+          // mezclara el total de un vehículo con la media del período visible el
+          // desvío no querría decir nada.
+          const conTotal = activos.map(v => totalesItin.get(v.id)?.dias || 0);
+          const media = conTotal.length
+            ? conTotal.reduce((a, b) => a + b, 0) / conTotal.length : 0;
+          return activos.map(v => {
+          const tot = totalesItin.get(v.id);
+          const enPeriodo = itinDatos.filter(i => i.vehiculo_id === v.id && i.estado !== 'cancelado').length;
+          const diasTotal = tot?.dias || 0;
+          const conDespl = tot?.con_salida || 0;
+          const desvio = diasTotal - media;
           const color = Math.abs(desvio) < 1.5 ? 'muted' : desvio > 0 ? 'ambar' : 'azul';
           return `
           <tr>
@@ -1550,14 +1565,15 @@ async function verItinerario() {
               <div class="placa">${esc(v.placa)}</div>
               <div style="font-size:.72rem;color:var(--muted)">${esc(v.conductor_actual || 'Sin conductor')}</div>
               <div style="font-size:.68rem;margin-top:.2rem;color:var(--${color});font-weight:700"
-                title="Días programados en el período · ${conDespl} con desplazamiento">
-                ${suyos.length} día(s) · ${conDespl} con salida
+                title="Total programado en toda la operación${tot?.primera ? ` (desde ${tot.primera})` : ''}
+ · ${conDespl} con desplazamiento · ${enPeriodo} en el período que está viendo">
+                ${diasTotal} día(s) · ${conDespl} con salida
               </div>
               ${v.docs_vencidos ? `<div class="etq rojo" style="margin-top:.2rem;font-size:.62rem"
                 title="${esc(v.docs_vencidos_tipos || '')}">${v.docs_vencidos} doc. vencido(s)</div>` : ''}
             </td>
             ${dias.map(f => celda(v, f)).join('')}
-          </tr>`; }).join('')}</tbody>
+          </tr>`; }).join(''); })()}</tbody>
       </table></div>`}
 
       <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.85rem;font-size:.75rem;color:var(--muted)">

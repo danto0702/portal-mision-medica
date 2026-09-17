@@ -396,6 +396,29 @@ r = await api('POST', '/api/itinerario/lote', {
 verificar('el conductor NO puede cargar lotes', r.estado === 403, r.datos);
 
 console.log('\n── Marcación con GPS ─────────────────────────────────────────');
+console.log('\n── Totales de dias programados ───────────────────────────────');
+r = await api('GET', '/api/itinerario/resumen', null, tCoord);
+verificar('coordinación puede pedir los totales', r.estado === 200, r.datos);
+verificar('vienen agrupados por vehículo', Array.isArray(r.datos.vehiculos), r.datos);
+{
+  // El contador de la matriz contaba los días del período visible, así que
+  // cambiaba al mover la ventana. Estos totales son de TODA la operación: pedir
+  // un período no debe alterarlos.
+  const unDia = await api('GET', `/api/itinerario/resumen?desde=${hoy}&hasta=${hoy}`, null, tCoord);
+  const totalGeneral = r.datos.vehiculos.reduce((a, v) => a + v.dias, 0);
+  const totalDelDia = unDia.datos.vehiculos.reduce((a, v) => a + v.dias, 0);
+  verificar('sin fechas cuenta más que acotado a un solo día',
+    totalGeneral > totalDelDia, `${totalGeneral} vs ${totalDelDia}`);
+  const uno = r.datos.vehiculos[0];
+  verificar('los días con salida nunca superan el total de días',
+    r.datos.vehiculos.every(v => v.con_salida <= v.dias), JSON.stringify(uno));
+  verificar('trae el primer y el último día programado',
+    !!(uno.primera && uno.ultima), JSON.stringify(uno));
+}
+r = await api('GET', '/api/itinerario/resumen', null, tCond);
+verificar('un conductor NO puede pedir los totales de toda la flota',
+  r.estado === 403, r.datos);
+
 console.log('\n── Itinerario del conductor ──────────────────────────────────');
 r = await api('GET', '/api/mi-itinerario?dias=15', null, tCond);
 verificar('el conductor puede consultar su itinerario', r.estado === 200, r.datos);

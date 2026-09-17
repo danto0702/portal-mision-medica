@@ -84,6 +84,7 @@ Se registra como un módulo más en `index.html` y en `index_Principal_Salud_Pub
 | D28 | Permiso de ubicación | Si el conductor lo bloquea por error, la aplicación lo detecta, ofrece un botón y explica los pasos de su teléfono. **La marca se guarda igual, señalada sin GPS** |
 | D29 | Sin señal | La aplicación **abre y es usable sin ninguna señal**. Copia local en IndexedDB de catálogos, parámetros, vehículos y el día; la cola guarda las marcas **con su fotografía** |
 | D30 | Itinerario del conductor | Pantalla propia, **solo de consulta**, con su programación de los próximos días. El filtro por conductor lo hace el **servidor**, no la pantalla |
+| D31 | Contador de días | Cuenta los días programados de **toda la operación**, no los del período visible. Se calcula en el servidor (`/api/itinerario/resumen`) |
 
 Consecuencia de D5: la aplicación nace como **PWA con cola offline** desde la primera fase.
 No es un añadido posterior — en zona rural del Catatumbo, sin ella el registro en vivo no funciona.
@@ -267,6 +268,22 @@ pero con lo que el Excel no da:
   dos vehículos, se marca en rojo al guardar.
 - **Importar y exportar Excel**, para la transición desde el archivo actual y para quien prefiera
   seguir trabajando en hoja de cálculo.
+
+### 5.1.0 El contador de días junto a cada placa (D31)
+
+Al lado de cada vehículo va «N día(s) · M con salida». **Contaba los días del período visible**, y
+por eso cambiaba al mover la ventana: con dos semanas a la vista un vehículo «tenía» 10 días y con
+una semana, 5. Para lo único que sirve ese contador —comparar qué vehículos están trabajando más
+que otros, que fue el objetivo original de la herramienta— un número que depende de cuánto se esté
+mirando no vale nada.
+
+Ahora el total lo calcula el servidor sobre **todos** los itinerarios, en `/api/itinerario/resumen`,
+y el período visible pasa al texto emergente. La media que decide el color del contador se calcula
+sobre esos mismos totales: mezclar el total de un vehículo con la media del período haría que el
+desvío no significara nada.
+
+El endpoint acepta `desde` y `hasta`, sin usar por ahora: **la cuenta es de toda la operación**. Si
+algún día hay que acotarla a un año o a un contrato, es un parámetro.
 
 ### 5.1.1 Edición rápida del itinerario (D15 a D18)
 

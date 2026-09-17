@@ -3,22 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ingreso · Seguimiento Nutricional Infantil HRNO</title>
+<title>Ingreso · NANA DNT</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icono-32.png">
+<link rel="apple-touch-icon" href="assets/icono-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app/estilos.css">
 <style>
+  /* Azul de la marca NANA DNT, para que el logotipo se pose sobre su propio color */
   body { display: grid; place-items: center; padding: 22px;
-         background: linear-gradient(140deg, #0F8A7E 0%, #14B8A6 45%, #F2FAF8 45.1%); }
+         background: linear-gradient(160deg, #0C2858 0%, #16407F 58%, #F2FAF8 58.1%); }
   .caja { width: 100%; max-width: 440px; }
+  /* El azul del logotipo es el mismo del fondo: un borde tenue lo separa */
   .escudo {
-    width: 74px; height: 74px; border-radius: 22px; margin: 0 auto 16px;
-    background: linear-gradient(135deg, #fff, #E6F6F3); display: grid; place-items: center;
-    font-size: 38px; box-shadow: 0 10px 32px rgba(11,43,40,.26);
+    width: 124px; height: 124px; margin: 0 auto 14px; display: block;
+    border-radius: 22px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 12px 34px rgba(5,18,42,.45);
   }
   .cab { text-align: center; color: #fff; margin-bottom: 22px; }
-  .cab h1 { color: #fff; font-size: 1.42rem; margin-bottom: 4px; }
+  .cab h1 { color: #fff; font-size: 1.24rem; margin-bottom: 4px; }
   .cab p  { margin: 0; font-size: .84rem; opacity: .92; }
   .panel { background: var(--surface); border-radius: 18px; padding: 26px; box-shadow: var(--sombra-2); }
   .cambia { text-align: center; margin-top: 16px; font-size: .84rem; color: var(--texto-2); }
@@ -30,7 +34,7 @@
 <body>
 <div class="caja">
   <div class="cab">
-    <div class="escudo">🍎</div>
+    <img class="escudo" src="assets/nana-dnt-logo.png" alt="NANA DNT">
     <h1>Seguimiento Nutricional Infantil</h1>
     <p>ESE Hospital Regional Noroccidental · Norte de Santander</p>
   </div>

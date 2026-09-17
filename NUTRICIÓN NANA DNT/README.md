@@ -6,6 +6,9 @@ para IPS de primer nivel de complejidad, conforme a la **Resolución 2350 de 202
 
 ESE Hospital Regional Noroccidental · Coordinación de Salud Pública · Norte de Santander.
 
+Marca **NANA DNT**: azul `#0C2858` y dorado `#E1A823`. El dorado no se usa en el
+semáforo nutricional, porque se confundiría con el amarillo del riesgo.
+
 ---
 
 ## Qué hace
@@ -60,6 +63,10 @@ NUTRICIÓN NANA DNT/
 │   ├── gestion.js          ← indicadores, apoyo y administración
 │   ├── estilos.css         ← sistema de diseño
 │   └── pruebas.js          ← verificación de los motores (node app/pruebas.js)
+├── assets/                 ← logotipo NANA DNT e iconos
+│   ├── nana-dnt-logo.png   ← lockup completo, para la pantalla de ingreso
+│   ├── nana-dnt-simbolo.png← sólo el emblema, para el encabezado y el PDF
+│   └── icono-{32,180,192}.png ← pestaña del navegador y pantalla de inicio
 ├── libs/                   ← Chart.js, SheetJS y jsPDF locales
 ├── sql/                    ← histórico de migraciones aplicadas
 └── docs/                   ← esquema de datos, despliegue y decisiones clínicas

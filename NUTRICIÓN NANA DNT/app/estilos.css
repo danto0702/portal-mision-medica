@@ -63,10 +63,11 @@ a { color: var(--menta); }
 .marca { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
 /* El logotipo trae su propio fondo azul y sus esquinas redondeadas */
 .marca-icono {
-  width: 42px; height: 42px; flex-shrink: 0; display: block;
+  width: 46px; height: 46px; flex-shrink: 0; display: block;
   object-fit: contain;
   filter: drop-shadow(0 3px 10px rgba(12,40,88,.30));
 }
+@media (max-width: 720px) { .marca-icono { width: 40px; height: 40px; } }
 .marca-txt strong { display: block; font-size: .96rem; font-weight: 700; letter-spacing: -.01em; }
 .marca-txt span   { display: block; font-size: .72rem; color: var(--texto-3); }
 .enc-sep { flex: 1; }

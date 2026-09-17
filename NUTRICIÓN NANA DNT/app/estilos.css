@@ -57,6 +57,36 @@ a { color: var(--menta); }
 :focus-visible { outline: 3px solid var(--menta-2); outline-offset: 2px; border-radius: 6px; }
 
 
+
+/* ═══ Recurso externo incrustado ══════════════════════════════════
+   La calculadora de FTLC de UNICEF se consulta sin salir del módulo. El marco
+   se anuncia como ajeno —cabecera con el dominio y salida a pestaña nueva—
+   para que nadie confunda lo que calcula ese sitio con lo que calcula este. */
+.ext {
+  border: 1px solid var(--borde); border-radius: var(--r);
+  overflow: hidden; background: var(--surface); box-shadow: var(--sombra);
+  /* El encabezado y la navegación son pegajosos (64 + 48 px): sin este margen,
+     al desplazarse hasta el marco la cabecera del recuadro queda debajo. */
+  scroll-margin-top: 128px;
+}
+.ext-cab {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 14px; background: var(--menta-luz); border-bottom: 1px solid var(--menta-borde);
+}
+.ext-cab .tit { font-weight: 700; font-size: .88rem; }
+.ext-cab .url { font-size: .73rem; color: var(--texto-2); }
+.ext-cab .der { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.ext-marco {
+  width: 100%; height: min(72vh, 780px); border: 0; display: block;
+  background: var(--surface-2);
+}
+.ext-pie {
+  padding: 10px 14px; font-size: .79rem; color: var(--texto-2);
+  background: var(--surface-2); border-top: 1px solid var(--borde);
+}
+.ext-pie a { font-weight: 700; }
+@media (max-width: 720px) { .ext-marco { height: min(66vh, 560px); } }
+
 /* ═══ Firma de quien desarrolla ════════════════════
    Va una sola vez y fuera de <main>, para que salga en todas las vistas sin
    tener que acordarse de ponerla al escribir una nueva. `.credito` es la

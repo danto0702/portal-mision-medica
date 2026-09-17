@@ -474,8 +474,11 @@ var DNTFicha = (function () {
         dif === null ? 'Primer registro: queda como línea de base'
                      : (dif > 0 ? '+' : '') + A.num(dif, 1) + ' cm desde el control anterior'));
     }
-    return '<div style="display:grid;gap:12px;margin:0 0 12px;' +
-      'grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">' + partes.join('') + '</div>';
+    return '<div style="margin:0 0 12px">' +
+      '<div style="display:grid;gap:12px;' +
+        'grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">' + partes.join('') + '</div>' +
+      '<div class="ayuda" style="margin-top:7px">Medidas complementarias: ' +
+        'no modifican la clasificación nutricional del caso.</div></div>';
   }
 
   /** Recalcula puntajes, prueba de apetito, conducta y esquemas en tiempo real. */

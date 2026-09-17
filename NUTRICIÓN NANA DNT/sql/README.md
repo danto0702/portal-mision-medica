@@ -31,6 +31,7 @@ order by table_name, ordinal_position;
 | 12 | `dnt_12_carga_historica_temporal` | Función temporal de carga (reemplazada por la 13) |
 | 13 | `dnt_13_carga_historica_v2` | Mesa de trabajo y expansor de la carga compactada |
 | 14 | `dnt_14_retirar_carga_historica` | Retiro del andamiaje y registro del cargue |
+| 15 | `dnt_15_gestion_usuarios` | `dnt_rol_de()` y `dnt_auth_id_por_correo()`, apoyo de la función de borde |
 
 ## Carga histórica
 

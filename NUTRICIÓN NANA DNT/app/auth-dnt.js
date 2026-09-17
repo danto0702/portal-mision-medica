@@ -111,32 +111,49 @@
     return cargarPerfil(r.data.user.id);   // lanza si el perfil no está activo
   }
 
-  /**
-   * Autoregistro: crea la cuenta y deja el perfil en estado "pendiente".
-   * El administrador debe aprobarlo y asignarle municipios antes de que pueda entrar.
-   */
-  async function registrarse(datos) {
-    var r = await sb.auth.signUp({
-      email: datos.email.trim(),
-      password: datos.clave,
-      options: { data: { nombre: datos.nombre } }
-    });
-    if (r.error) throw r.error;
-    var uid = r.data.user && r.data.user.id;
-    if (!uid) throw new Error('No se pudo crear la cuenta.');
+  // ── Alta de cuentas ──────────────────────────────────────────────
+  // Todo pasa por la función de borde dnt-usuarios, que usa la llave de
+  // servicio. El navegador no puede hacerlo solo: signUp no devuelve sesión
+  // cuando el proyecto pide confirmar el correo —así que el insert en
+  // dnt_perfiles salía como «anon» y lo frenaba RLS— y, si el correo ya tenía
+  // cuenta, devuelve un usuario ofuscado con un uuid inventado que reventaba
+  // contra dnt_perfiles_id_fkey. La función busca la cuenta por correo, la crea
+  // sólo si hace falta, y recién entonces toca el perfil.
 
-    var p = await sb.from('dnt_perfiles').insert({
-      id: uid,
-      nombre: datos.nombre.trim(),
-      email: datos.email.trim(),
-      telefono: datos.telefono || null,
-      cargo: datos.cargo || null,
-      municipio_solicitado: datos.municipio || null
+  async function llamar(accion, datos) {
+    var r = await sb.functions.invoke('dnt-usuarios', {
+      body: Object.assign({ accion: accion }, datos || {})
     });
-    // Si ya existía el perfil (cuenta previa del portal) no es un error real.
-    if (p.error && p.error.code !== '23505') throw new Error(p.error.message);
-    return true;
+    if (r.error) {
+      // invoke no trae el cuerpo de un 4xx: hay que leerlo de la respuesta.
+      var texto = '';
+      try { texto = (await r.error.context.json()).error; } catch (e) { /* sin cuerpo */ }
+      throw new Error(texto || r.error.message || 'No se pudo completar la operación.');
+    }
+    if (r.data && r.data.error) throw new Error(r.data.error);
+    return r.data;
   }
+
+  /**
+   * Solicitud de acceso. Deja el perfil en "pendiente": el administrador debe
+   * aprobarlo y asignarle municipios antes de que pueda entrar.
+   * Devuelve { estado, cuenta_nueva } o { ya_existe: true, estado }.
+   */
+  function registrarse(datos) {
+    return llamar('solicitar', {
+      email: datos.email, nombre: datos.nombre, clave: datos.clave,
+      cargo: datos.cargo, telefono: datos.telefono, municipio: datos.municipio
+    });
+  }
+
+  /** Alta desde el panel de administración. Devuelve la clave provisional. */
+  function crearUsuario(datos)  { return llamar('crear', datos); }
+
+  /** Clave provisional nueva para quien la perdió. */
+  function reiniciarClave(id)   { return llamar('clave', { id: id }); }
+
+  /** Rol, estado y municipios en una sola operación, con sus validaciones. */
+  function fijarAcceso(datos)   { return llamar('estado', datos); }
 
   async function recuperar(email) {
     var destino = location.href.replace(/[^/]*$/, 'login.html');
@@ -178,6 +195,7 @@
     puedeVer: puedeVer, puedeEditar: puedeEditar,
     puedeCerrarCasos: puedeCerrarCasos, puedeEliminar: puedeEliminar,
     ingresar: ingresar, registrarse: registrarse, recuperar: recuperar,
-    cambiarClave: cambiarClave, salir: salir, registrar: registrar
+    cambiarClave: cambiarClave, salir: salir, registrar: registrar,
+    crearUsuario: crearUsuario, reiniciarClave: reiniciarClave, fijarAcceso: fijarAcceso
   };
 })(window);

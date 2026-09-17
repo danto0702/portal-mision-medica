@@ -69,6 +69,8 @@ NUTRICIÓN NANA DNT/
 │   ├── icono-{32,180,192}.png ← pestaña del navegador y pantalla de inicio
 │   └── pascalia.png       ← firma del pie, igual que en Flota Vehicular
 ├── libs/                   ← Chart.js, SheetJS y jsPDF locales
+├── funciones/              ← funciones de borde (Deno) desplegadas en Supabase
+│   └── dnt-usuarios/       ← alta de cuentas y solicitudes de acceso
 ├── sql/                    ← histórico de migraciones aplicadas
 └── docs/                   ← esquema de datos, despliegue y decisiones clínicas
 ```

@@ -588,7 +588,10 @@ var DNTGestion = (function () {
             pendientes.map(tarjetaUsuario).join('') + '</div>'
           : '') +
         '<div class="tarjeta"><h3>👥 Usuarios del módulo</h3>' +
-          '<p class="tarjeta-sub">' + lista.length + ' usuario(s) registrado(s).</p>' +
+          '<p class="tarjeta-sub">' + lista.length + ' usuario(s) registrado(s). ' +
+            'Para dar de alta a alguien no hace falta que se registre: créelo aquí y ' +
+            'entréguele la contraseña provisional.</p>' +
+          '<p><button class="btn" id="btnNuevoUsuario">➕ Crear usuario</button></p>' +
           '<div class="tabla-env"><table class="t"><thead><tr><th>Usuario</th><th>Rol</th>' +
           '<th>Estado</th><th>Municipios</th><th>Registro</th><th></th></tr></thead><tbody>' +
           lista.map(function (u) {
@@ -616,7 +619,86 @@ var DNTGestion = (function () {
       Array.prototype.forEach.call(el.querySelectorAll('[data-u]'), function (b) {
         b.onclick = function () { dialogoUsuario(lista.filter(function (u) { return u.id === b.dataset.u; })[0]); };
       });
+      $('btnNuevoUsuario').onclick = dialogoCrearUsuario;
     } catch (e) { errorAdmin(e); }
+  }
+
+  /** Casillas de municipio, compartidas por el alta y la gestión. */
+  function casillasMunicipio(marcados) {
+    return '<div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">' +
+      DNTAuth.municipios().map(function (m) {
+        return '<label style="display:flex;gap:7px;align-items:center;font-size:.85rem;font-weight:400">' +
+          '<input type="checkbox" name="uMun" value="' + esc(m.codigo) + '"' +
+          ((marcados || []).indexOf(m.codigo) >= 0 ? ' checked' : '') +
+          ' style="width:auto"> ' + esc(m.nombre) + '</label>';
+      }).join('') + '</div>';
+  }
+
+  function municipiosMarcados() {
+    return Array.prototype.slice.call(document.querySelectorAll('[name=uMun]:checked'))
+      .map(function (x) { return x.value; });
+  }
+
+  /** Aviso con la contraseña provisional. No se puede volver a consultar. */
+  function avisoClave(email, clave) {
+    A.modal('Contraseña provisional',
+      '<div class="aviso ok"><span class="ic">✓</span><div>La cuenta quedó lista.</div></div>' +
+      '<p>Entréguele estos datos a <strong>' + esc(email) + '</strong>. ' +
+        'La contraseña no se puede volver a consultar: si se pierde, genere otra desde ' +
+        '«Gestionar».</p>' +
+      '<div class="tarjeta" style="text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;' +
+        'font-size:1.5rem;font-weight:700;letter-spacing:.06em">' + esc(clave) + '</div>' +
+      '<p class="ayuda">Pídale que la cambie al entrar, desde «Olvidé mi contraseña».</p>',
+      [{ texto: 'Copiar', accion: function () {
+          navigator.clipboard.writeText(clave).then(
+            function () { A.toast('Contraseña copiada.', 'ok'); },
+            function () { A.toast('Cópiela a mano: el navegador no lo permitió.', 'error'); });
+        } },
+       { texto: 'Listo', clase: '', accion: A.cerrarModal }]);
+  }
+
+  function dialogoCrearUsuario() {
+    A.modal('Crear usuario',
+      '<p class="tarjeta-sub">Si el correo ya tiene cuenta del Portal de Salud Pública, no se crea ' +
+        'otra: se le da acceso al módulo y conserva su contraseña.</p>' +
+      cp('cNombre', 'Nombre completo', '<input id="cNombre" placeholder="Nombres y apellidos">') +
+      cp('cCorreo', 'Correo institucional', '<input id="cCorreo" type="email" placeholder="nombre@esehrno.gov.co">') +
+      '<div class="fila">' +
+        cp('cCargo', 'Cargo', '<input id="cCargo" placeholder="Enfermera, médico, nutricionista…">') +
+        cp('cTelefono', 'Teléfono', '<input id="cTelefono">') +
+      '</div>' +
+      cp('cRol', 'Rol', '<select id="cRol">' +
+        Object.keys(ROLES).map(function (r) { return A.opcion(r, ROLES[r], 'responsable'); }).join('') +
+        '</select>', DESC_ROL.responsable) +
+      '<div class="campo" id="cCampoMun"><label>Municipios asignados</label>' +
+        '<div class="ayuda" style="margin-bottom:7px">Sólo aplica al rol Responsable. ' +
+          'Sin municipio no vería ningún caso.</div>' + casillasMunicipio([]) + '</div>',
+      [
+        { texto: 'Cancelar', accion: A.cerrarModal },
+        { texto: 'Crear', clase: '', accion: async function () {
+          var datos = {
+            nombre: $('cNombre').value.trim(), email: $('cCorreo').value.trim(),
+            cargo: $('cCargo').value.trim(), telefono: $('cTelefono').value.trim(),
+            rol: $('cRol').value, municipios: municipiosMarcados()
+          };
+          try {
+            var r = await DNTAuth.crearUsuario(datos);
+            DNTAuth.registrar('usuario_creado', { entidad: 'dnt_perfiles', entidad_id: r.id,
+              detalle: { email: datos.email, rol: datos.rol } });
+            if (r.clave) avisoClave(datos.email, r.clave);
+            else {
+              A.cerrarModal();
+              A.toast('Ya tenía cuenta del portal: entra con esa misma contraseña.', 'ok');
+            }
+            pintarAdmin();
+          } catch (e) { A.toast(e.message, 'error'); }
+        } }
+      ]);
+    $('cRol').onchange = function () {
+      var ayuda = $('cRol').parentNode.querySelector('.ayuda');
+      if (ayuda) ayuda.textContent = DESC_ROL[$('cRol').value];
+      $('cCampoMun').style.display = $('cRol').value === 'responsable' ? '' : 'none';
+    };
   }
 
   function tarjetaUsuario(u) {
@@ -655,22 +737,31 @@ var DNTGestion = (function () {
       '</div>' +
       '<div class="campo"><label>Municipios asignados</label>' +
         '<div class="ayuda" style="margin-bottom:7px">Sólo aplica al rol Responsable. Administrador y coordinador ven todos.</div>' +
-        '<div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">' +
-        DNTAuth.municipios().map(function (m) {
-          return '<label style="display:flex;gap:7px;align-items:center;font-size:.85rem;font-weight:400">' +
-            '<input type="checkbox" name="uMun" value="' + esc(m.codigo) + '"' +
-            (u.municipios.indexOf(m.codigo) >= 0 ? ' checked' : '') + ' style="width:auto"> ' + esc(m.nombre) + '</label>';
-        }).join('') + '</div></div>',
+        casillasMunicipio(u.municipios) + '</div>',
       [
         { texto: 'Cancelar', accion: A.cerrarModal },
-        { texto: 'Guardar', accion: async function () {
+        { texto: 'Contraseña nueva', accion: async function () {
+          if (!confirm('Se le asignará una contraseña provisional a ' + u.email +
+                       ' y la actual dejará de servir. ¿Continuar?')) return;
           try {
-            if (!soy) {
-              await DNTDatos.actualizarUsuario(u.id, { rol: $('uRol').value, estado: $('uEstado').value });
+            var r = await DNTAuth.reiniciarClave(u.id);
+            avisoClave(u.email, r.clave);
+          } catch (e) { A.toast(e.message, 'error'); }
+        } },
+        { texto: 'Guardar', clase: '', accion: async function () {
+          try {
+            if (soy) {
+              // La propia cuenta no pasa por la función de borde, que la rechaza
+              // a propósito; aquí sólo pueden cambiar los municipios.
+              await DNTDatos.asignarMunicipios(u.id, municipiosMarcados());
+            } else {
+              // Rol, estado y municipios en una sola operación: así no queda un
+              // responsable activo sin municipio si algo falla a mitad de camino.
+              await DNTAuth.fijarAcceso({ id: u.id, rol: $('uRol').value,
+                estado: $('uEstado').value, municipios: municipiosMarcados() });
+              DNTAuth.registrar('usuario_actualizado', { entidad: 'dnt_perfiles', entidad_id: u.id,
+                detalle: { rol: $('uRol').value, estado: $('uEstado').value } });
             }
-            var muns = Array.prototype.slice.call(document.querySelectorAll('[name=uMun]:checked'))
-              .map(function (x) { return x.value; });
-            await DNTDatos.asignarMunicipios(u.id, muns);
             A.cerrarModal(); A.toast('Usuario actualizado.', 'ok'); pintarAdmin();
           } catch (e) { A.toast(e.message, 'error'); }
         } }

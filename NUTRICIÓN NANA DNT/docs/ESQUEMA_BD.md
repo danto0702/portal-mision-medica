@@ -34,14 +34,20 @@ Ambas con `security_invoker = true`: respetan la RLS del usuario que consulta.
 
 ## Seguridad
 
-Cuatro funciones `SECURITY DEFINER` deciden todo:
+Unas funciones `SECURITY DEFINER` deciden todo:
 
-| Función | Devuelve |
-|---|---|
-| `dnt_rol()` | admin, coordinador, responsable o ninguno. El superadministrador del portal cuenta como admin |
-| `dnt_municipios_usuario()` | Municipios visibles. Admin y coordinador ven todos |
-| `dnt_puede_ver(municipio)` | Lectura |
-| `dnt_puede_editar(municipio)` | Escritura. El coordinador siempre da falso: es de sólo lectura |
+| Función | Devuelve | Quién puede llamarla |
+|---|---|---|
+| `dnt_rol()` | admin, coordinador, responsable o ninguno. El superadministrador del portal cuenta como admin | authenticated |
+| `dnt_municipios_usuario()` | Municipios visibles. Admin y coordinador ven todos | authenticated |
+| `dnt_puede_ver(municipio)` | Lectura | authenticated |
+| `dnt_puede_editar(municipio)` | Escritura. El coordinador siempre da falso: es de sólo lectura | authenticated |
+| `dnt_rol_de(usuario)` | Lo mismo que `dnt_rol()` pero de cualquiera. `dnt_rol()` no es más que esta con `auth.uid()` | sólo `service_role` |
+| `dnt_auth_id_por_correo(correo)` | El id de `auth.users`, para crear o vincular sin adivinar | sólo `service_role` |
+
+Las dos últimas están cerradas a `anon` y `authenticated` a propósito: el rol ajeno no es
+asunto del cliente, y una función que traduce correo a id sería un enumerador de cuentas.
+Las usa la función de borde `dnt-usuarios`, que corre con la llave de servicio.
 
 Tres triggers cierran los huecos que las políticas no cubren:
 
@@ -50,7 +56,28 @@ Tres triggers cierran los huecos que las políticas no cubren:
 - **`dnt_guard_casos`** — sólo coordinador y administrador cierran o reabren casos; el
   coordinador no puede tocar nada más.
 - **`dnt_guard_perfiles`** — el autoregistro siempre nace *pendiente* y como *responsable*;
-  nadie se asciende a sí mismo.
+  nadie se asciende a sí mismo. Los cuatro guardianes dejan pasar sin restricción cuando
+  `auth.uid()` es nulo, que es el caso de las migraciones y de la llave de servicio.
+
+## Función de borde `dnt-usuarios`
+
+El alta de cuentas no puede hacerse desde el navegador. `signUp` no devuelve sesión cuando
+el proyecto exige confirmar el correo —así que el insert en `dnt_perfiles` salía como
+`anon` y lo frenaba RLS— y, si el correo ya tenía cuenta, GoTrue devuelve un usuario
+ofuscado con un uuid inventado que reventaba contra `dnt_perfiles_id_fkey`.
+
+La función corre con la llave de servicio, resuelve primero la cuenta y después el perfil.
+El código vive en `funciones/dnt-usuarios/`.
+
+| Acción | Quién | Qué hace |
+|---|---|---|
+| `solicitar` | cualquiera, sin sesión | Crea o vincula la cuenta y deja el perfil *pendiente*. Tope de 60 solicitudes sin revisar |
+| `crear` | admin | Alta completa: cuenta, perfil *activo*, rol y municipios. Devuelve la contraseña provisional |
+| `clave` | admin | Contraseña provisional nueva |
+| `estado` | admin | Rol, estado y municipios en una sola operación. Al activar, confirma el correo |
+
+`verify_jwt` va en `false` porque `solicitar` debe funcionar sin sesión; la autorización se
+hace adentro, contra `dnt_rol_de()`.
 
 ## Almacenamiento
 

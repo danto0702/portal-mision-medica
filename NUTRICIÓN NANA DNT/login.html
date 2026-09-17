@@ -66,7 +66,7 @@
     <!-- ── Autoregistro ── -->
     <form id="formRegistro" class="oculto">
       <h2 style="font-size:1.1rem">Solicitar acceso</h2>
-      <p class="tarjeta-sub">Su solicitud queda pendiente hasta que el administrador la apruebe y le asigne municipio.</p>
+      <p class="tarjeta-sub">Su solicitud queda pendiente hasta que el administrador la apruebe y le asigne municipio. Si ya tiene cuenta del Portal de Salud Pública, use ese mismo correo: no se le cambia la contraseña.</p>
       <div class="campo">
         <label for="rNombre">Nombre completo</label>
         <input type="text" id="rNombre" required autocomplete="name">
@@ -212,19 +212,25 @@
     if ($('rClave').value !== $('rClave2').value) { mostrar('grave', 'Las contraseñas no coinciden.'); return; }
     var btn = $('btnRegistrar'); ocupado(btn, 'Enviando…');
     try {
-      await DNTAuth.registrarse({
+      var r = await DNTAuth.registrarse({
         nombre: $('rNombre').value, email: $('rCorreo').value, clave: $('rClave').value,
         cargo: $('rCargo').value, telefono: $('rTelefono').value, municipio: $('rMunicipio').value
       });
       panel('formIngreso');
-      mostrar('ok', '<strong>Solicitud enviada</strong>El administrador debe aprobarla y asignarle municipio. ' +
-                    'Le avisaremos cuando pueda ingresar.');
+      if (r && r.ya_existe) {
+        mostrar(r.estado === 'activo' ? 'ok' : 'ojo', r.estado === 'activo'
+          ? '<strong>Ya tiene acceso</strong>Ingrese con la contraseña de su cuenta del portal.'
+          : '<strong>Ya hay una solicitud suya</strong>Está en estado «' + r.estado +
+            '». Comuníquese con la Coordinación de Salud Pública si lleva mucho tiempo así.');
+      } else {
+        mostrar('ok', '<strong>Solicitud enviada</strong>El administrador debe aprobarla y asignarle ' +
+          'municipio. ' + (r && r.cuenta_nueva
+            ? 'Cuando lo haga, ingrese con la contraseña que acaba de elegir.'
+            : 'Ya tenía cuenta en el portal: ingrese con esa misma contraseña.'));
+      }
     } catch (err) {
-      mostrar('grave', /already registered/i.test(err.message)
-        ? 'Ese correo ya tiene cuenta. Ingrese con su contraseña o recupérela.'
-        : err.message);
-      libre(btn);
-    }
+      mostrar('grave', err.message);
+    } finally { libre(btn); }
   };
 
   $('formOlvide').onsubmit = async function (e) {
@@ -234,7 +240,7 @@
       await DNTAuth.recuperar($('oCorreo').value);
       panel('formIngreso');
       mostrar('ok', 'Si el correo está registrado, recibirá un enlace para restablecer la contraseña.');
-    } catch (err) { mostrar('grave', err.message); libre(btn); }
+    } catch (err) { mostrar('grave', err.message); } finally { libre(btn); }
   };
 
   $('formNueva').onsubmit = async function (e) {
@@ -245,7 +251,7 @@
       await DNTAuth.cambiarClave($('nClave').value);
       panel('formIngreso');
       mostrar('ok', 'Contraseña actualizada. Ya puede ingresar.');
-    } catch (err) { mostrar('grave', err.message); libre(btn); }
+    } catch (err) { mostrar('grave', err.message); } finally { libre(btn); }
   };
 })();
 </script>

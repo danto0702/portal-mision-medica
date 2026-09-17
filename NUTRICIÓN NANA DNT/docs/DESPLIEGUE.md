@@ -15,13 +15,23 @@ Entre con la misma contraseña del Portal de Salud Pública.
 
 ## 3 · Crear los usuarios
 
-Dos caminos:
+Dos caminos, los dos en **Administración → Usuarios y permisos**:
 
-- **El usuario se autoregistra** desde `login.html` → «Solicitar acceso». Queda pendiente.
-- **Usted lo aprueba** en Administración → Usuarios y permisos: le asigna rol y municipios.
+- **Usted los crea** con «➕ Crear usuario». Define nombre, correo, rol y municipios, y el
+  sistema devuelve una **contraseña provisional** que usted le entrega a la persona. Es el
+  camino normal: no hay que esperar a que nadie se registre.
+- **La persona se autoregistra** desde `login.html` → «Solicitar acceso». Queda pendiente
+  hasta que usted la apruebe desde el mismo panel.
+
+Si el correo ya tiene cuenta del Portal de Salud Pública, **no se crea otra**: se le da
+acceso al módulo y conserva su contraseña. En ese caso el sistema no devuelve contraseña
+provisional y lo dice.
+
+La contraseña provisional **no se puede volver a consultar**. Si se pierde, en «Gestionar»
+hay un botón «Contraseña nueva» que genera otra.
 
 > Un responsable **sin municipio asignado no ve ningún caso**. Es el error más probable del
-> primer día: apruebe y asigne municipio en el mismo paso.
+> primer día, así que el sistema ya no deja guardarlo así.
 
 ## 4 · Repartir los casos
 

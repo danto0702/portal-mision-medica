@@ -1210,7 +1210,7 @@ async function sbDelete(tabla, filtros){
 
 async function getCiclos(){
   if(_ciclosCache) return _ciclosCache;
-  _ciclosCache=await sbAll('certivac_ciclos',{},'ciclo,biologico_label,grupo_ciclo,meta,valor_unitario','ciclo');
+  _ciclosCache=await sbAll('certivac_ciclos',{},'ciclo,biologico_label,grupo_edad,meta,valor_unitario','ciclo');
   return _ciclosCache;
 }
 
@@ -1269,7 +1269,7 @@ async function _periodos(){
 async function _liquidacion(p){
   const ciclos=await getCiclos();
   const cicloMap={};
-  ciclos.forEach(c=>{ cicloMap[c.ciclo]={meta:c.meta||0,valor:c.valor_unitario||0,label:c.biologico_label,grupo:c.grupo_ciclo}; });
+  ciclos.forEach(c=>{ cicloMap[c.ciclo]={meta:c.meta||0,valor:c.valor_unitario||0,label:c.biologico_label,grupo:c.grupo_edad}; });
 
   const filtros={};
   if(p.mes){ const[y,m]=p.mes.split('-'); filtros['año']='eq.'+y; filtros['mes_num']='eq.'+parseInt(m); }
@@ -1451,8 +1451,8 @@ async function _guardarAsignaciones(p){
 
 // ── Valores y metas de ciclos ──────────────────────────────────────────
 async function _valores(){
-  const data=await sbAll('certivac_ciclos',{},'ciclo,biologico_label,grupo_ciclo,meta,valor_unitario','ciclo');
-  return {ok:true, valores:data.map(c=>({ciclo:c.ciclo,label:c.biologico_label,grupo:c.grupo_ciclo,meta:c.meta||0,valor:c.valor_unitario||0}))};
+  const data=await sbAll('certivac_ciclos',{},'ciclo,biologico_label,grupo_edad,meta,valor_unitario','ciclo');
+  return {ok:true, valores:data.map(c=>({ciclo:c.ciclo,label:c.biologico_label,grupo:c.grupo_edad,meta:c.meta||0,valor:c.valor_unitario||0}))};
 }
 
 async function _guardarValores(p){

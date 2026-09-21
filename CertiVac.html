@@ -10,11 +10,10 @@
 
 <script>
 // ╔══════════════════════════════════════════════════════════════╗
-// ║  ⚙️  CONFIGURACIÓN — PEGAR AQUÍ LA URL DEL APPS SCRIPT      ║
+// ║  SUPABASE SI-APS HRNO — Backend de CertiVac               ║
 // ╚══════════════════════════════════════════════════════════════╝
-const API_URL = 'PEGAR_URL_APPS_SCRIPT_AQUI';
-// Ejemplo: 'https://script.google.com/macros/s/AKfycbx.../exec'
-// Obtener desde: Apps Script → Implementar → Nueva implementación → Aplicación web
+const SB_URL = 'https://wttljozqyaxlzilomnef.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0dGxqb3pxeWF4bHppbG9tbmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDg5NTEsImV4cCI6MjA5NDg4NDk1MX0.kAQkgGq7RmZxTM9KlwI6KI7BjhEBy-8w6OdHVkOPBDM';
 </script>
 
 <style>
@@ -519,7 +518,7 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
     </nav>
     <div class="sfooter">
       <div class="sf-ver">CertiVac v5.4 · Contrato CPSESEHRNO-0064-2026</div>
-      <div class="sf-fl" id="sf-fl">Conectando con Google Sheets…</div>
+      <div class="sf-fl" id="sf-fl">Conectando con Supabase…</div>
     </div>
   </aside>
 
@@ -536,7 +535,7 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
     <div class="view active" id="view-dashboard">
       <div id="al-empty" class="al al-i">ℹ️ <div>Sin datos. Configure la URL del API en el código y cargue archivos PAI.</div></div>
       <div class="sg">
-        <div class="sc"><div class="sc-bar" style="background:var(--teal)"></div><div class="sc-lbl">Dosis en BD</div><div class="sc-val" id="s-r">0</div><div class="sc-sub">Google Sheets</div><div class="sc-ico">💉</div></div>
+        <div class="sc"><div class="sc-bar" style="background:var(--teal)"></div><div class="sc-lbl">Dosis en BD</div><div class="sc-val" id="s-r">0</div><div class="sc-sub">Supabase</div><div class="sc-ico">💉</div></div>
         <div class="sc"><div class="sc-bar" style="background:var(--cobalt)"></div><div class="sc-lbl">Vacunadoras</div><div class="sc-val" id="s-v">0</div><div class="sc-sub">Personal activo</div><div class="sc-ico">👩‍⚕️</div></div>
         <div class="sc"><div class="sc-bar" style="background:var(--amber)"></div><div class="sc-lbl">Archivos en BD</div><div class="sc-val" id="s-a">0</div><div class="sc-sub">XLS importados</div><div class="sc-ico">📂</div></div>
         <div class="sc"><div class="sc-bar" style="background:var(--teal)"></div><div class="sc-lbl">A Pagar (en meta)</div><div class="sc-val" id="s-t" style="font-size:16px;color:var(--teal-d)">$0</div><div class="sc-sub">Subtotal Vacunación</div><div class="sc-ico">💰</div></div>
@@ -545,19 +544,19 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
       <div class="card">
         <div class="card-h"><div class="card-t">👩‍⚕️ Resumen por Vacunadora</div><button class="btn b-co b-sm" onclick="nav('liquidacion',null)">Ver completo →</button></div>
         <div class="tw"><table><thead><tr><th>#</th><th>Vacunadora</th><th>Dosis aplicadas</th><th>En meta</th><th>Fuera meta</th><th>A Pagar</th><th>Cert.</th></tr></thead>
-        <tbody id="tb-d"><tr><td colspan="7"><div class="es"><div class="ei">📭</div><p>Cargando datos de Google Sheets…</p></div></td></tr></tbody></table></div>
+        <tbody id="tb-d"><tr><td colspan="7"><div class="es"><div class="ei">📭</div><p>Cargando datos de Supabase…</p></div></td></tr></tbody></table></div>
       </div>
     </div>
 
     <!-- CARGA -->
     <div class="view" id="view-carga">
-      <div id="al-api-warn" class="al al-w" style="display:none">⚠️ <div>La URL del API no está configurada. Edite la variable <strong>API_URL</strong> al inicio del archivo HTML.</div></div>
+      <div id="al-api-warn" class="al al-w" style="display:none">⚠️ <div>No se pudo conectar a Supabase. Verifique la conexión a internet y las políticas RLS del proyecto.</div></div>
       <div class="card" style="padding:20px">
         <div class="dz" id="dz" ondragover="onDrag(event,true)" ondragleave="onDrag(event,false)" ondrop="onDrop(event)">
           <input type="file" id="fi-main" accept=".xls,.xlsx" multiple onchange="handleFiles(this.files)">
           <div class="dz-ico">📂</div>
           <div class="dz-title">Cargar Registros Diarios PAI</div>
-          <div class="dz-sub">Arrastre <strong>uno o varios XLS / XLSX</strong> · Los datos se guardan automáticamente en Google Sheets</div>
+          <div class="dz-sub">Arrastre <strong>uno o varios XLS / XLSX</strong> · Los datos se guardan automáticamente en Supabase</div>
           <div class="dz-hint">📎 Clic para seleccionar · Múltiples archivos</div>
         </div>
         <div style="margin-top:12px;padding:10px 14px;background:#eef4fb;border-radius:8px;border:1px solid rgba(15,76,129,.15);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -580,7 +579,7 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
     <div class="view" id="view-historial">
       <div class="card">
         <div class="card-h">
-          <div class="card-t">🗂️ Archivos en Google Sheets</div>
+          <div class="card-t">🗂️ Archivos en Supabase</div>
           <div style="display:flex;gap:8px">
             <button class="btn b-gh b-sm" onclick="cargarHistorial()">🔄 Actualizar</button>
             <button class="btn b-da b-sm" onclick="borrarTodoBD()">🗑️ Borrar todo</button>
@@ -900,9 +899,9 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
 
     <!-- EXPORTAR -->
     <div class="view" id="view-exportar">
-      <div class="al al-ok" style="margin-bottom:18px">✅ <div>Los datos se descargan directamente desde Google Sheets como archivo <strong>.xlsx</strong>.</div></div>
+      <div class="al al-ok" style="margin-bottom:18px">✅ <div>Los datos se descargan directamente desde Supabase como archivo <strong>.xlsx</strong>.</div></div>
       <div class="export-grid">
-        <div class="export-card" onclick="exportarRegistros()"><div class="export-icon">📋</div><div class="export-title">Registros Completos</div><div class="export-desc">Todos los registros PAI de Google Sheets con ciclo, edad, población y fuente.</div><div style="margin-top:12px"><span class="btn b-co b-sm" style="display:inline-flex">⬇️ Descargar</span></div></div>
+        <div class="export-card" onclick="exportarRegistros()"><div class="export-icon">📋</div><div class="export-title">Registros Completos</div><div class="export-desc">Todos los registros PAI de Supabase con ciclo, edad, población y fuente.</div><div style="margin-top:12px"><span class="btn b-co b-sm" style="display:inline-flex">⬇️ Descargar</span></div></div>
         <div class="export-card" onclick="exportarLiquidacion()"><div class="export-icon">💵</div><div class="export-title">Liquidación</div><div class="export-desc">Dosis en meta, fuera de meta, valor a pagar por cada auxiliar.</div><div style="margin-top:12px"><span class="btn b-co b-sm" style="display:inline-flex">⬇️ Descargar</span></div></div>
         <div class="export-card" onclick="exportarPorPeriodo()"><div class="export-icon">📅</div><div class="export-title">Análisis por Período</div><div class="export-desc">Pivots mensual/trimestral/semestral de vacunadoras, biológicos y ciclos.</div><div style="margin-top:12px"><span class="btn b-co b-sm" style="display:inline-flex">⬇️ Descargar</span></div></div>
         <div class="export-card" onclick="exportarCompleto()"><div class="export-icon">📦</div><div class="export-title">Libro Completo</div><div class="export-desc">Un solo Excel con registros, liquidación, pivots y tabla de metas.</div><div style="margin-top:12px"><span class="btn b-te b-sm" style="display:inline-flex;font-weight:800">⬇️ Exportar Todo</span></div></div>
@@ -926,7 +925,7 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
     </div>
     <!-- UNIFICAR VACUNADORAS (ALIAS) -->
     <div class="view" id="view-alias">
-      <div class="al al-i" style="margin-bottom:16px">ℹ️ <div>Aquí puede mapear variaciones de nombre a un nombre canónico. Ej: <strong>VIRGELINA</strong> → <strong>VIRGELINA PICON</strong>. Al guardar y normalizar, todos los registros históricos se actualizan automáticamente en Google Sheets.</div></div>
+      <div class="al al-i" style="margin-bottom:16px">ℹ️ <div>Aquí puede mapear variaciones de nombre a un nombre canónico. Ej: <strong>VIRGELINA</strong> → <strong>VIRGELINA PICON</strong>. Al guardar y normalizar, todos los registros históricos se actualizan automáticamente en Supabase.</div></div>
 
       <!-- Detector de posibles duplicados -->
       <div class="card" style="margin-bottom:16px">
@@ -934,11 +933,11 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
           <div class="card-t">🔍 Nombres detectados en la base de datos</div>
           <div style="display:flex;gap:8px">
             <button class="btn b-gh b-sm" onclick="cargarAlias()">🔄 Actualizar</button>
-            <button class="btn b-co b-sm" onclick="normalizarEnBD()">⚡ Normalizar en Google Sheets</button>
+            <button class="btn b-co b-sm" onclick="normalizarEnBD()">⚡ Normalizar en Supabase</button>
           </div>
         </div>
         <div style="padding:16px 20px">
-          <div style="font-size:12px;color:var(--s4);margin-bottom:12px">Nombres únicos encontrados en REGISTROS_PAI. Los que tienen un alias asignado se muestran con su nombre canónico.</div>
+          <div style="font-size:12px;color:var(--s4);margin-bottom:12px">Nombres únicos encontrados en certivac_registros. Los que tienen un alias asignado se muestran con su nombre canónico.</div>
           <div id="alias-nombres-lista" style="display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
       </div>
@@ -1003,7 +1002,7 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
 
     <!-- EDITAR VALORES Y METAS -->
     <div class="view" id="view-valores">
-      <div class="al al-ok" style="margin-bottom:16px">✅ <div>Los valores y metas editados aquí se aplican automáticamente en todas las liquidaciones futuras. Los registros ya guardados en Google Sheets también se recalculan usando estos valores al generar liquidaciones.</div></div>
+      <div class="al al-ok" style="margin-bottom:16px">✅ <div>Los valores y metas editados aquí se aplican automáticamente en todas las liquidaciones futuras. Los registros ya guardados en Supabase también se recalculan usando estos valores al generar liquidaciones.</div></div>
       <div class="card">
         <div class="card-h">
           <div class="card-t">💲 Valores y Metas por Ciclo/Biológico</div>
@@ -1038,10 +1037,10 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
       </div>
     </div>
 
-    <!-- CONFIGURACIÓN API -->
+    <!-- CONFIGURACIÓN — SUPABASE -->
     <div class="view" id="view-config">
       <div class="card">
-        <div class="card-h"><div class="card-t">⚙️ Configuración de conexión — Google Apps Script</div></div>
+        <div class="card-h"><div class="card-t">⚙️ Configuración de conexión — Supabase SI-APS HRNO</div></div>
         <div style="padding:24px 26px">
 
           <!-- Estado actual -->
@@ -1049,53 +1048,31 @@ td{padding:10px 13px;color:var(--ink);vertical-align:middle}
             <div style="font-size:28px" id="cfg-ico">⏳</div>
             <div>
               <div style="font-size:13px;font-weight:700;color:var(--ink)" id="cfg-status-txt">Verificando conexión…</div>
-              <div style="font-size:12px;color:var(--s4);margin-top:2px" id="cfg-url-display">—</div>
+              <div style="font-size:12px;color:var(--s4);margin-top:2px" id="cfg-url-display">wttljozqyaxlzilomnef.supabase.co</div>
             </div>
             <button class="btn b-te b-sm" style="margin-left:auto" onclick="probarConexion()">🔌 Probar</button>
           </div>
 
-          <!-- Input URL -->
-          <div style="margin-bottom:18px">
-            <label style="font-size:11px;font-weight:700;color:var(--s4);text-transform:uppercase;letter-spacing:.9px;display:block;margin-bottom:7px">
-              URL del Apps Script (Web App)
-            </label>
-            <div style="display:flex;gap:8px">
-              <input id="cfg-url-input" type="text"
-                style="flex:1;padding:10px 14px;border:1.5px solid var(--s2);border-radius:9px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink);outline:none;transition:border .15s"
-                placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
-                onfocus="this.style.borderColor='var(--cobalt)'"
-                onblur="this.style.borderColor='var(--s2)'"
-              >
-              <button class="btn b-co" onclick="guardarURL()">💾 Guardar y conectar</button>
-            </div>
-            <div style="font-size:11.5px;color:var(--s4);margin-top:7px;line-height:1.6">
-              La URL se guarda en el navegador (localStorage) y persiste entre sesiones.<br>
-              Obtenerla desde: <strong>Apps Script → Implementar → Administrar implementaciones → copiar URL</strong>
-            </div>
-          </div>
-
-          <!-- Guía rápida -->
-          <div style="background:var(--s1);border-radius:11px;padding:18px 20px">
-            <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:12px">📋 Guía de despliegue rápido</div>
-            <div style="display:flex;flex-direction:column;gap:9px">
+          <!-- Info Supabase -->
+          <div style="background:var(--s1);border-radius:11px;padding:18px 20px;margin-bottom:18px">
+            <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:12px">🗄️ Base de datos Supabase configurada</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
               ${[
-                ['1','Abra Google Sheets → Extensiones → Apps Script'],
-                ['2','Pegue el contenido de <strong>Codigo_Backend.gs</strong> y guarde'],
-                ['3','Ejecute <code style="background:#fff;padding:1px 6px;border-radius:4px">setupInicial()</code> para crear las hojas automáticamente'],
-                ['4','Implementar → <strong>Nueva implementación</strong> → Tipo: Aplicación web'],
-                ['5','Ejecutar como: <strong>Yo</strong> &nbsp;·&nbsp; Acceso: <strong>Cualquier usuario, incluso anónimos</strong>'],
-                ['6','Copie la URL generada y péguela arriba'],
-              ].map(([n,t])=>`<div style="display:flex;gap:10px;align-items:flex-start">
-                <div style="width:22px;height:22px;border-radius:50%;background:var(--cobalt);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px">${n}</div>
-                <div style="font-size:12.5px;color:var(--s6);line-height:1.5">${t}</div>
+                ['Proyecto','SI-APS HRNO'],
+                ['Referencia','wttljozqyaxlzilomnef'],
+                ['Tablas','certivac_registros, certivac_archivos, certivac_ciclos, certivac_alias_vacunadoras, certivac_asignaciones_municipio'],
+                ['Acceso','Clave anon embebida (solo lectura de políticas RLS)'],
+              ].map(([k,v])=>`<div style="background:#fff;border-radius:8px;padding:10px 14px">
+                <div style="font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--s4);font-weight:700;margin-bottom:3px">${k}</div>
+                <div style="font-size:12px;font-weight:600;color:var(--ink)">${v}</div>
               </div>`).join('')}
             </div>
           </div>
 
           <!-- Diagnóstico -->
-          <div style="margin-top:18px" id="cfg-diag" style="display:none">
+          <div style="margin-top:18px" id="cfg-diag">
             <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:8px">🔍 Diagnóstico</div>
-            <div id="cfg-diag-content" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--ink);color:var(--teal);padding:14px 16px;border-radius:9px;white-space:pre-wrap;line-height:1.7"></div>
+            <div id="cfg-diag-content" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--ink);color:var(--teal);padding:14px 16px;border-radius:9px;white-space:pre-wrap;line-height:1.7">Haga clic en "🔌 Probar" para verificar la conexión.</div>
           </div>
 
         </div>
@@ -1181,113 +1158,441 @@ function showLoad(t,s){$('lt').textContent=t;$('ls').textContent=s||'Por favor e
 function hideLoad(){$('lo').classList.remove('show')}
 
 // ═══════════════════════════════════════════════════════════════════════
-// COMUNICACIÓN CON EL BACKEND (Apps Script)
-// ─────────────────────────────────────────────────────────────────────
-// Por qué este patrón específico:
-// 1. Apps Script redirige /exec → URL larga. fetch con mode:'cors' y
-//    headers custom genera un preflight OPTIONS que Apps Script no responde.
-// 2. Solución: GET simple funciona. POST como form-urlencoded (sin preflight)
-//    con el JSON en el campo "payload".
-// 3. Apps Script puede tardar 10-30 seg en lotes grandes → timeout extendido.
+// BACKEND — SUPABASE SI-APS HRNO
 // ═══════════════════════════════════════════════════════════════════════
+const SB_H = { apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Content-Type':'application/json' };
+let _ciclosCache = null;
 
-// ── Auto-configuración por parámetro ?api= en la URL ──────────────────
-(function(){
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const apiParam = (params.get('api') || '').trim();
-    const debug   = params.get('debug') === '1';
-    if(apiParam){
-      localStorage.setItem('certivac_api_url', apiParam);
-      window.__apiAutoConfig = true;
-      if(debug) alert('[AutoConfig] URL guardada:\n' + apiParam);
-    } else if(debug){
-      const stored = localStorage.getItem('certivac_api_url') || '(vacío)';
-      alert('[Debug] Parámetro ?api= no detectado.\nLocalStorage actual:\n' + stored);
-    }
-    // Limpiar parámetros de la barra de dirección (sin recargar)
-    if(apiParam || debug)
-      history.replaceState(null, '', window.location.pathname + window.location.hash);
-  } catch(e){ console.error('[AutoConfig]', e); }
-})();
-
-// Lee la URL guardada en localStorage si no está hardcodeada
-function getApiUrl(){
-  if(API_URL && API_URL !== 'PEGAR_URL_APPS_SCRIPT_AQUI') return API_URL;
-  return localStorage.getItem('certivac_api_url') || '';
-}
-function setApiUrlStorage(url){ localStorage.setItem('certivac_api_url', url); }
-
-async function apiGet(params, reintentos=2){
-  const url_base = getApiUrl();
-  if(!url_base) throw new Error('URL del API no configurada. Use el panel ⚙️ Configuración.');
-  const url=new URL(url_base);
-  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,String(v)));
-  // Evita que el navegador sirva una respuesta cacheada de Apps Script (datos viejos)
-  url.searchParams.set('_ts', Date.now());
-  let ultimoError;
-  for(let intento=0; intento<=reintentos; intento++){
-    try{
-      const r=await fetch(url.toString(),{method:'GET',redirect:'follow',cache:'no-store'});
-      const text=await r.text();
-      try{ return JSON.parse(text); }
-      catch(e){ throw new Error('Respuesta no JSON del servidor. Verifique la URL del API.'); }
-    }catch(err){
-      ultimoError=err;
-      if(intento<reintentos) await new Promise(r=>setTimeout(r,1500*(intento+1)));
-    }
+// Fetch con paginación automática (Supabase devuelve máx 1000 por defecto)
+async function sbAll(tabla, filtros, sel, ord, chunk){
+  filtros = filtros||{}; sel = sel||'*'; chunk = chunk||5000;
+  let offset=0, all=[];
+  for(;;){
+    let qs='select='+encodeURIComponent(sel);
+    Object.entries(filtros).forEach(([k,v])=>{ qs+='&'+k+'='+encodeURIComponent(String(v)); });
+    if(ord) qs+='&order='+encodeURIComponent(ord);
+    const r=await fetch(SB_URL+'/rest/v1/'+tabla+'?'+qs,{
+      headers:Object.assign({},SB_H,{'Range-Unit':'items','Range':offset+'-'+(offset+chunk-1),'Prefer':'count=none'})
+    });
+    if(!r.ok){ let m='HTTP '+r.status; try{const e=await r.json();m=e.message||e.error||m;}catch(x){} throw new Error(m); }
+    const d=await r.json();
+    all=all.concat(d);
+    if(d.length<chunk) break;
+    offset+=chunk;
   }
-  throw ultimoError;
+  return all;
 }
 
-async function apiPost(body, reintentos=2){
-  const url_base = getApiUrl();
-  if(!url_base) throw new Error('URL del API no configurada. Use el panel ⚙️ Configuración.');
-  // form-urlencoded: evita el preflight OPTIONS bloqueado por Apps Script
-  const form=new URLSearchParams();
-  form.set('payload', JSON.stringify(body));
-  let ultimoError;
-  for(let intento=0; intento<=reintentos; intento++){
-    try{
-      const r=await fetch(url_base,{
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:form.toString(),
-        redirect:'follow',
-      });
-      const text=await r.text();
-      try{ return JSON.parse(text); }
-      catch(e){ throw new Error('Respuesta no JSON. Verifique la URL del API.'); }
-    }catch(err){
-      ultimoError=err;
-      if(intento<reintentos) await new Promise(r=>setTimeout(r,2000*(intento+1)));
-    }
+async function sbPost(tabla, data, prefer){
+  prefer = prefer||'return=minimal';
+  const r=await fetch(SB_URL+'/rest/v1/'+tabla,{
+    method:'POST', headers:Object.assign({},SB_H,{Prefer:prefer}), body:JSON.stringify(data)
+  });
+  if(!r.ok){ let m='HTTP '+r.status; try{const e=await r.json();m=e.message||e.error||m;}catch(x){} throw new Error(m); }
+  return prefer.includes('representation') ? r.json() : {ok:true};
+}
+
+async function sbPatch(tabla, filtros, data){
+  const qs=Object.entries(filtros).map(([k,v])=>k+'='+encodeURIComponent(String(v))).join('&');
+  const r=await fetch(SB_URL+'/rest/v1/'+tabla+'?'+qs,{
+    method:'PATCH', headers:Object.assign({},SB_H,{Prefer:'return=minimal'}), body:JSON.stringify(data)
+  });
+  if(!r.ok){ let m='HTTP '+r.status; try{const e=await r.json();m=e.message||e.error||m;}catch(x){} throw new Error(m); }
+  return {ok:true};
+}
+
+async function sbDelete(tabla, filtros){
+  const qs=Object.entries(filtros).map(([k,v])=>k+'='+encodeURIComponent(String(v))).join('&');
+  const r=await fetch(SB_URL+'/rest/v1/'+tabla+'?'+qs,{method:'DELETE',headers:SB_H});
+  if(!r.ok){ let m='HTTP '+r.status; try{const e=await r.json();m=e.message||e.error||m;}catch(x){} throw new Error(m); }
+  return {ok:true};
+}
+
+async function getCiclos(){
+  if(_ciclosCache) return _ciclosCache;
+  _ciclosCache=await sbAll('certivac_ciclos',{},'ciclo,biologico_label,grupo_ciclo,meta,valor_unitario','ciclo');
+  return _ciclosCache;
+}
+
+// ── Capa de compatibilidad — mismo interfaz que antes ─────────────────
+async function apiGet(params, reintentos){
+  reintentos=(reintentos===undefined)?2:reintentos;
+  const{accion}=params; const rest=Object.assign({},params); delete rest.accion;
+  try{ return await _accion(accion,rest); }
+  catch(e){
+    if(reintentos>0){ await new Promise(r=>setTimeout(r,1000)); return apiGet(params,reintentos-1); }
+    throw e;
   }
-  throw ultimoError;
 }
 
-// ── Verificar conexión ──
+async function apiPost(body, reintentos){
+  reintentos=(reintentos===undefined)?2:reintentos;
+  const{accion}=body; const rest=Object.assign({},body); delete rest.accion;
+  try{ return await _accion(accion,rest); }
+  catch(e){
+    if(reintentos>0){ await new Promise(r=>setTimeout(r,2000)); return apiPost(body,reintentos-1); }
+    throw e;
+  }
+}
+
+async function _accion(accion, p){
+  switch(accion){
+    case 'ping':               return {ok:true,ts:Date.now()};
+    case 'periodos':           return _periodos();
+    case 'liquidacion':        return _liquidacion(p);
+    case 'archivos':           return _archivos();
+    case 'borrar_archivo':     return _borrarArchivo(p);
+    case 'borrar_todo':        return _borrarTodo(p);
+    case 'guardar_lote':       return _guardarLote(p);
+    case 'alias':              return _alias();
+    case 'guardar_alias':      return _guardarAlias(p);
+    case 'normalizar_nombres': return _normalizarNombres();
+    case 'asignaciones':       return _asignaciones();
+    case 'guardar_asignaciones': return _guardarAsignaciones(p);
+    case 'valores':            return _valores();
+    case 'guardar_valores':    return _guardarValores(p);
+    case 'analytics':          return _analytics(p);
+    case 'trazadores':         return _trazadores(p);
+    default: throw new Error('Acción desconocida: '+accion);
+  }
+}
+
+// ── Períodos disponibles ───────────────────────────────────────────────
+async function _periodos(){
+  const rows=await sbAll('certivac_registros',{},'año,mes_num','año.desc,mes_num.desc');
+  const set=new Set();
+  rows.forEach(r=>{ if(r.año&&r.mes_num) set.add(r.año+'-'+String(r.mes_num).padStart(2,'0')); });
+  return {ok:true, periodos:[...set].sort().reverse()};
+}
+
+// ── Liquidación ────────────────────────────────────────────────────────
+async function _liquidacion(p){
+  const ciclos=await getCiclos();
+  const cicloMap={};
+  ciclos.forEach(c=>{ cicloMap[c.ciclo]={meta:c.meta||0,valor:c.valor_unitario||0,label:c.biologico_label,grupo:c.grupo_ciclo}; });
+
+  const filtros={};
+  if(p.mes){ const[y,m]=p.mes.split('-'); filtros['año']='eq.'+y; filtros['mes_num']='eq.'+parseInt(m); }
+  else if(p.año) filtros['año']='eq.'+p.año;
+
+  const rows=await sbAll('certivac_registros',filtros,'vacunadora,ciclo,en_ciclo,año,mes_num');
+
+  const periodSet=new Set();
+  rows.forEach(r=>{ if(r.año&&r.mes_num) periodSet.add(r.año+'-'+String(r.mes_num).padStart(2,'0')); });
+  const periodos=[...periodSet].sort().reverse();
+
+  const vacMap={};
+  rows.forEach(r=>{
+    const v=r.vacunadora||'(sin nombre)';
+    if(!vacMap[v]) vacMap[v]={};
+    const ck=r.ciclo||'__fuera__';
+    vacMap[v][ck]=(vacMap[v][ck]||0)+1;
+  });
+
+  const vacs=Object.entries(vacMap).map(([vac,cks])=>{
+    let tAp=0,tEnMeta=0,tFuera=0,tVal=0,tValExt=0;
+    const detalles=[];
+    Object.entries(cks).forEach(([ciclo,ap])=>{
+      tAp+=ap;
+      if(ciclo==='__fuera__') return;
+      const def=cicloMap[ciclo]||{meta:0,valor:0,label:ciclo,grupo:'Otros'};
+      const enMeta=Math.min(ap,def.meta);
+      const fuera=Math.max(0,ap-def.meta);
+      const val=enMeta*def.valor;
+      const valExt=fuera*def.valor;
+      tEnMeta+=enMeta; tFuera+=fuera; tVal+=val; tValExt+=valExt;
+      detalles.push({ciclo,label:def.label,grupo:def.grupo,meta:def.meta,ap,enMeta,fuera,valor:def.valor,val,valExt});
+    });
+    return {vac,tAp,tEnMeta,tFuera,tVal,tValExt,detalles};
+  }).sort((a,b)=>b.tVal-a.tVal);
+
+  const granTotal=vacs.reduce((s,v)=>s+v.tVal,0);
+  const granExt=vacs.reduce((s,v)=>s+v.tValExt,0);
+  return {ok:true,vacs,granTotal,granExt,periodos};
+}
+
+// ── Historial de archivos ──────────────────────────────────────────────
+async function _archivos(){
+  const data=await sbAll('certivac_archivos',{},'*','fecha_carga.desc');
+  return {ok:true, archivos:data};
+}
+
+// ── Borrar archivo (CASCADE elimina sus registros) ────────────────────
+async function _borrarArchivo(p){
+  await sbDelete('certivac_archivos',{'id_archivo':'eq.'+p.id_archivo});
+  return {ok:true, registrosBorrados:'(cascade)'};
+}
+
+// ── Borrar todo ────────────────────────────────────────────────────────
+async function _borrarTodo(p){
+  if(p.confirmacion!=='BORRAR_TODO') throw new Error('Confirmación incorrecta');
+  await sbDelete('certivac_registros',{'id_registro':'not.is.null'});
+  await sbDelete('certivac_archivos',{'id_archivo':'not.is.null'});
+  return {ok:true};
+}
+
+// ── Guardar lote (archivo + registros) ────────────────────────────────
+async function _guardarLote(p){
+  const{archivo,registros}=p;
+  let idArchivo=archivo.idArchivoExistente||'';
+
+  if(!idArchivo || archivo.chunkIndex===0){
+    const archivoRow={
+      nombre_archivo:archivo.nombre,
+      fecha_carga:new Date().toISOString(),
+      tamaño:archivo.tamaño||'',
+      mes_archivo:String(archivo.mes||''),
+      año_archivo:String(archivo.año||''),
+      municipio:archivo.municipio||'',
+      departamento:archivo.departamento||'Norte de Santander',
+      institucion:archivo.institucion||'ESE Hospital Regional Noroccidental - PAI',
+      total_registros:0, en_ciclo:0, fuera_ciclo:0, estado:'PROCESANDO'
+    };
+    const res=await sbPost('certivac_archivos',archivoRow,'return=representation');
+    idArchivo=res[0].id_archivo;
+  }
+
+  // Insertar registros en sub-lotes de 500
+  const CHUNK_SB=500;
+  const ahora=new Date().toISOString();
+  let guardados=0;
+  for(let i=0;i<registros.length;i+=CHUNK_SB){
+    const lote=registros.slice(i,i+CHUNK_SB).map(r=>({
+      fecha_carga:ahora, id_archivo:idArchivo,
+      nombre_archivo:r.nombre_archivo||archivo.nombre,
+      dia:r.dia||null, año:r.año||null, mes_num:r.mes_num||null,
+      mes_nombre:r.mes_nombre||'', trimestre:r.trimestre||'', semestre:r.semestre||'',
+      vacunadora:r.vacunadora||'', id_paciente:String(r.id_paciente||''),
+      tipo_edad:r.tipo_edad||'', edad_num:r.edad_num||0, edad_meses:r.edad_meses||0,
+      poblacion:r.poblacion||'', biologico:r.biologico||'', texto_dosis:r.texto_dosis||'',
+      ciclo:r.ciclo||'', grupo_ciclo:r.grupo_ciclo||'', en_ciclo:r.en_ciclo||false,
+      valor_unitario:r.valor_unitario||0, meta_ciclo:r.meta_ciclo||0,
+      municipio:r.municipio||'', departamento:r.departamento||'Norte de Santander',
+      institucion:r.institucion||'ESE Hospital Regional Noroccidental - PAI'
+    }));
+    await sbPost('certivac_registros',lote);
+    guardados+=lote.length;
+  }
+
+  // En el último chunk actualizar estadísticas del archivo
+  if(archivo.chunkIndex===archivo.totalChunks-1){
+    const tots=await sbAll('certivac_registros',{'id_archivo':'eq.'+idArchivo},'id_registro,en_ciclo');
+    const enCiclo=tots.filter(r=>r.en_ciclo).length;
+    await sbPatch('certivac_archivos',{'id_archivo':'eq.'+idArchivo},{
+      total_registros:tots.length, en_ciclo:enCiclo, fuera_ciclo:tots.length-enCiclo, estado:'OK'
+    });
+  }
+  _ciclosCache=null;
+  return {ok:true, idArchivo, registrosGuardados:guardados};
+}
+
+// ── Alias de vacunadoras ───────────────────────────────────────────────
+async function _alias(){
+  const[alias,vacs]=await Promise.all([
+    sbAll('certivac_alias_vacunadoras',{},'id,alias_raw,nombre_canonical','alias_raw'),
+    sbAll('certivac_registros',{},'vacunadora','vacunadora')
+  ]);
+  const set=new Set(); vacs.forEach(r=>{ if(r.vacunadora) set.add(r.vacunadora); });
+  return {
+    ok:true,
+    alias:alias.map(a=>({raw:a.alias_raw,canonical:a.nombre_canonical})),
+    nombresUnicos:[...set].sort()
+  };
+}
+
+async function _guardarAlias(p){
+  const existentes=await sbAll('certivac_alias_vacunadoras',{},'id');
+  for(const a of existentes) await sbDelete('certivac_alias_vacunadoras',{'id':'eq.'+a.id});
+  const rows=(p.alias||[]).map(a=>({alias_raw:a.raw.toUpperCase(),nombre_canonical:a.canonical,fecha_creacion:new Date().toISOString()}));
+  if(rows.length) await sbPost('certivac_alias_vacunadoras',rows);
+  return {ok:true, guardados:rows.length};
+}
+
+async function _normalizarNombres(){
+  const alias=await sbAll('certivac_alias_vacunadoras',{},'alias_raw,nombre_canonical');
+  let actualizados=0;
+  for(const a of alias){
+    const r=await fetch(SB_URL+'/rest/v1/certivac_registros?vacunadora=eq.'+encodeURIComponent(a.alias_raw),{
+      method:'PATCH', headers:Object.assign({},SB_H,{Prefer:'return=minimal'}),
+      body:JSON.stringify({vacunadora:a.nombre_canonical})
+    });
+    if(r.ok) actualizados++;
+  }
+  _ciclosCache=null;
+  return {ok:true, actualizados};
+}
+
+// ── Asignaciones vacunadora → municipio ───────────────────────────────
+async function _asignaciones(){
+  const[asigs,vacs]=await Promise.all([
+    sbAll('certivac_asignaciones_municipio',{},'*'),
+    sbAll('certivac_registros',{},'vacunadora','vacunadora')
+  ]);
+  const set=new Set(); vacs.forEach(r=>{ if(r.vacunadora) set.add(r.vacunadora); });
+  return {
+    ok:true,
+    asignaciones:asigs.map(a=>({vacunadora:a.vacunadora_canonical,municipio:a.municipio_asignado,departamento:a.departamento||'Norte de Santander',notas:a.notas||''})),
+    vacsUnicas:[...set].sort()
+  };
+}
+
+async function _guardarAsignaciones(p){
+  const existentes=await sbAll('certivac_asignaciones_municipio',{},'id');
+  for(const a of existentes) await sbDelete('certivac_asignaciones_municipio',{'id':'eq.'+a.id});
+  const rows=(p.asignaciones||[]).filter(a=>a.municipio).map(a=>({
+    vacunadora_canonical:(a.vacunadora||'').toUpperCase(),
+    municipio_asignado:a.municipio,
+    departamento:a.departamento||'Norte de Santander',
+    notas:a.notas||''
+  }));
+  if(rows.length) await sbPost('certivac_asignaciones_municipio',rows);
+  return {ok:true, guardados:rows.length};
+}
+
+// ── Valores y metas de ciclos ──────────────────────────────────────────
+async function _valores(){
+  const data=await sbAll('certivac_ciclos',{},'ciclo,biologico_label,grupo_ciclo,meta,valor_unitario','ciclo');
+  return {ok:true, valores:data.map(c=>({ciclo:c.ciclo,label:c.biologico_label,grupo:c.grupo_ciclo,meta:c.meta||0,valor:c.valor_unitario||0}))};
+}
+
+async function _guardarValores(p){
+  let guardados=0;
+  for(const v of (p.valores||[])){
+    const r=await fetch(SB_URL+'/rest/v1/certivac_ciclos?ciclo=eq.'+encodeURIComponent(v.ciclo),{
+      method:'PATCH', headers:Object.assign({},SB_H,{Prefer:'return=minimal'}),
+      body:JSON.stringify({meta:parseInt(v.meta)||0, valor_unitario:parseInt(v.valor)||0})
+    });
+    if(r.ok) guardados++;
+  }
+  _ciclosCache=null;
+  return {ok:true, guardados};
+}
+
+// ── Helpers Analytics ─────────────────────────────────────────────────
+function _periodoKey(dia, agrupacion){
+  if(!dia) return '';
+  const d=new Date(dia+'T00:00:00');
+  if(isNaN(d)) return '';
+  const y=d.getFullYear(),m=d.getMonth()+1,day=d.getDate();
+  switch(agrupacion){
+    case 'day':      return y+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    case 'week': {
+      const tmp=new Date(Date.UTC(y,d.getMonth(),day));
+      const dn=tmp.getUTCDay()||7; tmp.setUTCDate(tmp.getUTCDate()+4-dn);
+      const wy=tmp.getUTCFullYear(),wo=Math.ceil(((tmp-Date.UTC(wy,0,1))/86400000+1)/7);
+      return wy+'-W'+String(wo).padStart(2,'0');
+    }
+    case 'month':    return y+'-'+String(m).padStart(2,'0');
+    case 'quarter':  return y+'-T'+Math.ceil(m/3);
+    case 'semester': return y+'-S'+(m<=6?1:2);
+    default:         return String(y);
+  }
+}
+
+async function _getAsigMap(){
+  const rows=await sbAll('certivac_asignaciones_municipio',{},'vacunadora_canonical,municipio_asignado');
+  const m={}; rows.forEach(a=>{ m[(a.vacunadora_canonical||'').toUpperCase()]=a.municipio_asignado; });
+  return m;
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────
+async function _analytics(p){
+  const{agrupacion,vacunadora,municipio,mes,año,desde,hasta}=p;
+  const ag=agrupacion||'month';
+  const asigMap=await _getAsigMap();
+
+  const filtros={};
+  if(mes){ const[y,m2]=mes.split('-'); filtros['año']='eq.'+y; filtros['mes_num']='eq.'+parseInt(m2); }
+  else if(año) filtros['año']='eq.'+año;
+  if(vacunadora) filtros['vacunadora']='eq.'+vacunadora;
+
+  let rows=await sbAll('certivac_registros',filtros,'vacunadora,biologico,grupo_ciclo,municipio,dia,año,mes_num');
+  if(municipio) rows=rows.filter(r=>(r.municipio||asigMap[(r.vacunadora||'').toUpperCase()]||'').toUpperCase()===municipio.toUpperCase());
+  if(desde) rows=rows.filter(r=>r.dia&&r.dia>=desde);
+  if(hasta) rows=rows.filter(r=>r.dia&&r.dia<=hasta);
+
+  const vacSet=new Set(),bioSet=new Set(),grpSet=new Set(),munSet=new Set(),perSet=new Set();
+  const matVac={},matBio={},matGrupo={},matMun={},diaCounts={};
+
+  rows.forEach(r=>{
+    const per=_periodoKey(r.dia,ag); if(!per) return;
+    perSet.add(per);
+    const vac=r.vacunadora||'(sin nombre)';
+    const bio=r.biologico||'(sin biológico)';
+    const grp=r.grupo_ciclo||'Otros';
+    const mun=r.municipio||asigMap[(vac).toUpperCase()]||'(sin municipio)';
+    vacSet.add(vac); bioSet.add(bio); grpSet.add(grp); munSet.add(mun);
+    if(!matVac[vac]) matVac[vac]={};
+    if(!matBio[bio]) matBio[bio]={};
+    if(!matGrupo[grp]) matGrupo[grp]={};
+    if(!matMun[mun]) matMun[mun]={};
+    matVac[vac][per]=(matVac[vac][per]||0)+1;
+    matBio[bio][per]=(matBio[bio][per]||0)+1;
+    matGrupo[grp][per]=(matGrupo[grp][per]||0)+1;
+    matMun[mun][per]=(matMun[mun][per]||0)+1;
+    const dk=r.dia||per;
+    diaCounts[dk]=(diaCounts[dk]||0)+1;
+  });
+
+  const periodos=[...perSet].sort();
+  const seriesDia=Object.entries(diaCounts).sort(([a],[b])=>a<b?-1:1).map(([dia,count])=>({dia,count}));
+  return{ok:true,agrupacion:ag,totalRegistros:rows.length,periodos,
+    vacunadoras:[...vacSet].sort(),biologicos:[...bioSet].sort(),grupos:[...grpSet].sort(),municipios:[...munSet].sort(),
+    matVac,matBio,matGrupo,matMun,seriesDia};
+}
+
+// ── Trazadores PAI ────────────────────────────────────────────────────
+const TRAZADORES_DEF=[
+  {ciclo:'RN-BCG',        label:'BCG RN',             cohorte:'Recién Nacidos',   proposito:'Captación institucional al nacer',    color:'#1B4FD8'},
+  {ciclo:'6M-Penta',      label:'Pentavalente 3ª',     cohorte:'Menores de 1 año', proposito:'Esquema básico completado',           color:'#00B4A0'},
+  {ciclo:'6M-Polio',      label:'Polio 3ª',            cohorte:'Menores de 1 año', proposito:'Esquema primario de polio completo',  color:'#10B981'},
+  {ciclo:'1A-TripleViral',label:'Triple Viral 1ª',     cohorte:'Niños de 1 año',   proposito:'Indicador OPS/OMS (sarampión, rubéola)',color:'#7C3AED'},
+  {ciclo:'5A-DPT',        label:'DPT 2° refuerzo',     cohorte:'Niños de 5 años',  proposito:'Cierre de esquema primera infancia',  color:'#F59E0B'},
+  {ciclo:'5A-PolioOral',  label:'Polio 2° refuerzo',   cohorte:'Niños de 5 años',  proposito:'Complemento del cierre',              color:'#EA580C'},
+];
+
+async function _trazadores(p){
+  const{agrupacion,municipio,mes,año}=p;
+  const ag=agrupacion||'month';
+  const asigMap=await _getAsigMap();
+
+  const filtros={};
+  if(mes){ const[y,m2]=mes.split('-'); filtros['año']='eq.'+y; filtros['mes_num']='eq.'+parseInt(m2); }
+  else if(año) filtros['año']='eq.'+año;
+
+  const ciclosFiltro=TRAZADORES_DEF.map(t=>t.ciclo);
+  let rows=await sbAll('certivac_registros',filtros,'vacunadora,ciclo,municipio,dia,año,mes_num');
+  rows=rows.filter(r=>ciclosFiltro.includes(r.ciclo));
+  if(municipio) rows=rows.filter(r=>(r.municipio||asigMap[(r.vacunadora||'').toUpperCase()]||'').toUpperCase()===municipio.toUpperCase());
+
+  const munSet=new Set(),perSet=new Set();
+  rows.forEach(r=>{ const per=_periodoKey(r.dia,ag); if(per) perSet.add(per); const mun=r.municipio||asigMap[(r.vacunadora||'').toUpperCase()]||''; if(mun) munSet.add(mun); });
+  const periodos=[...perSet].sort();
+
+  const trazadores=TRAZADORES_DEF.map(def=>{
+    const propias=rows.filter(r=>r.ciclo===def.ciclo);
+    const porPeriodo={};
+    propias.forEach(r=>{ const per=_periodoKey(r.dia,ag); if(per) porPeriodo[per]=(porPeriodo[per]||0)+1; });
+    return Object.assign({},def,{total:propias.length,porPeriodo});
+  });
+  return{ok:true,trazadores,periodos,municipios:[...munSet].sort(),todosLosPeriodos:periodos};
+}
+
+// ── Verificar conexión Supabase ────────────────────────────────────────
 async function verificarConexion(){
-  const el=$('conn-status');const txt=$('conn-txt');
-  const urlActual = getApiUrl();
+  const el=$('conn-status'),txt=$('conn-txt');
   try{
-    if(!urlActual){
-      el.className='conn-status conn-err';
-      txt.textContent='API no configurada';
-      $('sf-fl').textContent='Configure la URL del API';
-      $('al-api-warn').style.display='flex';
-      return false;
-    }
-    const data=await apiGet({accion:'ping'}, 1);
-    if(!data.ok && !data.ts) throw new Error('Respuesta inesperada');
+    const r=await fetch(SB_URL+'/rest/v1/certivac_config?select=clave&limit=1',{headers:SB_H});
+    if(!r.ok) throw new Error('HTTP '+r.status);
     el.className='conn-status conn-ok';
-    txt.textContent='Google Sheets conectado';
+    txt.textContent='Supabase conectado';
+    $('sf-fl').textContent='SI-APS HRNO';
     $('al-api-warn').style.display='none';
     return true;
   }catch(e){
     el.className='conn-status conn-err';
-    txt.textContent='Sin conexión — ver ⚙️ Config';
-    $('sf-fl').textContent='Error de conexión';
+    txt.textContent='Error de conexión';
+    $('sf-fl').textContent='Ver consola';
     return false;
   }
 }
@@ -1301,7 +1606,7 @@ function nav(id,btn){
   $('view-'+id).classList.add('active');
   if(btn)btn.classList.add('active');
   const ts={dashboard:'📊 Dashboard General',carga:'📂 Cargar Archivos XLS / XLSX',
-    historial:'🗂️ Historial de Archivos en Google Sheets',liquidacion:'💵 Liquidación de Vacunadoras',
+    historial:'🗂️ Historial de Archivos en Supabase',liquidacion:'💵 Liquidación de Vacunadoras',
     metas:'🎯 Tabla de Metas — Contrato CPSESEHRNO-0064-2026',
     informemun:'📋 Informe de Vacunación por Municipio',
     analytics:'📈 Análisis & Gráficas por Período',exportar:'⬇️ Exportar Datos a Excel',
@@ -1411,7 +1716,7 @@ async function cargarHistorial(){
 }
 
 async function borrarArchivoHist(id, nombre){
-  if(!confirm(`¿Eliminar "${nombre}" y todos sus registros de Google Sheets?`))return;
+  if(!confirm(`¿Eliminar "${nombre}" y todos sus registros de Supabase?`))return;
   showLoad('Eliminando registros…','Por favor espere');
   try{
     const data=await apiPost({accion:'borrar_archivo',id_archivo:id,nombre_archivo:nombre});
@@ -1423,7 +1728,7 @@ async function borrarArchivoHist(id, nombre){
 }
 
 async function borrarTodoBD(){
-  if(!confirm('⚠️ ¿Eliminar TODOS los registros de Google Sheets? Esta acción es irreversible.'))return;
+  if(!confirm('⚠️ ¿Eliminar TODOS los registros de Supabase? Esta acción es irreversible.'))return;
   showLoad('Eliminando todos los datos…','Por favor espere');
   try{
     const data=await apiPost({accion:'borrar_todo',confirmacion:'BORRAR_TODO'});
@@ -1548,12 +1853,6 @@ function onDrop(e){e.preventDefault();$('dz').classList.remove('drag');if(e.data
 function addMore(){$('fi-extra').value='';$('fi-extra').click()}
 
 function handleFiles(files){
-  if(!getApiUrl()){
-    $('al-api-warn').style.display='flex';
-    toast('⚠️ Configure la URL del API en ⚙️ Configuración','warn');
-    nav('config', document.querySelector('.ni[onclick*="config"]'));
-    return;
-  }
   const arr=Array.from(files).filter(f=>{
     const ext=f.name.split('.').pop().toLowerCase();
     if(!['xls','xlsx'].includes(ext)){toast(`❌ ${f.name}: solo XLS/XLSX`,'err');return false;}
@@ -1629,9 +1928,9 @@ async function procesarYGuardar(file){
           resolve();return;
         }
 
-        setFP(id,85,'Guardando en Google Sheets…');
+        setFP(id,85,'Guardando en Supabase…');
 
-        // Dividir en lotes de 200 para evitar límite de payload de Apps Script
+        // Dividir en lotes de 200 para evitar timeouts de red
         const CHUNK = 200;
         const archivoMeta = {
           nombre:file.name, tamaño:fmtSz(file.size),
@@ -1657,7 +1956,7 @@ async function procesarYGuardar(file){
           totalGuardados+=res.registrosGuardados||chunk.length;
           if(ci===0) idArchivoGuardado=res.idArchivo||'';
         }
-        setFP(id,100,'✅ Guardado en Google Sheets');
+        setFP(id,100,'✅ Guardado en Supabase');
         st.estado='done';
         st.registros=totalGuardados;
         st.enCiclo=registros.filter(r=>r.ciclo).length;
@@ -1701,7 +2000,7 @@ function mostrarValidacion(nombreArchivo, registros, municipio, periodo){
         <div style="background:#0C1B33;padding:22px 28px 18px;color:#fff">
           <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#00B4A0;font-weight:700;margin-bottom:6px">Validación previa · CertiVac</div>
           <div style="font-size:15px;font-weight:800;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${nombreArchivo}">📄 ${nombreArchivo}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.4)">Revisá los datos antes de guardar en Google Sheets</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4)">Revisá los datos antes de guardar en Supabase</div>
         </div>
         <div style="padding:22px 28px">
           <!-- Municipio / Período -->
@@ -1744,7 +2043,7 @@ function mostrarValidacion(nombreArchivo, registros, municipio, periodo){
           <div style="display:flex;gap:10px;justify-content:flex-end">
             <button id="val-cancel" style="padding:9px 20px;border-radius:9px;border:1.5px solid #D4D9E8;background:#fff;color:#3D4B63;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>
             <button id="val-confirm" ${hayError?'disabled':''} style="padding:9px 22px;border-radius:9px;border:none;background:${hayError?'#D4D9E8':'#1B4FD8'};color:${hayError?'#7D8AA3':'#fff'};font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:${hayError?'not-allowed':'pointer'}">
-              ${hayError?'Sin registros':'☁️ Guardar en Google Sheets'}
+              ${hayError?'Sin registros':'☁️ Guardar en Supabase'}
             </button>
           </div>
         </div>
@@ -1948,7 +2247,7 @@ async function abrirDiagnostico(){
         </div>
       </div>
       <div style="padding:14px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;border-radius:0 0 14px 14px;font-size:12px;color:#64748b">
-        💡 Este análisis es <strong>100% local</strong> — no envía datos a Google Sheets. Úsalo para verificar que tu XLS se clasifica correctamente antes de re-subir.
+        💡 Este análisis es <strong>100% local</strong> — no envía datos a Supabase. Úsalo para verificar que tu XLS se clasifica correctamente antes de re-subir.
       </div>
     </div>`;
     document.body.appendChild(modal);
@@ -2044,7 +2343,7 @@ function renderFI(a){
       <div class="fi-meta">
         <span>📦 ${a.tamaño}</span>
         ${done?`<span style="color:var(--teal-d);font-weight:700">💉 ${(a.registros||0).toLocaleString()} dosis</span>`:''}
-        ${done?`<span style="color:var(--teal-d)">☁️ Guardado en Google Sheets</span>`:''}
+        ${done?`<span style="color:var(--teal-d)">☁️ Guardado en Supabase</span>`:''}
         ${err?`<span style="color:var(--crimson)">❌ ${a.error}</span>`:''}
       </div>
       ${proc?`<div class="fi-bar"><div class="fi-bar-f" id="fb-${a.id}" style="width:0%"></div></div>`:''}
@@ -2096,7 +2395,7 @@ async function verCert(nombre){
   $('c-dext').textContent=v.tFuera.toLocaleString('es-CO')+' dosis';
   $('c-gran').textContent=fmt(v.tVal);
   $('c-ext').textContent=fmt(v.tValExt||0);
-  $('c-fuente').textContent='Fuente: Google Sheets — REGISTROS_PAI';
+  $('c-fuente').textContent='Fuente: Supabase — certivac_registros';
   // Campos de firma
   $('f1-nombre').value=v.vac;
   $('f1-cargo').value='Vacunadora PAI';
@@ -2433,7 +2732,7 @@ async function renderAnalytics() {
   try {
     const cacheKey = JSON.stringify({ p: APP.anPeriodo, f: AN_FILTROS });
     if (APP.anCache && APP.anCacheKey === cacheKey) { renderAnTab(APP.anTab, APP.anCache); return; }
-    showLoad('Cargando análisis…', 'Consultando Google Sheets');
+    showLoad('Cargando análisis…', 'Consultando Supabase');
     const params = { accion: 'analytics', agrupacion: APP.anPeriodo };
     if (AN_FILTROS.vac)   params.vacunadora = AN_FILTROS.vac;
     if (AN_FILTROS.mes)   params.mes        = AN_FILTROS.mes;
@@ -2767,7 +3066,7 @@ async function renderTrazadores() {
   const cacheKey = JSON.stringify({ p: APP.anPeriodo, tf: TRAZ_FILTROS });
   if (APP.trazCache && APP.trazCacheKey === cacheKey) { renderTrazChart(APP.trazCache); return; }
   try {
-    showLoad('Cargando trazadores…', 'Consultando Google Sheets');
+    showLoad('Cargando trazadores…', 'Consultando Supabase');
     const params = { accion:'trazadores', agrupacion: APP.anPeriodo };
     // Filtros propios del pane de trazadores
     if (TRAZ_FILTROS.mun) params.municipio = TRAZ_FILTROS.mun;
@@ -2951,7 +3250,7 @@ function setW(ws,ws2){ws['!cols']=ws2.map(w=>({wch:w}));}
 function dl(wb,n){const ts=new Date().toISOString().substring(0,10);XLSXO.writeFile(wb,`${n}_${ts}.xlsx`);toast(`✅ ${n} descargado`);}
 
 async function exportarRegistros(){
-  showLoad('Descargando registros…','Consultando Google Sheets');
+  showLoad('Descargando registros…','Consultando Supabase');
   try{
     const data=await apiGet({accion:'registros',limite:50000});
     hideLoad();
@@ -3193,7 +3492,7 @@ function agregarAliasRow(){
 async function guardarAliasCompleto(){
   const validos = ALIAS_LOCALES.filter(a=>a.raw&&a.canonical);
   if(!validos.length){toast('⚠️ No hay alias válidos para guardar','warn');return;}
-  showLoad('Guardando alias…','Actualizando Google Sheets');
+  showLoad('Guardando alias…','Actualizando Supabase');
   try{
     const r = await apiPost({accion:'guardar_alias', alias:validos});
     hideLoad();
@@ -3207,8 +3506,8 @@ async function guardarAliasCompleto(){
 async function normalizarEnBD(){
   const validos = ALIAS_LOCALES.filter(a=>a.raw&&a.canonical);
   if(!validos.length){toast('⚠️ Guarde los alias primero','warn');return;}
-  if(!confirm(`¿Normalizar TODOS los registros en Google Sheets aplicando los ${validos.length} alias?\n\nEsta operación actualiza los nombres directamente en la hoja REGISTROS_PAI.`))return;
-  showLoad('Normalizando nombres en Google Sheets…','Esto puede tardar unos segundos');
+  if(!confirm(`¿Normalizar TODOS los registros en Supabase aplicando los ${validos.length} alias?\n\nEsta operación actualiza los nombres directamente en la tabla certivac_registros.`))return;
+  showLoad('Normalizando nombres en Supabase…','Esto puede tardar unos segundos');
   try{
     // Primero guardar alias actuales
     await apiPost({accion:'guardar_alias', alias:validos});
@@ -3216,7 +3515,7 @@ async function normalizarEnBD(){
     const r = await apiPost({accion:'normalizar_nombres', dummy:true});
     hideLoad();
     if(!r.ok) throw new Error(r.error);
-    toast(`✅ ${r.actualizados} registros normalizados en Google Sheets`);
+    toast(`✅ ${r.actualizados} registros normalizados en Supabase`);
     APP.liqCache=null; APP.anCache=null;
     recargarDatos();
   }catch(e){hideLoad();toast('❌ '+e.message,'err');}
@@ -3231,7 +3530,7 @@ let ASIG_VACS_BD = []; // vacunadoras únicas en BD
 async function cargarAsignaciones(){
   const tbody = $('asig-tbody');
   if(!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--s4)">⏳ Cargando desde Google Sheets…</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--s4)">⏳ Cargando desde Supabase…</td></tr>`;
   try{
     const data = await apiGet({accion:'asignaciones'});
     if(!data.ok) throw new Error(data.error);
@@ -3288,7 +3587,7 @@ function updateAsigLocal(i, campo, val){
 async function guardarAsignacionesCompleto(){
   const conMunicipio = ASIG_LOCALES.filter(a=>a.municipio);
   if(!conMunicipio.length){toast('⚠️ Asigne al menos un municipio','warn');return;}
-  showLoad('Guardando asignaciones…','Actualizando Google Sheets');
+  showLoad('Guardando asignaciones…','Actualizando Supabase');
   try{
     const r = await apiPost({accion:'guardar_asignaciones', asignaciones: ASIG_LOCALES.filter(a=>a.municipio)});
     hideLoad();
@@ -3304,7 +3603,7 @@ let VALORES_LOCALES = [];
 async function cargarValores(){
   const tbody = $('valores-tbody');
   if(!tbody) return;
-  tbody.innerHTML=`<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--s4)">⏳ Cargando desde Google Sheets…</td></tr>`;
+  tbody.innerHTML=`<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--s4)">⏳ Cargando desde Supabase…</td></tr>`;
   try{
     const data = await apiGet({accion:'valores'});
     if(!data.ok) throw new Error(data.error);
@@ -3380,7 +3679,7 @@ function actualizarTotalValores(){
 
 async function guardarValoresCompleto(){
   if(!VALORES_LOCALES.length){toast('Sin valores para guardar','warn');return;}
-  showLoad('Guardando valores en Google Sheets…','Por favor espere');
+  showLoad('Guardando valores en Supabase…','Por favor espere');
   try{
     const r = await apiPost({accion:'guardar_valores', valores:VALORES_LOCALES});
     hideLoad();
@@ -3397,85 +3696,62 @@ function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 
 function abrirConfig(){
-  const url = getApiUrl();
-  const inp = $('cfg-url-input');
-  if(inp) inp.value = url || '';
-  actualizarEstadoConfig(null); // mostrar estado actual sin re-probar
-}
-
-function guardarURL(){
-  const inp = $('cfg-url-input');
-  const url = (inp?.value||'').trim();
-  if(!url || !url.startsWith('https://script.google.com')){
-    toast('❌ URL inválida. Debe comenzar con https://script.google.com','err');
-    return;
-  }
-  setApiUrlStorage(url);
-  toast('✅ URL guardada. Probando conexión…');
-  probarConexion();
+  actualizarEstadoConfig(null);
 }
 
 async function probarConexion(){
   actualizarEstadoConfig('probando');
-  const diag = $('cfg-diag');
   const diagContent = $('cfg-diag-content');
-  if(diag) diag.style.display='block';
-
-  const url = getApiUrl();
-  let log = `URL: ${url||'(no configurada)'}\n`;
+  let log = `Proyecto: wttljozqyaxlzilomnef.supabase.co\n`;
   log += `Timestamp: ${new Date().toISOString()}\n\n`;
-
   try{
-    if(!url){ throw new Error('URL no configurada'); }
-    log += `Enviando ping...\n`;
-    const t0 = Date.now();
-    const data = await apiGet({accion:'ping'}, 0);
-    const ms = Date.now()-t0;
+    log += `Probando conexión a certivac_config…\n`;
+    const t0=Date.now();
+    const r=await fetch(SB_URL+'/rest/v1/certivac_config?select=clave,valor',{headers:SB_H});
+    const ms=Date.now()-t0;
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data=await r.json();
     log += `✅ Respuesta en ${ms}ms\n`;
-    log += `Servidor: ${JSON.stringify(data)}\n`;
-    actualizarEstadoConfig('ok', url);
-    // Actualizar indicador del sidebar también
-    const el=$('conn-status');const txt=$('conn-txt');
-    if(el){el.className='conn-status conn-ok';txt.textContent='Google Sheets conectado';}
+    log += `Parámetros: ${JSON.stringify(data.map(d=>d.clave))}\n\n`;
+    log += `Tablas disponibles:\n`;
+    for(const t of ['certivac_registros','certivac_archivos','certivac_ciclos','certivac_alias_vacunadoras','certivac_asignaciones_municipio']){
+      const tr=await fetch(SB_URL+'/rest/v1/'+t+'?select=count&limit=0',{headers:Object.assign({},SB_H,{'Prefer':'count=exact'})});
+      const cnt=tr.headers.get('content-range')||'?';
+      log += `  • ${t}: ${cnt}\n`;
+    }
+    actualizarEstadoConfig('ok','wttljozqyaxlzilomnef.supabase.co');
+    const el=$('conn-status'),txt=$('conn-txt');
+    if(el){el.className='conn-status conn-ok';txt.textContent='Supabase conectado';}
     $('al-api-warn').style.display='none';
-    toast('✅ Conexión exitosa con Google Sheets');
-    // Auto-cargar datos
+    toast('✅ Conexión exitosa con Supabase SI-APS HRNO');
     setTimeout(()=>cargarDashboard(), 500);
   }catch(err){
     log += `❌ Error: ${err.message}\n\n`;
-    log += `Posibles causas:\n`;
-    log += `• URL incorrecta o no publicada\n`;
-    log += `• El script no está publicado como "Aplicación web"\n`;
-    log += `• Acceso configurado como "Solo yo" en lugar de "Cualquier usuario"\n`;
-    log += `• El script requiere nueva autorización\n\n`;
-    log += `Solución: Vaya a Apps Script → Implementar → Administrar implementaciones\n`;
-    log += `y verifique que el acceso sea "Cualquier usuario, incluso anónimos"`;
+    log += `Verifique que tenga conexión a internet y que el proyecto Supabase esté activo.`;
     actualizarEstadoConfig('error');
-    toast('❌ No se pudo conectar — ver diagnóstico abajo','err');
+    toast('❌ No se pudo conectar — ver diagnóstico','err');
   }
   if(diagContent) diagContent.textContent = log;
 }
 
-function actualizarEstadoConfig(estado, url){
+function actualizarEstadoConfig(estado){
   const ico = $('cfg-ico');
   const txt = $('cfg-status-txt');
   const urlDisp = $('cfg-url-display');
   const box = $('cfg-status-box');
   if(!ico||!txt) return;
-  const urlActual = url || getApiUrl() || '(no configurada)';
-  if(urlDisp) urlDisp.textContent = urlActual.length > 70 ? urlActual.substring(0,67)+'…' : urlActual;
+  if(urlDisp) urlDisp.textContent = SB_URL;
   if(estado==='ok'){
-    ico.textContent='✅'; txt.textContent='Conexión establecida con Google Sheets';
+    ico.textContent='✅'; txt.textContent='Conexión establecida con Supabase';
     if(box) box.style.background='rgba(0,180,160,.1)';
   }else if(estado==='error'){
-    ico.textContent='❌'; txt.textContent='Error de conexión — revise la URL y permisos';
+    ico.textContent='❌'; txt.textContent='Error de conexión — verifique la clave y políticas RLS';
     if(box) box.style.background='rgba(220,38,38,.08)';
   }else if(estado==='probando'){
     ico.textContent='⏳'; txt.textContent='Probando conexión…';
     if(box) box.style.background='rgba(245,158,11,.08)';
   }else{
-    ico.textContent = getApiUrl() ? '🔵' : '⚪';
-    txt.textContent = getApiUrl() ? 'URL configurada — sin verificar' : 'URL no configurada';
+    ico.textContent='🔵'; txt.textContent='Supabase configurado — sin verificar';
     if(box) box.style.background='var(--s1)';
   }
 }
@@ -3857,7 +4133,7 @@ function verInformeMun(){
   $('om-dext').textContent=totFuera.toLocaleString('es-CO')+' dosis';
   $('om-gran').textContent=fmt(totV);
   $('om-ext').textContent=fmt(totVext);
-  $('om-fuente').textContent=`Fuente: Google Sheets — REGISTROS_PAI · ${perLbl}`;
+  $('om-fuente').textContent=`Fuente: Supabase — certivac_registros · ${perLbl}`;
   $('om').classList.add('show');
 }
 
@@ -3992,22 +4268,12 @@ function descargarPDFInformeMun(){
 
 window.onload=async ()=>{
   renderMetas();
-  // Pre-cargar URL guardada en el input de configuración
-  const urlGuardada = getApiUrl();
-  const inp = $('cfg-url-input');
-  if(inp && urlGuardada) inp.value = urlGuardada;
-  // Toast de bienvenida si se configuró automáticamente por ?api=
-  if(window.__apiAutoConfig){
-    toast('✅ Portal configurado automáticamente — conectando…');
-  }
-  // Verificar conexión y cargar datos
+  // Verificar conexión Supabase y cargar datos
   const ok = await verificarConexion();
   if(ok){
     cargarDashboard();
-  } else if(!urlGuardada){
-    // Sin URL configurada → mostrar aviso y guiar al panel de config
-    toast('⚙️ Configure la URL del API en el menú Configuración','warn');
-    $('al-api-warn').style.display='flex';
+  } else {
+    toast('⚠️ No se pudo conectar a Supabase — verifique la red','warn');
   }
 };
 </script>

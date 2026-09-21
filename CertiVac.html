@@ -1165,7 +1165,7 @@ let _ciclosCache = null;
 
 // Fetch con paginación automática (Supabase devuelve máx 1000 por defecto)
 async function sbAll(tabla, filtros, sel, ord, chunk){
-  filtros = filtros||{}; sel = sel||'*'; chunk = chunk||5000;
+  filtros = filtros||{}; sel = sel||'*'; chunk = chunk||1000;
   let offset=0, all=[];
   for(;;){
     let qs='select='+encodeURIComponent(sel);

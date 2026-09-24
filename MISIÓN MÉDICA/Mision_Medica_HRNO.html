@@ -5132,8 +5132,8 @@ function segEmbRenderTabla(data){
         <td style="font-weight:700;color:${faltantes>0?'#da291c':'#0a8f63'}">${faltantes}</td>
         <td><div style="display:flex;gap:.3rem;flex-wrap:wrap">
           <button class="btn btn-sm" style="background:var(--purple);color:#fff" onclick="segEmbAbrirAcciones('${r.id}')">Acciones</button>
-          <button class="btn btn-secondary btn-sm" onclick="segEmbAbrirModal('${r.id}')">Editar</button>
-          <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="segEmbEliminar('${r.id}')">Eliminar</button>
+          ${S.adminLoggedIn?`<button class="btn btn-secondary btn-sm" onclick="segEmbAbrirModal('${r.id}')">Editar</button>
+          <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b" onclick="segEmbEliminar('${r.id}')">Eliminar</button>`:''}
         </div></td>
       </tr>`;
     }).join('')}</tbody></table>`;
